@@ -6,6 +6,5 @@
 
 int main(void)
 {
-    cpu_hello();
     return 0;
 }

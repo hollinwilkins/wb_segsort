@@ -15,3 +15,9 @@ target_compile_definitions(
 
     MERGE_SORT_CPU_IMPLEMENTATION
 )
+
+add_library(merge_sort_cpu_headers INTERFACE)
+target_include_directories(
+    merge_sort_cpu_headers INTERFACE
+    "${CMAKE_SOURCE_DIR}"
+)

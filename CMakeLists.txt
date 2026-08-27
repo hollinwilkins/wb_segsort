@@ -10,3 +10,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 include(Cpu)
 include(Main)
+
+enable_testing()
+
+add_subdirectory("dependencies/unity")
+add_subdirectory("tests")
