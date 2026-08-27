@@ -1,0 +1,21 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": { "major": 3, "minor": 27, "patch": 0 },
+    "configurePresets": [{
+        "name": "base",
+        "hidden": true,
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/build-${presetName}"
+    }, {
+        "name": "debug",
+        "inherits": "base",
+        "displayName": "Debug Examples",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+        }
+    }],
+    "buildPresets": [{
+        "name": "debug",
+        "configurePreset": "debug"
+    }]
+}

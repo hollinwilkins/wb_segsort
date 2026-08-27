@@ -1,0 +1,15 @@
+zig-cache/
+.zig-cache/
+zig-out/
+zig-pkg/
+test-out
+.vscode/
+.zed/
+.DS_Store
+tmp/
+scratch/
+build/
+build-*/
+*.swp
+*.old
+.cache/

@@ -1,0 +1,8 @@
+CompileFlags:
+  CompilationDatabase: build-debug
+
+Diagnostics:
+  Suppress: [unused-function]
+  Includes:
+    IgnoreHeader:
+      - math\.h
