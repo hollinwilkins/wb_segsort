@@ -22,6 +22,7 @@ add_library(merge_sort_gpu_headers INTERFACE)
 target_include_directories(
     merge_sort_gpu_headers INTERFACE
     "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/dependencies/hw"
 )
 
 find_program(XXD_EXECUTABLE xxd REQUIRED)

@@ -76,6 +76,7 @@ if (APPLE)
         "-framework Metal"
         "-framework IOKit"
         "-framework IOSurface"
+        "-framework Foundation"
     )
 elseif (WIN32)
     # transitively link required DLLs
