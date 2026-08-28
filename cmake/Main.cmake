@@ -8,3 +8,5 @@ add_executable(
     merge_sort_main
     main.c
 )
+
+target_link_libraries(merge_sort_main PRIVATE wgpu_native)

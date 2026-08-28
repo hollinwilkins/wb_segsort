@@ -3,9 +3,13 @@ override WORKGROUP_SIZE_Y: u32 = 16;
 
 const WORKGROUP_ITEMS: u32 = WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y;
 
-@group(0) @binding(0) var<storage, read> segments: array<u32>;
+struct Config {
+    segments_len: u32,
+}
 
-@group(1) @binding(0) var<storage, read_write> bin_counts: array<atomic<u32>>;
+@group(0) @binding(0) var<uniform> config: Config;
+@group(0) @binding(1) var<storage, read> segments: array<u32>;
+@group(0) @binding(2) var<storage, read_write> bin_counts: array<atomic<u32>>;
 
 var <workgroup> local_bin_counts: array<atomic<u32>, 13>;
 
@@ -28,7 +32,7 @@ fn main_histogram(
     workgroupBarrier();
 
     var bucket_index = 0u;
-    if GID < arrayLength(&segments) {
+    if GID < config.segments_len {
         let segment_end = segments[GID];
         var segment_start = 0u;
         if GID == 0 {
