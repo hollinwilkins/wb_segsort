@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <webgpu/webgpu.h>
 
 #include "unity.h"
 #include "unity_internals.h"
@@ -37,6 +38,42 @@ void test_bin_histogram(void)
     const size_t segments_len = sizeof(segments) / sizeof(uint32_t);
 
     msg_prepare(pipeline.queue, &buffers, segments_len, segments, &config);
+
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline.device, &(WGPUCommandEncoderDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Command Encoder",
+            .length = WGPU_STRLEN,
+        }
+    });
+
+    WGPUComputePassEncoder compute_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Compute Pass Encoder",
+        },
+    });
+
+    msg_run_bin_histogram_kernel(
+        &pipeline,
+        &bindings,
+        &config,
+        compute_pass
+    );
+
+    wgpuComputePassEncoderEnd(compute_pass);
+
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Command Buffer",
+            .length = WGPU_STRLEN,
+        }
+    });
+
+    wgpuQueueSubmit(pipeline.queue, 1, &commands);
+
+    wgpuCommandBufferRelease(commands);
+    wgpuComputePassEncoderRelease(compute_pass);
+    wgpuCommandEncoderRelease(encoder);
+
     TEST_ASSERT_TRUE(true);
 }
 
