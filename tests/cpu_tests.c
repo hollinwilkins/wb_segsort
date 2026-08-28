@@ -129,6 +129,44 @@ void test_sort4033()
     free(expected);
 }
 
+void test_segsort8()
+{
+    uint32_t segs[2] = { 3, 7 };
+    uint32_t arr[8] = { 42, 13, 7, 2, 73, 22, 97, 10 };
+    msc_segsort_alloc(8, arr, 2, segs);
+
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(
+        ((uint32_t[]){ 2, 7, 13, 42, 10, 22, 73, 97 }),
+        arr,
+        8
+    );
+}
+
+void test_segsort23()
+{
+    uint32_t segs[5] = { 3, 7, 12, 20, 22 };
+    uint32_t arr[23] = {
+        42, 13, 7, 2,
+        73, 22, 97, 10,
+        78, 121, 8, 33, 0,
+        1, 2, 3, 4, 5, 6, 7, 8,
+        2, 1
+    };
+    msc_segsort_alloc(23, arr, 5, segs);
+
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(
+        ((uint32_t[]){
+            2, 7, 13, 42,
+            10, 22, 73, 97,
+            0, 8, 33, 78, 121,
+            1, 2, 3, 4, 5, 6, 7, 8,
+            1, 2
+        }),
+        arr,
+        23
+    );
+}
+
 int main()
 {
     UNITY_BEGIN();
@@ -139,5 +177,7 @@ int main()
     RUN_TEST(test_sort4);
     RUN_TEST(test_sort1024);
     RUN_TEST(test_sort4033);
+    RUN_TEST(test_segsort8);
+    RUN_TEST(test_segsort23);
     return UNITY_END();
 }
