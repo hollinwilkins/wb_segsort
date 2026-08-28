@@ -1,7 +1,6 @@
 override WORKGROUP_SIZE_X: u32 = 16;
 override WORKGROUP_SIZE_Y: u32 = 16;
-
-const WORKGROUP_ITEMS: u32 = WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y;
+override WORKGROUP_ITEMS: u32 = WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y;
 
 struct Config {
     segments_len: u32,
@@ -20,9 +19,9 @@ fn main_histogram(
     @builtin(local_invocation_index) TID: u32, // Local thread ID
 ) {
     let WORKGROUP_COUNT = workgroup_dim.x * workgroup_dim.y * workgroup_dim.z;
-    let ARRAY_LENGTH = config.path_tags;
+    let ARRAY_LENGTH = config.segments_len;
     let WORKGROUP_ID = workgroup_id.x + workgroup_id.y * workgroup_dim.x;
-    let WID = WORKGROUP_ID * TEMPLATE_THREADS_PER_WORKGROUP;
+    let WID = WORKGROUP_ID * WORKGROUP_ITEMS;
     let GID = WID + TID; // Global thread ID
 
     if TID < 13 {
@@ -32,7 +31,7 @@ fn main_histogram(
     workgroupBarrier();
 
     var bucket_index = 0u;
-    if GID < config.segments_len {
+    if GID < ARRAY_LENGTH {
         let segment_end = segments[GID];
         var segment_start = 0u;
         if GID == 0 {

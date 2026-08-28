@@ -36,8 +36,25 @@ typedef struct msg_bindings
     WGPUBindGroup bin_hist_binding;
 } msg_bindings;
 
+typedef struct msg_dispatch_size
+{
+    uint32_t x;
+    uint32_t y;
+    uint32_t z;
+} msg_dispatch_size;
+
+#define MSG_DISPATCH_SIZE_ONCE { 1, 1, 1 }
+#define MSG_DISPATCH_SIZE_DEFAULT { 16, 16, 1 }
+
+typedef struct msg_options
+{
+    msg_dispatch_size bin_hist_dispatch_size;
+    bool is_initialized;
+} msg_options;
+
 typedef struct msg_pipeline
 {
+    msg_options options;
     WGPUInstance instance;
     WGPUAdapter adapter;
     WGPUDevice device;
@@ -47,6 +64,7 @@ typedef struct msg_pipeline
 
 MERGE_EXPORT bool msg_pipeline_init(
     msg_pipeline * pipeline,
+    const msg_options * options,
     WGPUInstance instance,
     WGPUAdapter adapter,
     WGPUDevice device,
@@ -65,13 +83,41 @@ MERGE_EXPORT void msg_bindings_init(
     const msg_buffers * buffers
 );
 
+MERGE_EXPORT void msg_prepare(
+    WGPUQueue queue,
+    const msg_buffers * buffers,
+    size_t segments_len, const uint32_t * segments,
+    msg_gpu_config * config
+);
+
+MERGE_EXPORT void msg_run_bin_histogram_kernel(
+    const msg_pipeline * pipeline,
+    const msg_bindings * bindings,
+    const msg_gpu_config * config,
+    WGPUComputePassEncoder encoder
+);
+
 #endif
 
 #ifdef MERGE_SORT_GPU_IMPLEMENTATION
 #ifndef MERGE_SORT_GPU_IMPLEMENTED
 #define MERGE_SORT_GPU_IMPLEMENTED
 
-static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device)
+#define MSG_MAX_WORKGROUP_DIMENSION 65535u
+
+static msg_dispatch_size msg_dispatch_size_for_len(const msg_dispatch_size * const size, const size_t len)
+{
+    uint32_t x = len, y = 1;
+    if (size->x > MSG_MAX_WORKGROUP_DIMENSION)
+    {
+        y = (len + MSG_MAX_WORKGROUP_DIMENSION - 1u) / MSG_MAX_WORKGROUP_DIMENSION;
+        x = MSG_MAX_WORKGROUP_DIMENSION;
+    }
+
+    return (msg_dispatch_size){ x, y };
+}
+
+static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device, const msg_dispatch_size * const dispatch_size)
 {
     WGPUBindGroupLayoutDescriptor layout0_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
     layout0_desc.label = (WGPUStringView){
@@ -82,18 +128,21 @@ static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device)
     layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
         (WGPUBindGroupLayoutEntry){
             .binding = 0, // config
+            .visibility = WGPUShaderStage_Compute,
             .buffer = {
                 .type = WGPUBufferBindingType_Uniform,
             }
         },
         (WGPUBindGroupLayoutEntry){
             .binding = 1, // segments
+            .visibility = WGPUShaderStage_Compute,
             .buffer = {
                 .type = WGPUBufferBindingType_ReadOnlyStorage,
             }
         },
         (WGPUBindGroupLayoutEntry){
             .binding = 2, // bin_histogram
+            .visibility = WGPUShaderStage_Compute,
             .buffer = {
                 .type = WGPUBufferBindingType_Storage,
             },
@@ -153,14 +202,14 @@ static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device)
                 .data = "WORKGROUP_SIZE_X",
                 .length = WGPU_STRLEN
             },
-            .value = 16.0,
+            .value = (float)dispatch_size->x,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "WORKGROUP_SIZE_Y",
                 .length = WGPU_STRLEN
             },
-            .value = 16.0,
+            .value = (float)dispatch_size->y,
         },
     };
 
@@ -173,27 +222,50 @@ static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device)
     return pipeline;
 }
 
+static bool msg__dispatch_size_is_zero(const msg_dispatch_size * const size)
+{
+    return size->x == 0 ||
+        size->y == 0 ||
+        size->z == 0;
+}
+
+static void msg__options_init(msg_options * const options)
+{
+    if (options->is_initialized) return;
+
+    options->bin_hist_dispatch_size = msg__dispatch_size_is_zero(&options->bin_hist_dispatch_size) ?
+        (msg_dispatch_size)MSG_DISPATCH_SIZE_DEFAULT :
+        options->bin_hist_dispatch_size;
+
+    options->is_initialized = true;
+}
+
 MERGE_EXPORT bool msg_pipeline_init(
     msg_pipeline * const pipeline,
+    const msg_options * const options,
     WGPUInstance const instance,
     WGPUAdapter const adapter,
     WGPUDevice const device,
     WGPUQueue const queue
 )
 {
+    msg_options options2 = options == NULL ? (msg_options){0} : *options;
+    msg__options_init(&options2);
+
     wgpuInstanceAddRef(instance);
     wgpuAdapterAddRef(adapter);
     wgpuDeviceAddRef(device);
     wgpuQueueAddRef(queue);
 
     *pipeline = (msg_pipeline){
+        .options = options2,
         .instance = instance,
         .adapter = adapter,
         .device = device,
         .queue = queue,
     };
 
-    pipeline->bin_hist_kernel = msg__create_bin_hist_kernel(device);
+    pipeline->bin_hist_kernel = msg__create_bin_hist_kernel(device, &options2.bin_hist_dispatch_size);
 
     return true;
 }
@@ -291,6 +363,35 @@ MERGE_EXPORT void msg_bindings_init(
     *bindings = (msg_bindings){
         .bin_hist_binding = bin_hist_binding,
     };
+}
+
+MERGE_EXPORT void msg_prepare(
+    WGPUQueue const queue,
+    const msg_buffers * const buffers,
+    size_t segments_len, const uint32_t * segments,
+    msg_gpu_config * const config
+)
+{
+    *config = (msg_gpu_config){
+        .segments_len = segments_len,
+    };
+
+    wgpuQueueWriteBuffer(queue, buffers->segments, 0, config, sizeof(msg_gpu_config));
+    wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
+}
+
+MERGE_EXPORT void msg_run_bin_histogram_kernel(
+    const msg_pipeline * const pipeline,
+    const msg_bindings * const bindings,
+    const msg_gpu_config * const config,
+    WGPUComputePassEncoder const encoder
+)
+{
+    const msg_dispatch_size bin_hist_dispatch_size = msg_dispatch_size_for_len(&pipeline->options.bin_hist_dispatch_size, config->segments_len);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->bin_hist_kernel);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin_hist_binding, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
 }
 
 #endif

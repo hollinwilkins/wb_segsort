@@ -27,6 +27,16 @@ void tearDown(void)
 
 void test_bin_histogram(void)
 {
+    msg_gpu_config config;
+
+    const uint32_t segments[] = {
+        0, 1, 2, 3, 4, 7,
+        8, 15, 32, 64, 128, 256,
+        512, 1024, 2048, 4096, 8888
+    };
+    const size_t segments_len = sizeof(segments) / sizeof(uint32_t);
+
+    msg_prepare(pipeline.queue, &buffers, segments_len, segments, &config);
     TEST_ASSERT_TRUE(true);
 }
 
@@ -36,6 +46,7 @@ int main(void)
 
     if (!msg_pipeline_init(
         &pipeline,
+        NULL,
         context.instance,
         context.adapter,
         context.device, 
