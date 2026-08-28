@@ -107,14 +107,16 @@ MERGE_EXPORT void msg_run_bin_histogram_kernel(
 
 static msg_dispatch_size msg_dispatch_size_for_len(const msg_dispatch_size * const size, const size_t len)
 {
-    uint32_t x = len, y = 1;
+    const uint32_t workgroup_items = size->x * size->y;
+    uint32_t x = (len + workgroup_items - 1) / workgroup_items;
+    uint32_t y = 1;
     if (size->x > MSG_MAX_WORKGROUP_DIMENSION)
     {
         y = (len + MSG_MAX_WORKGROUP_DIMENSION - 1u) / MSG_MAX_WORKGROUP_DIMENSION;
         x = MSG_MAX_WORKGROUP_DIMENSION;
     }
 
-    return (msg_dispatch_size){ x, y };
+    return (msg_dispatch_size){ x, y, 1 };
 }
 
 static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device, const msg_dispatch_size * const dispatch_size)
@@ -376,7 +378,7 @@ MERGE_EXPORT void msg_prepare(
         .segments_len = segments_len,
     };
 
-    wgpuQueueWriteBuffer(queue, buffers->segments, 0, config, sizeof(msg_gpu_config));
+    wgpuQueueWriteBuffer(queue, buffers->config, 0, config, sizeof(msg_gpu_config));
     wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
 }
 

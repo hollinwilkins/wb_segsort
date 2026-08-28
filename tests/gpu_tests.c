@@ -2,13 +2,16 @@
 #include <string.h>
 #include <webgpu/webgpu.h>
 
+#include "hw_mems.h"
 #include "unity.h"
 #include "unity_internals.h"
 
 #define HWGUTIL_WEBGPU_ENABLED
+#define HWGUTIL_MEMS_ENABLED
 
 #define MERGE_SORT_GPU_IMPLEMENTATION
 #define HWGUTIL_IMPLEMENTATION
+#define MEMS_IMPLEMENTATION
 
 #include "gpu.h"
 #include "hw_gutil.h"
@@ -74,7 +77,30 @@ void test_bin_histogram(void)
     wgpuComputePassEncoderRelease(compute_pass);
     wgpuCommandEncoderRelease(encoder);
 
-    TEST_ASSERT_TRUE(true);
+    uint32_t * bin_histogram;
+    if (!hwgutil_wgpu_read_buffer_alloc(
+        pipeline.instance,
+        pipeline.device,
+        pipeline.queue,
+        buffers.bin_histogram,
+        &mems_system_allocator,
+        (void **)&bin_histogram
+    )) abort();
+
+    const uint32_t expected[] = {
+        2, 1, 2, 2,
+        1, 1, 1, 1,
+        1, 1, 1, 1,
+        2
+    };
+
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(
+        expected,
+        bin_histogram,
+        13
+    );
+
+    mems_allocator_free(&mems_system_allocator, bin_histogram);
 }
 
 int main(void)

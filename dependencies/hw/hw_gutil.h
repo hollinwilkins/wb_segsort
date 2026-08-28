@@ -253,6 +253,16 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_write_texture(
     hwgutil_size * required_size
 );
 
+HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_read_buffer(
+    WGPUInstance instance,
+    WGPUDevice device,
+    WGPUQueue queue,
+    WGPUBuffer buffer,
+    hwgutil_size buffer_len,
+    void * out_buffer,
+    hwgutil_size * required_size
+);
+
 HWGUTIL_EXPORT WGPURenderPipeline hwgutil_wgpu_create_blit_pipeline(
     WGPUDevice device,
     WGPUTextureFormat format
@@ -298,6 +308,15 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_write_texture_alloc(
     hwgutil_size bytes_per_pixel,
     const void * pixels,
     const mems_allocator * allocator
+);
+
+HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_read_buffer_alloc(
+    WGPUInstance instance,
+    WGPUDevice device,
+    WGPUQueue queue,
+    WGPUBuffer buffer,
+    const mems_allocator * allocator,
+    void ** out_buffer
 );
 
 #endif // HWGUTIL_MEMS_ENABLED
@@ -757,6 +776,99 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_write_texture(
     return hwgutil_true;
 }
 
+HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_read_buffer(
+    WGPUInstance const instance,
+    WGPUDevice const device,
+    WGPUQueue const queue,
+    WGPUBuffer const buffer,
+    hwgutil_size const buffer_len,
+    void * const out_buffer,
+    hwgutil_size * const required_size
+)
+{
+    const hwgutil_size read_size = wgpuBufferGetSize(buffer);
+    const hwgutil_size gpu_buffer_size = read_size;
+
+    *required_size = read_size;
+
+    if (buffer_len < *required_size) return false;
+
+    WGPUBufferDescriptor read_buffer_descriptor = WGPU_BUFFER_DESCRIPTOR_INIT;
+    read_buffer_descriptor.label = (WGPUStringView){
+        .data = "HWGutil Buffer Read Buffer",
+        .length = WGPU_STRLEN,
+    };
+    read_buffer_descriptor.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead;
+    read_buffer_descriptor.size = (uint64_t)gpu_buffer_size;
+
+    WGPUBuffer read_buffer = wgpuDeviceCreateBuffer(device, &read_buffer_descriptor);
+
+    WGPUCommandEncoderDescriptor ce_desc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
+    ce_desc.label = (WGPUStringView){
+        .data = "HWGutil Buffer Read Command Encoder",
+        .length = WGPU_STRLEN,
+    };
+
+    WGPUCommandEncoder ce = wgpuDeviceCreateCommandEncoder(device, &ce_desc);
+
+    wgpuCommandEncoderCopyBufferToBuffer(
+        ce,
+        buffer,
+        0,
+        read_buffer,
+        0,
+        read_size
+    );
+
+    WGPUCommandBufferDescriptor commands_desc = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
+    commands_desc.label = (WGPUStringView){
+        .data = "HWGutil Buffer Read Commands",
+        .length = WGPU_STRLEN,
+    };
+
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(ce, &commands_desc);
+    wgpuQueueSubmit(queue, 1, &commands);
+
+    WGPUBufferMapCallbackInfo map_cb_info = WGPU_BUFFER_MAP_CALLBACK_INFO_INIT;
+    map_cb_info.mode = HWGUTIL_CALLBACK_MODE;
+    map_cb_info.callback = hwgutil__map_buffer_cb;
+
+#ifdef HWGUTIL_WEBGPU_BACKEND_WGPU
+    HWGUTIL_USE(instance);
+    hwgutil_bool map_completed = hwgutil_false;
+    map_cb_info.userdata1 = &map_completed;
+#endif
+
+    WGPUFuture future = wgpuBufferMapAsync(
+        read_buffer,
+        WGPUMapMode_Read,
+        0,
+        gpu_buffer_size,
+        map_cb_info
+    );
+
+#ifdef HWGUTIL_WEBGPU_BACKEND_WGPU
+    while (!map_completed) wgpuDevicePoll(device, WGPU_TRUE, HWGUTIL_NULL);
+#else
+    WGPUFutureWaitInfo future_info = WGPU_FUTURE_WAIT_INFO_INIT;
+    future_info.future = future;
+    const WGPUWaitStatus status = wgpuInstanceWaitAny(instance, 1, &future_info, (uint64_t)5 * 1000000000);
+    if (status != WGPUWaitStatus_Success) return false;
+#endif
+
+    HWGUTIL_USE(future);
+
+    const void * const mapped_read_buffer = wgpuBufferGetConstMappedRange(read_buffer, 0, gpu_buffer_size);
+    memcpy(out_buffer, mapped_read_buffer, read_size);
+    wgpuBufferUnmap(read_buffer);
+
+    wgpuCommandBufferRelease(commands);
+    wgpuBufferRelease(read_buffer);
+    wgpuCommandEncoderRelease(ce);
+
+    return true;
+}
+
 HWGUTIL_EXPORT WGPURenderPipeline hwgutil_wgpu_create_blit_pipeline(
     WGPUDevice const device,
     const WGPUTextureFormat format
@@ -1124,6 +1236,43 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_write_texture_alloc(
     mems_allocator_free(allocator, buffer);
 
     return result;
+}
+
+HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_read_buffer_alloc(
+    WGPUInstance const instance,
+    WGPUDevice const device,
+    WGPUQueue const queue,
+    WGPUBuffer const buffer,
+    const mems_allocator * const allocator,
+    void ** const out_buffer
+)
+{
+    size_t required_size;
+
+    if (hwgutil_wgpu_read_buffer(
+        instance,
+        device,
+        queue,
+        buffer,
+        0,
+        NULL,
+        &required_size
+    )) return hwgutil_false;
+
+    *out_buffer = mems_allocator_alloc(allocator, MEMS_ALIGN_DEFAULT, required_size);
+    if (out_buffer == HWGUTIL_NULL) return hwgutil_false;
+
+    if (!hwgutil_wgpu_read_buffer(
+        instance,
+        device,
+        queue,
+        buffer,
+        required_size,
+        *out_buffer,
+        &required_size
+    )) return hwgutil_false;
+
+    return hwgutil_true;
 }
 
 #endif // HWGUTIL_MEMS_ENABLED

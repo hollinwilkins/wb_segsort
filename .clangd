@@ -1,5 +1,10 @@
 CompileFlags:
   CompilationDatabase: build-debug
+  Add: [
+    "-DHWGUTIL_IMPLEMENTATION",
+    "-DHWGUTIL_WEBGPU_ENABLED",
+    "-DHWGUTIL_MEMS_ENABLED"
+  ]
 
 Diagnostics:
   Suppress: [unused-function]
