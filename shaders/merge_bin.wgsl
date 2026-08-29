@@ -6,9 +6,17 @@ struct Config {
     segments_len: u32,
 }
 
+struct DispatchSize {
+    x: u32,
+    y: u32,
+    z: u32
+}
+
 @group(0) @binding(0) var<uniform> config: Config;
 @group(0) @binding(1) var<storage, read> segments: array<u32>;
-@group(0) @binding(2) var<storage, read_write> bin_counts: array<atomic<u32>>;
+@group(0) @binding(2) var<storage, read> bin_workgroup_size: array<u32>;
+@group(0) @binding(3) var<storage, read_write> bin_counts: array<atomic<u32>>;
+@group(0) @binding(4) var<storage, read_write> dispatch: array<DispatchSize>;
 
 var <workgroup> local_bin_counts: array<atomic<u32>, 13>;
 
@@ -50,5 +58,29 @@ fn main_histogram(
 
     if (TID < 13) {
         atomicAdd(&bin_counts[TID], local_bin_counts[TID]);
+    }
+}
+
+@compute @workgroup_size(1, 1, 1)
+fn main_schedule() {
+    var sum = 0u;
+    for (var i = 0u; i < 13; i++) {
+        let cur_count = atomicLoad(&bin_counts[i]);
+        atomicStore(&bin_counts[i], cur_count + sum);
+        sum = sum + cur_count;
+
+        let groups = select(
+            (cur_count + bin_workgroup_size[i] - 1u) / bin_workgroup_size[i],
+            0u,
+            i == 0u
+        );
+        var x = groups;
+        var y = 1u;
+        if x > 65535u {
+            y = (groups + 65535u - 1u) / 65535u;
+            x = 65535u;
+        }
+
+        dispatch[i] = DispatchSize(x, y, 1u);
     }
 }

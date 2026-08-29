@@ -119,7 +119,8 @@ int main(void)
     msg_buffers_init(
         &buffers,
         NULL,
-        context.device
+        context.device,
+        context.queue
     );
 
     msg_bindings_init(

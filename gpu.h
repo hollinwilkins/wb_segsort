@@ -28,8 +28,15 @@ typedef struct msg_buffers
 {
     WGPUBuffer config;
     WGPUBuffer segments;
+    WGPUBuffer bin_workgroup_size;
     WGPUBuffer bin_histogram;
+    WGPUBuffer dispatch;
 } msg_buffers;
+
+typedef struct msg_kernels
+{
+    WGPUComputePipeline bin_histogram;
+} msg_kernels;
 
 typedef struct msg_bindings
 {
@@ -59,7 +66,7 @@ typedef struct msg_pipeline
     WGPUAdapter adapter;
     WGPUDevice device;
     WGPUQueue queue;
-    WGPUComputePipeline bin_hist_kernel;
+    msg_kernels kernels;
 } msg_pipeline;
 
 MERGE_EXPORT bool msg_pipeline_init(
@@ -74,7 +81,8 @@ MERGE_EXPORT bool msg_pipeline_init(
 MERGE_EXPORT void msg_buffers_init(
     msg_buffers * buffers,
     const msg_buffers_options * options,
-    WGPUDevice device
+    WGPUDevice device,
+    WGPUQueue queue
 );
 
 MERGE_EXPORT void msg_bindings_init(
@@ -119,14 +127,18 @@ static msg_dispatch_size msg_dispatch_size_for_len(const msg_dispatch_size * con
     return (msg_dispatch_size){ x, y, 1 };
 }
 
-static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device, const msg_dispatch_size * const dispatch_size)
+static void msg__kernels_init(
+    msg_kernels * const kernels,
+    WGPUDevice const device,
+    const msg_dispatch_size * const dispatch_size
+)
 {
     WGPUBindGroupLayoutDescriptor layout0_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
     layout0_desc.label = (WGPUStringView){
         .data = "Merge Sort: Bin Histogram Kernel (segments/bin histogram)",
         .length = WGPU_STRLEN,
     };
-    layout0_desc.entryCount = 3;
+    layout0_desc.entryCount = 5;
     layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
         (WGPUBindGroupLayoutEntry){
             .binding = 0, // config
@@ -143,7 +155,21 @@ static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device, 
             }
         },
         (WGPUBindGroupLayoutEntry){
-            .binding = 2, // bin_histogram
+            .binding = 2, // bin_workgroup_size
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 3, // bin_histogram
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 4, // dispatch
             .visibility = WGPUShaderStage_Compute,
             .buffer = {
                 .type = WGPUBufferBindingType_Storage,
@@ -215,13 +241,15 @@ static WGPUComputePipeline msg__create_bin_hist_kernel(WGPUDevice const device, 
         },
     };
 
-    WGPUComputePipeline pipeline = wgpuDeviceCreateComputePipeline(device, &pipeline_desc);
+    WGPUComputePipeline bin_histogram_kernel = wgpuDeviceCreateComputePipeline(device, &pipeline_desc);
 
     wgpuShaderModuleRelease(shader_module);
     wgpuPipelineLayoutRelease(pipeline_layout);
     wgpuBindGroupLayoutRelease(layout0);
 
-    return pipeline;
+    *kernels = (msg_kernels){
+        .bin_histogram = bin_histogram_kernel,
+    };
 }
 
 static bool msg__dispatch_size_is_zero(const msg_dispatch_size * const size)
@@ -267,7 +295,11 @@ MERGE_EXPORT bool msg_pipeline_init(
         .queue = queue,
     };
 
-    pipeline->bin_hist_kernel = msg__create_bin_hist_kernel(device, &options2.bin_hist_dispatch_size);
+    msg__kernels_init(
+        &pipeline->kernels,
+        pipeline->device,
+        &options2.bin_hist_dispatch_size
+    );
 
     return true;
 }
@@ -286,13 +318,12 @@ static void msg_buffers_options_init(msg_buffers_options * const options)
 MERGE_EXPORT void msg_buffers_init(
     msg_buffers * const buffers,
     const msg_buffers_options * const options,
-    WGPUDevice const device
+    WGPUDevice const device,
+    WGPUQueue const queue
 )
 {
     msg_buffers_options options2 = options == NULL ? (msg_buffers_options){0} : *options;
     msg_buffers_options_init(&options2);
-
-    *buffers = (msg_buffers){0};
 
     WGPUBufferDescriptor config_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     config_desc.label = (WGPUStringView){
@@ -302,7 +333,13 @@ MERGE_EXPORT void msg_buffers_init(
     config_desc.size = sizeof(msg_gpu_config);
     config_desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
 
-    buffers->config = wgpuDeviceCreateBuffer(device, &config_desc);
+    WGPUBufferDescriptor bin_workgroup_size_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_workgroup_size_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Bin Workgroup Size",
+        .length = WGPU_STRLEN,
+    };
+    bin_workgroup_size_desc.size = 13 * sizeof(uint32_t);
+    bin_workgroup_size_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
     WGPUBufferDescriptor segments_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     segments_desc.label = (WGPUStringView){
@@ -312,8 +349,6 @@ MERGE_EXPORT void msg_buffers_init(
     segments_desc.size = options2.max_segments * sizeof(uint32_t);
     segments_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
-    buffers->segments = wgpuDeviceCreateBuffer(device, &segments_desc);
-
     WGPUBufferDescriptor bin_histogram_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     bin_histogram_desc.label = (WGPUStringView){
         .data = "Merge Sort: Bin Histogram",
@@ -322,7 +357,34 @@ MERGE_EXPORT void msg_buffers_init(
     bin_histogram_desc.size = 13 * sizeof(uint32_t);
     bin_histogram_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
-    buffers->bin_histogram = wgpuDeviceCreateBuffer(device, &bin_histogram_desc);
+    WGPUBufferDescriptor dispatch_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    dispatch_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Dispatch Args",
+        .length = WGPU_STRLEN,
+    };
+    dispatch_desc.size = 13 * sizeof(msg_dispatch_size);
+    dispatch_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    *buffers = (msg_buffers){
+        .config = wgpuDeviceCreateBuffer(device, &config_desc),
+        .bin_workgroup_size = wgpuDeviceCreateBuffer(device, &bin_workgroup_size_desc),
+        .segments = wgpuDeviceCreateBuffer(device, &segments_desc),
+        .bin_histogram = wgpuDeviceCreateBuffer(device, &bin_histogram_desc),
+        .dispatch = wgpuDeviceCreateBuffer(device, &dispatch_desc),
+    };
+
+    wgpuQueueWriteBuffer(
+        queue,
+        buffers->bin_workgroup_size,
+        0,
+        (uint32_t[13]){
+            0, 128, 64, 32,
+            16, 8, 4, 2,
+            1, 1, 1, 1,
+            1
+        },
+        13 * sizeof(uint32_t)
+    );
 }
 
 MERGE_EXPORT void msg_bindings_init(
@@ -331,7 +393,7 @@ MERGE_EXPORT void msg_bindings_init(
     const msg_buffers * const buffers
 )
 {
-    WGPUBindGroupLayout bin_hist_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->bin_hist_kernel, 0);
+    WGPUBindGroupLayout bin_hist_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->kernels.bin_histogram, 0);
 
     WGPUBindGroupDescriptor bin_hist_binding_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
     bin_hist_binding_desc.label = (WGPUStringView){
@@ -339,7 +401,7 @@ MERGE_EXPORT void msg_bindings_init(
         .length = WGPU_STRLEN,
     };
     bin_hist_binding_desc.layout = bin_hist_layout0;
-    bin_hist_binding_desc.entryCount = 3;
+    bin_hist_binding_desc.entryCount = 5;
     bin_hist_binding_desc.entries = (WGPUBindGroupEntry[]){
         (WGPUBindGroupEntry){
             .binding = 0, // config
@@ -352,8 +414,18 @@ MERGE_EXPORT void msg_bindings_init(
             .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
-            .binding = 2, // bin_histogram
+            .binding = 2, // bin_workgroup_size
+            .buffer = buffers->bin_workgroup_size,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 3, // bin_histogram
             .buffer = buffers->bin_histogram,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 4, // dispatch
+            .buffer = buffers->dispatch,
             .size = WGPU_WHOLE_SIZE,
         },
     };
@@ -391,7 +463,7 @@ MERGE_EXPORT void msg_run_bin_histogram_kernel(
 {
     const msg_dispatch_size bin_hist_dispatch_size = msg_dispatch_size_for_len(&pipeline->options.bin_hist_dispatch_size, config->segments_len);
 
-    wgpuComputePassEncoderSetPipeline(encoder, pipeline->bin_hist_kernel);
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.bin_histogram);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin_hist_binding, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
 }
