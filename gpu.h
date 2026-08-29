@@ -173,6 +173,7 @@ MERGE_EXPORT void msg_prepare(
     WGPUQueue queue,
     const msg_buffers * buffers,
     size_t segments_len, const uint32_t * segments,
+    size_t keys_len, const uint32_t * keys,
     msg_gpu_config * config
 );
 
@@ -886,6 +887,7 @@ MERGE_EXPORT void msg_prepare(
     WGPUQueue const queue,
     const msg_buffers * const buffers,
     size_t segments_len, const uint32_t * segments,
+    size_t keys_len, const uint32_t * keys,
     msg_gpu_config * const config
 )
 {
@@ -895,6 +897,7 @@ MERGE_EXPORT void msg_prepare(
 
     wgpuQueueWriteBuffer(queue, buffers->config, 0, config, sizeof(msg_gpu_config));
     wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
+    wgpuQueueWriteBuffer(queue, buffers->segments, 0, keys, keys_len * sizeof(uint32_t));
 }
 
 MERGE_EXPORT void msg_run_bin_histogram(

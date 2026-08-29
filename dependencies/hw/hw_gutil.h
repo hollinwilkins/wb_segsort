@@ -224,10 +224,16 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
     WGPUInstance * instance,
     WGPUAdapter * adapter,
     WGPUDevice * device,
-    WGPUQueue * queue
+    WGPUQueue * queue,
+    size_t instance_features_len, WGPUInstanceFeatureName * instance_features,
+    size_t device_features_len, WGPUFeatureName * device_features
 );
 
-HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(hwgutil_wgpu_context * context);
+HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(
+    hwgutil_wgpu_context * context,
+    size_t instance_features_len, WGPUInstanceFeatureName * instance_features,
+    size_t device_features_len, WGPUFeatureName * device_features
+);
 HWGUTIL_EXPORT void hwgutil_wgpu_context_add_ref(hwgutil_wgpu_context * context);
 HWGUTIL_EXPORT void hwgutil_wgpu_context_release(hwgutil_wgpu_context * context);
 HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_read_texture(
@@ -479,13 +485,14 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
     WGPUInstance * const instance,
     WGPUAdapter * const adapter,
     WGPUDevice * const device,
-    WGPUQueue * const queue
+    WGPUQueue * const queue,
+    const size_t instance_features_len, WGPUInstanceFeatureName * const instance_features,
+    const size_t device_features_len, WGPUFeatureName * const device_features
 )
 {
     WGPUInstanceDescriptor instance_descriptor = WGPU_INSTANCE_DESCRIPTOR_INIT;
-    WGPUInstanceFeatureName instance_features[] = { WGPUInstanceFeatureName_TimedWaitAny };
 
-    instance_descriptor.requiredFeatureCount = 1;
+    instance_descriptor.requiredFeatureCount = instance_features_len;
     instance_descriptor.requiredFeatures = instance_features;
 
     *instance = wgpuCreateInstance(&instance_descriptor);
@@ -520,6 +527,8 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
 
     WGPUDeviceDescriptor device_descriptor = WGPU_DEVICE_DESCRIPTOR_INIT;
     device_descriptor.uncapturedErrorCallbackInfo.callback = hwgutil__on_unhandled_error;
+    device_descriptor.requiredFeatureCount = device_features_len;
+    device_descriptor.requiredFeatures = device_features;
 
 #ifdef HWGUTIL_WEBGPU_BACKEND_DAWN
 
@@ -561,13 +570,19 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
     return hwgutil_true;
 }
 
-HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(hwgutil_wgpu_context * const context)
+HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(
+    hwgutil_wgpu_context * const context,
+    const size_t instance_features_len, WGPUInstanceFeatureName * const instance_features,
+    const size_t device_features_len, WGPUFeatureName * const device_features
+)
 {
     return hwgutil_wgpu_init(
         &context->instance,
         &context->adapter,
         &context->device,
-        &context->queue
+        &context->queue,
+        instance_features_len, instance_features,
+        device_features_len, device_features
     );
 }
 
