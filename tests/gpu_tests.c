@@ -2,19 +2,21 @@
 #include <string.h>
 #include <webgpu/webgpu.h>
 
-#include "hw_mems.h"
 #include "unity.h"
 #include "unity_internals.h"
 
 #define HWGUTIL_WEBGPU_ENABLED
 #define HWGUTIL_MEMS_ENABLED
+#define HWDS_MEMS_ENABLED
 
 #define MERGE_SORT_GPU_IMPLEMENTATION
 #define HWGUTIL_IMPLEMENTATION
+#define HWDS_IMPLEMENTATION
 #define MEMS_IMPLEMENTATION
 
 #include "gpu.h"
 #include "hw_gutil.h"
+#include "hw_mems.h"
 
 hwgutil_wgpu_context context;
 msg_pipeline pipeline;
@@ -170,14 +172,15 @@ int main(void)
 {
     if (!hwgutil_wgpu_context_init(&context)) abort();
 
-    if (!msg_pipeline_init(
+    msg_pipeline_init(
         &pipeline,
         NULL,
         context.instance,
         context.adapter,
         context.device, 
-        context.queue
-    )) abort();
+        context.queue,
+        &mems_system_allocator
+    );
 
     msg_buffers_init(
         &buffers,

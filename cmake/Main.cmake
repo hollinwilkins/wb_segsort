@@ -10,3 +10,4 @@ add_executable(
 )
 
 target_link_libraries(merge_sort_main PRIVATE wgpu_native)
+target_link_libraries(merge_sort_main PRIVATE merge_sort_gpu_headers)

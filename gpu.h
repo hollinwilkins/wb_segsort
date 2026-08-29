@@ -11,6 +11,9 @@
 
 #include "common.h"
 
+#include "hw_ds.h"
+#include "hw_mems.h"
+
 #include "shaders/merge_bin.wgsl.h"
 
 typedef struct msg_gpu_config
@@ -63,6 +66,31 @@ typedef struct msg_options
     bool is_initialized;
 } msg_options;
 
+typedef struct msg_sort_kernel_key
+{
+    uint32_t n;
+    uint32_t m;
+    bool is_register;
+} msg_sort_kernel_key;
+
+static inline uint32_t msg_sort_kernel_key_hash(const msg_sort_kernel_key key)
+{
+    return hwds_jenkins32(&key, sizeof(msg_sort_kernel_key));
+}
+
+static inline bool msg_sort_kernel_key_equal(const msg_sort_kernel_key a, const msg_sort_kernel_key b)
+{
+    return a.n == b.n && a.m == b.m && a.is_register == b.is_register;
+}
+
+#define HWDS_HM_DECLARATION
+#define HWDS_NAME msg_sort_kernel_map
+#define HWDS_KEY msg_sort_kernel_key
+#define HWDS_VALUE WGPUComputePipeline
+#define HWDS_HASH msg_sort_kernel_key_hash
+#define HWDS_EQUAL msg_sort_kernel_key_equal
+#include "hw_ds.h"
+
 typedef struct msg_pipeline
 {
     msg_options options;
@@ -71,15 +99,17 @@ typedef struct msg_pipeline
     WGPUDevice device;
     WGPUQueue queue;
     msg_kernels kernels;
+    msg_sort_kernel_map sort_kernels;
 } msg_pipeline;
 
-MERGE_EXPORT bool msg_pipeline_init(
+MERGE_EXPORT void msg_pipeline_init(
     msg_pipeline * pipeline,
     const msg_options * options,
     WGPUInstance instance,
     WGPUAdapter adapter,
     WGPUDevice device,
-    WGPUQueue queue
+    WGPUQueue queue,
+    const mems_allocator * allocator
 );
 
 MERGE_EXPORT void msg_buffers_init(
@@ -128,6 +158,14 @@ MERGE_EXPORT void msg_bin_run_group(
 #ifdef MERGE_SORT_GPU_IMPLEMENTATION
 #ifndef MERGE_SORT_GPU_IMPLEMENTED
 #define MERGE_SORT_GPU_IMPLEMENTED
+
+#define HWDS_HM_IMPLEMENTATION
+#define HWDS_NAME msg_sort_kernel_map
+#define HWDS_KEY msg_sort_kernel_key
+#define HWDS_VALUE WGPUComputePipeline
+#define HWDS_HASH msg_sort_kernel_key_hash
+#define HWDS_EQUAL msg_sort_kernel_key_equal
+#include "hw_ds.h"
 
 #define MSG_MAX_WORKGROUP_DIMENSION 65535u
 
@@ -349,13 +387,30 @@ static void msg__options_init(msg_options * const options)
     options->is_initialized = true;
 }
 
-MERGE_EXPORT bool msg_pipeline_init(
+// subgroups_sizes and segment_sizes must match what is in kernel_generator.py
+static const uint32_t msg__sort_kernels_subgroup_sizes[] = {
+    8, 16, 32, 64, 128
+};
+static const uint32_t msg__sort_kernels_subgroup_sizes_len = sizeof(msg__sort_kernels_subgroup_sizes) / sizeof(uint32_t);
+
+static const uint32_t msg__sort_kernels_segment_sizes[] = {
+    2, 4, 6, 8,
+    16, 32, 64, 128,
+    256, 512, 1024, 2048
+};
+
+static const uint32_t msg__sort_kernels_segment_sizes_len = sizeof(msg__sort_kernels_segment_sizes) / sizeof(uint32_t);
+
+static const uint32_t msg__sort_kernels_len = msg__sort_kernels_subgroup_sizes_len * msg__sort_kernels_segment_sizes_len;
+
+MERGE_EXPORT void msg_pipeline_init(
     msg_pipeline * const pipeline,
     const msg_options * const options,
     WGPUInstance const instance,
     WGPUAdapter const adapter,
     WGPUDevice const device,
-    WGPUQueue const queue
+    WGPUQueue const queue,
+    const mems_allocator * const allocator
 )
 {
     msg_options options2 = options == NULL ? (msg_options){0} : *options;
@@ -380,7 +435,12 @@ MERGE_EXPORT bool msg_pipeline_init(
         &options2.bin_hist_dispatch_size
     );
 
-    return true;
+    if (!msg_sort_kernel_map_init_alloc(
+        &pipeline->sort_kernels,
+        allocator,
+        msg__sort_kernels_len * 4,
+        msg__sort_kernels_len
+    )) abort();
 }
 
 #define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS 1024

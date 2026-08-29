@@ -16,6 +16,8 @@ target_compile_definitions(
     merge_sort_gpu PRIVATE
 
     MERGE_SORT_GPU_IMPLEMENTATION
+    HWDS_IMPLEMENTATION
+    HWDS_MEMS_ENABLED
 )
 
 add_library(merge_sort_gpu_headers INTERFACE)
@@ -24,6 +26,8 @@ target_include_directories(
     "${CMAKE_SOURCE_DIR}"
     "${CMAKE_SOURCE_DIR}/dependencies/hw"
 )
+
+target_link_libraries(merge_sort_gpu PRIVATE merge_sort_gpu_headers)
 
 find_program(XXD_EXECUTABLE xxd REQUIRED)
 
