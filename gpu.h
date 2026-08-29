@@ -36,11 +36,12 @@ typedef struct msg_buffers
 typedef struct msg_kernels
 {
     WGPUComputePipeline bin_histogram;
+    WGPUComputePipeline schedule;
 } msg_kernels;
 
 typedef struct msg_bindings
 {
-    WGPUBindGroup bin_hist_binding;
+    WGPUBindGroup bin;
 } msg_bindings;
 
 typedef struct msg_dispatch_size
@@ -98,7 +99,14 @@ MERGE_EXPORT void msg_prepare(
     msg_gpu_config * config
 );
 
-MERGE_EXPORT void msg_run_bin_histogram_kernel(
+MERGE_EXPORT void msg_run_bin_histogram(
+    const msg_pipeline * pipeline,
+    const msg_bindings * bindings,
+    const msg_gpu_config * config,
+    WGPUComputePassEncoder encoder
+);
+
+MERGE_EXPORT void msg_bin_run_schedule(
     const msg_pipeline * pipeline,
     const msg_bindings * bindings,
     const msg_gpu_config * config,
@@ -212,19 +220,19 @@ static void msg__kernels_init(
         &shader_module_desc
     );
 
-    WGPUComputePipelineDescriptor pipeline_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
-    pipeline_desc.label = (WGPUStringView){
+    WGPUComputePipelineDescriptor bin_histogram_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    bin_histogram_desc.label = (WGPUStringView){
         .data = "Merge Sort: Bin Histogram Pipeline",
         .length = WGPU_STRLEN,
     };
-    pipeline_desc.layout = pipeline_layout;
-    pipeline_desc.compute.entryPoint = (WGPUStringView){
+    bin_histogram_desc.layout = pipeline_layout;
+    bin_histogram_desc.compute.entryPoint = (WGPUStringView){
         .data = "main_histogram",
         .length = WGPU_STRLEN,
     };
-    pipeline_desc.compute.module = shader_module;
-    pipeline_desc.compute.constantCount = 2;
-    pipeline_desc.compute.constants = (WGPUConstantEntry[]){
+    bin_histogram_desc.compute.module = shader_module;
+    bin_histogram_desc.compute.constantCount = 2;
+    bin_histogram_desc.compute.constants = (WGPUConstantEntry[]){
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "WORKGROUP_SIZE_X",
@@ -241,7 +249,21 @@ static void msg__kernels_init(
         },
     };
 
-    WGPUComputePipeline bin_histogram_kernel = wgpuDeviceCreateComputePipeline(device, &pipeline_desc);
+    WGPUComputePipeline bin_histogram_kernel = wgpuDeviceCreateComputePipeline(device, &bin_histogram_desc);
+
+    WGPUComputePipelineDescriptor schedule_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    schedule_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Dispatch Pipeline",
+        .length = WGPU_STRLEN,
+    };
+    schedule_desc.layout = pipeline_layout;
+    schedule_desc.compute.entryPoint = (WGPUStringView){
+        .data = "main_schedule",
+        .length = WGPU_STRLEN,
+    };
+    schedule_desc.compute.module = shader_module;
+
+    WGPUComputePipeline scheduler_kernel = wgpuDeviceCreateComputePipeline(device, &schedule_desc);
 
     wgpuShaderModuleRelease(shader_module);
     wgpuPipelineLayoutRelease(pipeline_layout);
@@ -249,6 +271,7 @@ static void msg__kernels_init(
 
     *kernels = (msg_kernels){
         .bin_histogram = bin_histogram_kernel,
+        .schedule = scheduler_kernel,
     };
 }
 
@@ -430,12 +453,12 @@ MERGE_EXPORT void msg_bindings_init(
         },
     };
 
-    WGPUBindGroup bin_hist_binding = wgpuDeviceCreateBindGroup(pipeline->device, &bin_hist_binding_desc);
+    WGPUBindGroup bin_binding = wgpuDeviceCreateBindGroup(pipeline->device, &bin_hist_binding_desc);
 
     wgpuBindGroupLayoutRelease(bin_hist_layout0);
 
     *bindings = (msg_bindings){
-        .bin_hist_binding = bin_hist_binding,
+        .bin = bin_binding,
     };
 }
 
@@ -454,7 +477,7 @@ MERGE_EXPORT void msg_prepare(
     wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
 }
 
-MERGE_EXPORT void msg_run_bin_histogram_kernel(
+MERGE_EXPORT void msg_run_bin_histogram(
     const msg_pipeline * const pipeline,
     const msg_bindings * const bindings,
     const msg_gpu_config * const config,
@@ -464,8 +487,20 @@ MERGE_EXPORT void msg_run_bin_histogram_kernel(
     const msg_dispatch_size bin_hist_dispatch_size = msg_dispatch_size_for_len(&pipeline->options.bin_hist_dispatch_size, config->segments_len);
 
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.bin_histogram);
-    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin_hist_binding, 0, NULL);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
+}
+
+MERGE_EXPORT void msg_bin_run_schedule(
+    const msg_pipeline * const pipeline,
+    const msg_bindings * const bindings,
+    const msg_gpu_config * const config,
+    WGPUComputePassEncoder const encoder
+)
+{
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.schedule);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
 }
 
 #endif

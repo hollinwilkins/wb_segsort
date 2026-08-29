@@ -29,7 +29,7 @@ void tearDown(void)
 {
 }
 
-void test_bin_histogram(void)
+void test_bin(void)
 {
     msg_gpu_config config;
 
@@ -55,7 +55,14 @@ void test_bin_histogram(void)
         },
     });
 
-    msg_run_bin_histogram_kernel(
+    msg_run_bin_histogram(
+        &pipeline,
+        &bindings,
+        &config,
+        compute_pass
+    );
+
+    msg_bin_run_schedule(
         &pipeline,
         &bindings,
         &config,
@@ -88,10 +95,10 @@ void test_bin_histogram(void)
     )) abort();
 
     const uint32_t expected[] = {
-        2, 1, 2, 2,
-        1, 1, 1, 1,
-        1, 1, 1, 1,
-        2
+        2, 3, 5, 7,
+        8, 9, 10, 11,
+        12, 13, 14, 15,
+        17
     };
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
@@ -130,6 +137,6 @@ int main(void)
     );
 
     UNITY_BEGIN();
-    RUN_TEST(test_bin_histogram);
+    RUN_TEST(test_bin);
     return UNITY_END();
 }
