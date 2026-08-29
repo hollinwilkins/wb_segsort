@@ -69,6 +69,13 @@ void test_bin(void)
         compute_pass
     );
 
+    msg_bin_run_group(
+        &pipeline,
+        &bindings,
+        &config,
+        compute_pass
+    );
+
     wgpuComputePassEncoderEnd(compute_pass);
 
     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
@@ -85,6 +92,9 @@ void test_bin(void)
     wgpuCommandEncoderRelease(encoder);
 
     uint32_t * bin_histogram;
+    uint32_t * bin_offsets;
+    uint32_t * bin_indices;
+
     if (!hwgutil_wgpu_read_buffer_alloc(
         pipeline.instance,
         pipeline.device,
@@ -94,20 +104,66 @@ void test_bin(void)
         (void **)&bin_histogram
     )) abort();
 
-    const uint32_t expected[] = {
+    if (!hwgutil_wgpu_read_buffer_alloc(
+        pipeline.instance,
+        pipeline.device,
+        pipeline.queue,
+        buffers.bin_offsets,
+        &mems_system_allocator,
+        (void **)&bin_offsets
+    )) abort();
+
+    if (!hwgutil_wgpu_read_buffer_alloc(
+        pipeline.instance,
+        pipeline.device,
+        pipeline.queue,
+        buffers.bin_indices,
+        &mems_system_allocator,
+        (void **)&bin_indices
+    )) abort();
+
+    const uint32_t expected_histogram[] = {
+        0, 2, 3, 5,
+        7, 8, 9, 10,
+        11, 12, 13, 14,
+        15
+    };
+
+    const uint32_t expected_offsets[] = {
         2, 3, 5, 7,
         8, 9, 10, 11,
         12, 13, 14, 15,
         17
     };
 
+    const uint32_t expected_indices[] = {
+        1, 0, 2, 4,
+        3, 6, 5, 7,
+        8, 9, 10, 11,
+        12, 13, 14, 16, 15
+    };
+
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
-        expected,
+        expected_histogram,
         bin_histogram,
         13
     );
 
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(
+        expected_offsets,
+        bin_offsets,
+        13
+    );
+
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(
+        expected_indices,
+        bin_indices,
+        17
+    );
+
     mems_allocator_free(&mems_system_allocator, bin_histogram);
+    mems_allocator_free(&mems_system_allocator, bin_offsets);
+    mems_allocator_free(&mems_system_allocator, bin_indices);
 }
 
 int main(void)

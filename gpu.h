@@ -31,6 +31,7 @@ typedef struct msg_buffers
     WGPUBuffer bin_workgroup_size;
     WGPUBuffer bin_histogram;
     WGPUBuffer bin_offsets;
+    WGPUBuffer bin_indices;
     WGPUBuffer dispatch;
 } msg_buffers;
 
@@ -38,6 +39,7 @@ typedef struct msg_kernels
 {
     WGPUComputePipeline bin_histogram;
     WGPUComputePipeline schedule;
+    WGPUComputePipeline group;
 } msg_kernels;
 
 typedef struct msg_bindings
@@ -114,6 +116,13 @@ MERGE_EXPORT void msg_bin_run_schedule(
     WGPUComputePassEncoder encoder
 );
 
+MERGE_EXPORT void msg_bin_run_group(
+    const msg_pipeline * pipeline,
+    const msg_bindings * bindings,
+    const msg_gpu_config * config,
+    WGPUComputePassEncoder encoder
+);
+
 #endif
 
 #ifdef MERGE_SORT_GPU_IMPLEMENTATION
@@ -147,7 +156,7 @@ static void msg__kernels_init(
         .data = "Merge Sort: Bin Histogram Kernel (segments/bin histogram)",
         .length = WGPU_STRLEN,
     };
-    layout0_desc.entryCount = 6;
+    layout0_desc.entryCount = 7;
     layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
         (WGPUBindGroupLayoutEntry){
             .binding = 0, // config
@@ -185,7 +194,14 @@ static void msg__kernels_init(
             },
         },
         (WGPUBindGroupLayoutEntry){
-            .binding = 5, // dispatch
+            .binding = 5, // bin_indices
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 6, // dispatch
             .visibility = WGPUShaderStage_Compute,
             .buffer = {
                 .type = WGPUBufferBindingType_Storage,
@@ -273,6 +289,37 @@ static void msg__kernels_init(
 
     WGPUComputePipeline scheduler_kernel = wgpuDeviceCreateComputePipeline(device, &schedule_desc);
 
+    WGPUComputePipelineDescriptor group_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    group_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Group Pipeline",
+        .length = WGPU_STRLEN,
+    };
+    group_desc.layout = pipeline_layout;
+    group_desc.compute.entryPoint = (WGPUStringView){
+        .data = "main_group",
+        .length = WGPU_STRLEN,
+    };
+    group_desc.compute.module = shader_module;
+    group_desc.compute.constantCount = 2;
+    group_desc.compute.constants = (WGPUConstantEntry[]){
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "WORKGROUP_SIZE_X",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)dispatch_size->x,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "WORKGROUP_SIZE_Y",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)dispatch_size->y,
+        },
+    };
+
+    WGPUComputePipeline group_kernel = wgpuDeviceCreateComputePipeline(device, &group_desc);
+
     wgpuShaderModuleRelease(shader_module);
     wgpuPipelineLayoutRelease(pipeline_layout);
     wgpuBindGroupLayoutRelease(layout0);
@@ -280,6 +327,7 @@ static void msg__kernels_init(
     *kernels = (msg_kernels){
         .bin_histogram = bin_histogram_kernel,
         .schedule = scheduler_kernel,
+        .group = group_kernel,
     };
 }
 
@@ -396,6 +444,14 @@ MERGE_EXPORT void msg_buffers_init(
     bin_offsets_desc.size = 13 * sizeof(uint32_t);
     bin_offsets_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
+    WGPUBufferDescriptor bin_indices_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_indices_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Bin Indices",
+        .length = WGPU_STRLEN,
+    };
+    bin_indices_desc.size = options2.max_segments * sizeof(uint32_t);
+    bin_indices_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
     WGPUBufferDescriptor dispatch_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     dispatch_desc.label = (WGPUStringView){
         .data = "Merge Sort: Dispatch Args",
@@ -410,6 +466,7 @@ MERGE_EXPORT void msg_buffers_init(
         .segments = wgpuDeviceCreateBuffer(device, &segments_desc),
         .bin_histogram = wgpuDeviceCreateBuffer(device, &bin_histogram_desc),
         .bin_offsets = wgpuDeviceCreateBuffer(device, &bin_offsets_desc),
+        .bin_indices = wgpuDeviceCreateBuffer(device, &bin_indices_desc),
         .dispatch = wgpuDeviceCreateBuffer(device, &dispatch_desc),
     };
 
@@ -441,7 +498,7 @@ MERGE_EXPORT void msg_bindings_init(
         .length = WGPU_STRLEN,
     };
     bin_hist_binding_desc.layout = bin_hist_layout0;
-    bin_hist_binding_desc.entryCount = 6;
+    bin_hist_binding_desc.entryCount = 7;
     bin_hist_binding_desc.entries = (WGPUBindGroupEntry[]){
         (WGPUBindGroupEntry){
             .binding = 0, // config
@@ -469,7 +526,12 @@ MERGE_EXPORT void msg_bindings_init(
             .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
-            .binding = 5, // dispatch
+            .binding = 5, // bin_indices
+            .buffer = buffers->bin_indices,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 6, // dispatch
             .buffer = buffers->dispatch,
             .size = WGPU_WHOLE_SIZE,
         },
@@ -523,6 +585,20 @@ MERGE_EXPORT void msg_bin_run_schedule(
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.schedule);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
+}
+
+MERGE_EXPORT void msg_bin_run_group(
+    const msg_pipeline * const pipeline,
+    const msg_bindings * const bindings,
+    const msg_gpu_config * const config,
+    WGPUComputePassEncoder const encoder
+)
+{
+    const msg_dispatch_size bin_hist_dispatch_size = msg_dispatch_size_for_len(&pipeline->options.bin_hist_dispatch_size, config->segments_len);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.group);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
 }
 
 #endif

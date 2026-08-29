@@ -15,9 +15,10 @@ struct DispatchSize {
 @group(0) @binding(0) var<uniform> config: Config;
 @group(0) @binding(1) var<storage, read> segments: array<u32>;
 @group(0) @binding(2) var<storage, read> bin_workgroup_size: array<u32>;
-@group(0) @binding(3) var<storage, read_write> bin_counts: array<atomic<u32>>;
+@group(0) @binding(3) var<storage, read_write> bin_histogram: array<atomic<u32>>;
 @group(0) @binding(4) var<storage, read_write> bin_offsets: array<u32>;
-@group(0) @binding(5) var<storage, read_write> dispatch: array<DispatchSize>;
+@group(0) @binding(5) var<storage, read_write> bin_indices: array<u32>;
+@group(0) @binding(6) var<storage, read_write> dispatch: array<DispatchSize>;
 
 var <workgroup> local_bin_counts: array<atomic<u32>, 13>;
 
@@ -39,7 +40,6 @@ fn main_histogram(
     @builtin(num_workgroups) workgroup_dim: vec3<u32>,
     @builtin(local_invocation_index) TID: u32, // Local thread ID
 ) {
-    let WORKGROUP_COUNT = workgroup_dim.x * workgroup_dim.y * workgroup_dim.z;
     let ARRAY_LENGTH = config.segments_len;
     let WORKGROUP_ID = workgroup_id.x + workgroup_id.y * workgroup_dim.x;
     let WID = WORKGROUP_ID * WORKGROUP_ITEMS;
@@ -58,7 +58,7 @@ fn main_histogram(
     workgroupBarrier();
 
     if (TID < 13) {
-        atomicAdd(&bin_counts[TID], local_bin_counts[TID]);
+        atomicAdd(&bin_histogram[TID], local_bin_counts[TID]);
     }
 }
 
@@ -66,8 +66,11 @@ fn main_histogram(
 fn main_schedule() {
     var sum = 0u;
     for (var i = 0u; i < 13; i++) {
-        let cur_count = atomicLoad(&bin_counts[i]);
-        atomicStore(&bin_counts[i], cur_count + sum);
+        let cur_count = atomicLoad(&bin_histogram[i]);
+        let end = cur_count + sum;
+
+        atomicStore(&bin_histogram[i], end);
+        bin_offsets[i] = end;
         sum = sum + cur_count;
 
         let groups = select(
@@ -83,5 +86,24 @@ fn main_schedule() {
         }
 
         dispatch[i] = DispatchSize(x, y, 1u);
+    }
+}
+
+// Group segment indices in order for dispatch
+// After calling this, all indices will be grouped and in order by segment size ascending
+@compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y, 1)
+fn main_group(
+    @builtin(workgroup_id) workgroup_id: vec3<u32>,
+    @builtin(num_workgroups) workgroup_dim: vec3<u32>,
+    @builtin(local_invocation_index) TID: u32, // Local thread ID
+) {
+    let ARRAY_LENGTH = config.segments_len;
+    let WORKGROUP_ID = workgroup_id.x + workgroup_id.y * workgroup_dim.x;
+    let WID = WORKGROUP_ID * WORKGROUP_ITEMS;
+    let GID = WID + TID; // Global thread ID
+
+    if GID < ARRAY_LENGTH {
+        let pos = atomicSub(&bin_histogram[segment_bucket(GID)], 1u) - 1u;
+        bin_indices[pos] = GID;
     }
 }
