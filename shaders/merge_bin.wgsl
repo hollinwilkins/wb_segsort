@@ -6,6 +6,13 @@ struct Config {
     segments_len: u32,
 }
 
+struct BinConfig {
+    n: u32,
+    m: u32,
+    wg: u32,
+    flags: u32,
+}
+
 struct DispatchSize {
     x: u32,
     y: u32,
@@ -14,7 +21,7 @@ struct DispatchSize {
 
 @group(0) @binding(0) var<uniform> config: Config;
 @group(0) @binding(1) var<storage, read> segments: array<u32>;
-@group(0) @binding(2) var<storage, read> bin_workgroup_size: array<u32>;
+@group(0) @binding(2) var<storage, read> bin_config: array<BinConfig>;
 @group(0) @binding(3) var<storage, read_write> bin_histogram: array<atomic<u32>>;
 @group(0) @binding(4) var<storage, read_write> bin_offsets: array<u32>;
 @group(0) @binding(5) var<storage, read_write> bin_indices: array<u32>;
@@ -73,11 +80,13 @@ fn main_schedule() {
         bin_offsets[i] = end;
         sum = sum + cur_count;
 
+        let segments_per_workgroup = max(bin_config[i].wg / bin_config[i].m, 1u);
         let groups = select(
-            (cur_count + bin_workgroup_size[i] - 1u) / bin_workgroup_size[i],
+            (cur_count + segments_per_workgroup - 1u) / segments_per_workgroup,
             0u,
-            i == 0u
+            i == 0u || cur_count == 0u
         );
+
         var x = groups;
         var y = 1u;
         if x > 65535u {

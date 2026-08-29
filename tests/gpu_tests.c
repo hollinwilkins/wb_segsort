@@ -31,6 +31,34 @@ void tearDown(void)
 {
 }
 
+void test__sort_kernel(
+    const uint32_t n,
+    const uint32_t m,
+    const bool is_register,
+    const uint32_t segments_n,
+    const unsigned int seed
+)
+{
+    srand(seed);
+
+    uint32_t * const segments = (uint32_t *)malloc(segments_n * sizeof(uint32_t));
+
+    uint32_t len = 0;
+    for (uint32_t i = 0; i < segments_n; i++)
+    {
+        const uint32_t segment_len = rand() % n;
+        len += segment_len;
+        segments[i] = len;
+    }
+
+    uint32_t * const values = (uint32_t *)malloc(len * sizeof(uint32_t));
+
+    for (uint32_t i = 0; i < len; i++)
+    {
+        values[i] = rand() % 712893;
+    }
+}
+
 void test_bin(void)
 {
     msg_gpu_config config;

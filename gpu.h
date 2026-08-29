@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include <webgpu/webgpu.h>
 
@@ -21,9 +22,29 @@ typedef struct msg_gpu_config
     uint32_t segments_len;
 } msg_gpu_config;
 
+typedef uint32_t msg_bin_flag;
+typedef enum msg_bin_flag_enum
+{
+    // uses registers for sorting
+    msg_bin_flag_is_register = 1u << 0u,
+
+    // is variable sized (merge sort)
+    msg_bin_flag_is_variable = 1u << 1u,
+} msg_bin_flag_enum;
+
+typedef struct msg_gpu_bin
+{
+    uint32_t n;
+    uint32_t m;
+    uint32_t wg;
+    msg_bin_flag flags;
+} msg_gpu_bin;
+
 typedef struct msg_buffers_options
 {
     size_t max_segments;
+    size_t max_items;
+    size_t value_size;
     bool is_initialized;
 } msg_buffers_options;
 
@@ -31,11 +52,16 @@ typedef struct msg_buffers
 {
     WGPUBuffer config;
     WGPUBuffer segments;
-    WGPUBuffer bin_workgroup_size;
+    WGPUBuffer bin_config;
     WGPUBuffer bin_histogram;
     WGPUBuffer bin_offsets;
     WGPUBuffer bin_indices;
     WGPUBuffer dispatch;
+
+    // sort buffers
+    WGPUBuffer value_indices;
+    WGPUBuffer values;
+    WGPUBuffer keys;
 } msg_buffers;
 
 typedef struct msg_kernels
@@ -48,6 +74,7 @@ typedef struct msg_kernels
 typedef struct msg_bindings
 {
     WGPUBindGroup bin;
+    WGPUBindGroup sort;
 } msg_bindings;
 
 typedef struct msg_dispatch_size
@@ -60,9 +87,18 @@ typedef struct msg_dispatch_size
 #define MSG_DISPATCH_SIZE_ONCE { 1, 1, 1 }
 #define MSG_DISPATCH_SIZE_DEFAULT { 16, 16, 1 }
 
+typedef struct msg_sort_layouts
+{
+    WGPUBindGroupLayout layout0;
+    WGPUPipelineLayout pipeline_layout;
+} msg_sort_layouts;
+
 typedef struct msg_options
 {
+    const char * sort_kernels_root_dir;
     msg_dispatch_size bin_hist_dispatch_size;
+    size_t wpt_threshold;
+    size_t target_wg_size;
     bool is_initialized;
 } msg_options;
 
@@ -98,8 +134,15 @@ typedef struct msg_pipeline
     WGPUAdapter adapter;
     WGPUDevice device;
     WGPUQueue queue;
+    uint32_t max_invocations;
+    uint32_t max_smem_size;
+    uint32_t subgroup_size;
+    bool has_subgroups;
     msg_kernels kernels;
     msg_sort_kernel_map sort_kernels;
+    msg_sort_layouts sort_layouts;
+
+    msg_gpu_bin bins[13];
 } msg_pipeline;
 
 MERGE_EXPORT void msg_pipeline_init(
@@ -113,6 +156,7 @@ MERGE_EXPORT void msg_pipeline_init(
 );
 
 MERGE_EXPORT void msg_buffers_init(
+    const msg_pipeline * pipeline,
     msg_buffers * buffers,
     const msg_buffers_options * options,
     WGPUDevice device,
@@ -151,6 +195,15 @@ MERGE_EXPORT void msg_bin_run_group(
     const msg_bindings * bindings,
     const msg_gpu_config * config,
     WGPUComputePassEncoder encoder
+);
+
+MERGE_EXPORT void msg_sort(
+    msg_pipeline * pipeline,
+    const msg_bindings * bindings,
+    const msg_buffers * buffers,
+    const msg_gpu_config * config,
+    WGPUComputePassEncoder encoder,
+    const mems_allocator * allocator
 );
 
 #endif
@@ -376,6 +429,9 @@ static bool msg__dispatch_size_is_zero(const msg_dispatch_size * const size)
         size->z == 0;
 }
 
+#define MSG_OPTIONS_DEFAULT_WPT_THRESHOLD 8u
+#define MSG_OPTIONS_DEFAULT_TARGET_WG_SIZE 256u
+
 static void msg__options_init(msg_options * const options)
 {
     if (options->is_initialized) return;
@@ -383,6 +439,9 @@ static void msg__options_init(msg_options * const options)
     options->bin_hist_dispatch_size = msg__dispatch_size_is_zero(&options->bin_hist_dispatch_size) ?
         (msg_dispatch_size)MSG_DISPATCH_SIZE_DEFAULT :
         options->bin_hist_dispatch_size;
+
+    options->wpt_threshold = options->wpt_threshold == 0 ? MSG_OPTIONS_DEFAULT_WPT_THRESHOLD : options->wpt_threshold;
+    options->target_wg_size = options->target_wg_size == 0 ? MSG_OPTIONS_DEFAULT_TARGET_WG_SIZE : options->target_wg_size;
 
     options->is_initialized = true;
 }
@@ -403,6 +462,84 @@ static const uint32_t msg__sort_kernels_segment_sizes_len = sizeof(msg__sort_ker
 
 static const uint32_t msg__sort_kernels_len = msg__sort_kernels_subgroup_sizes_len * msg__sort_kernels_segment_sizes_len;
 
+
+static void msg__sort_layouts_init(
+    msg_sort_layouts * const layouts,
+    WGPUDevice const device
+)
+{
+    WGPUBindGroupLayoutDescriptor layout0_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout0_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Sort Bindings",
+        .length = WGPU_STRLEN,
+    };
+    layout0_desc.entryCount = 5;
+    layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        (WGPUBindGroupLayoutEntry){
+            .binding = 0, // global_keys
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 1, // global_value_indices
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 2, // segments
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 3, // bin_offsets
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 4, // bin_indices
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+    };
+
+    WGPUBindGroupLayout layout0 = wgpuDeviceCreateBindGroupLayout(device, &layout0_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Sort Pipeline Layout",
+        .length = WGPU_STRLEN,
+    };
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){
+        layout0,
+    };
+
+    WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+
+    *layouts = (msg_sort_layouts){
+        .layout0 = layout0,
+        .pipeline_layout = pipeline_layout,
+    };
+}
+
+static size_t msg__round_pow2(size_t a) {
+    if (a <= 1) return 1;
+    a--;
+    a |= a >> 1; a |= a >> 2; a |= a >> 4;
+    a |= a >> 8; a |= a >> 16; a |= a >> 32;
+    return a + 1;
+}
+
 MERGE_EXPORT void msg_pipeline_init(
     msg_pipeline * const pipeline,
     const msg_options * const options,
@@ -421,12 +558,24 @@ MERGE_EXPORT void msg_pipeline_init(
     wgpuDeviceAddRef(device);
     wgpuQueueAddRef(queue);
 
+    WGPULimits limits = WGPU_LIMITS_INIT;
+    if (wgpuDeviceGetLimits(device, &limits) != WGPUStatus_Success) abort();
+
+    WGPUAdapterInfo info = WGPU_ADAPTER_INFO_INIT;
+    if (wgpuAdapterGetInfo(adapter, &info) != WGPUStatus_Success) abort();
+
+    const WGPUBool has_subgroups = wgpuAdapterHasFeature(adapter, WGPUFeatureName_Subgroups);
+
     *pipeline = (msg_pipeline){
         .options = options2,
         .instance = instance,
         .adapter = adapter,
         .device = device,
         .queue = queue,
+        .max_invocations = limits.maxComputeInvocationsPerWorkgroup,
+        .max_smem_size = limits.maxComputeWorkgroupStorageSize,
+        .subgroup_size = info.subgroupMinSize,
+        .has_subgroups = has_subgroups == WGPU_TRUE,
     };
 
     msg__kernels_init(
@@ -435,26 +584,93 @@ MERGE_EXPORT void msg_pipeline_init(
         &options2.bin_hist_dispatch_size
     );
 
+    msg__sort_layouts_init(
+        &pipeline->sort_layouts,
+        device
+    );
+
     if (!msg_sort_kernel_map_init_alloc(
         &pipeline->sort_kernels,
         allocator,
         msg__sort_kernels_len * 4,
         msg__sort_kernels_len
     )) abort();
+
+        for (uint32_t i = 0; i < 13; i++)
+    {
+        const uint32_t N = 1u << i;
+        uint32_t M = 0;
+        bool is_register = false;
+
+        if (pipeline->has_subgroups)
+        {
+            is_register = true;
+            M = MSG_MIN(N, pipeline->subgroup_size);
+            const uint32_t wpt = N / M;
+
+            if (wpt > pipeline->options.wpt_threshold) M = 0;
+        }
+
+        if (M == 0)
+        {
+            is_register = false;
+            M = MSG_MIN(N, msg__round_pow2(((N + pipeline->options.wpt_threshold - 1) / pipeline->options.wpt_threshold)));
+
+            if (N * 8u > pipeline->options.wpt_threshold) M = 0;
+        }
+
+        const uint32_t wpt = N / M;
+        uint32_t wg;
+        if (is_register)
+        {
+            wg = MSG_MIN(pipeline->options.target_wg_size, pipeline->max_invocations);
+            wg = (wg / pipeline->subgroup_size) * pipeline->subgroup_size;
+            if (wg < pipeline->subgroup_size) wg = pipeline->subgroup_size;
+        }
+        else
+        {
+            uint32_t smem_cap = pipeline->max_smem_size / (wpt * 2u * 4u); // keys and values (keys + values) * sizeof(uint32_t)
+            wg = MSG_MIN(
+                pipeline->options.target_wg_size,
+                MSG_MIN(
+                    pipeline->max_invocations,
+                    smem_cap
+                )
+            );
+            wg = (wg / M) * M;
+            if (wg < M) wg = M;
+        }
+
+        const bool is_variable = M == 0;
+
+        msg_bin_flag flags = 0;
+        flags |= (uint32_t)is_register * msg_bin_flag_is_register;
+        flags |= (uint32_t)is_variable * msg_bin_flag_is_variable;
+
+        pipeline->bins[i] = (msg_gpu_bin){
+            .n = N,
+            .m = M,
+            .wg = wg,
+            .flags = flags,
+        };
+    }
 }
 
 #define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS 1024
+#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS 1024 * 256
 
 static void msg_buffers_options_init(msg_buffers_options * const options)
 {
     if (options->is_initialized) return;
 
     options->max_segments = options->max_segments == 0 ? MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS : options->max_segments;
+    options->max_items = options->max_items == 0 ? MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS : options->max_items;
 
     options->is_initialized = true;
 }
 
 MERGE_EXPORT void msg_buffers_init(
+    const msg_pipeline * const pipeline,
     msg_buffers * const buffers,
     const msg_buffers_options * const options,
     WGPUDevice const device,
@@ -472,13 +688,13 @@ MERGE_EXPORT void msg_buffers_init(
     config_desc.size = sizeof(msg_gpu_config);
     config_desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
 
-    WGPUBufferDescriptor bin_workgroup_size_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
-    bin_workgroup_size_desc.label = (WGPUStringView){
-        .data = "Merge Sort: Bin Workgroup Size",
+    WGPUBufferDescriptor bin_config_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_config_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Bin Config",
         .length = WGPU_STRLEN,
     };
-    bin_workgroup_size_desc.size = 13 * sizeof(uint32_t);
-    bin_workgroup_size_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+    bin_config_desc.size = 13 * sizeof(msg_gpu_bin);
+    bin_config_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
     WGPUBufferDescriptor segments_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     segments_desc.label = (WGPUStringView){
@@ -520,27 +736,49 @@ MERGE_EXPORT void msg_buffers_init(
     dispatch_desc.size = 13 * sizeof(msg_dispatch_size);
     dispatch_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
+    WGPUBufferDescriptor value_indices_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    value_indices_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Value Indices",
+        .length = WGPU_STRLEN,
+    };
+    value_indices_desc.size = options2.max_items * sizeof(msg_dispatch_size);
+    value_indices_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor values_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    values_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Values",
+        .length = WGPU_STRLEN,
+    };
+    values_desc.size = options2.max_items * options2.value_size;
+    values_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor keys_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    keys_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Keys",
+        .length = WGPU_STRLEN,
+    };
+    keys_desc.size = options2.max_items * sizeof(uint32_t);
+    keys_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
     *buffers = (msg_buffers){
         .config = wgpuDeviceCreateBuffer(device, &config_desc),
-        .bin_workgroup_size = wgpuDeviceCreateBuffer(device, &bin_workgroup_size_desc),
+        .bin_config = wgpuDeviceCreateBuffer(device, &bin_config_desc),
         .segments = wgpuDeviceCreateBuffer(device, &segments_desc),
         .bin_histogram = wgpuDeviceCreateBuffer(device, &bin_histogram_desc),
         .bin_offsets = wgpuDeviceCreateBuffer(device, &bin_offsets_desc),
         .bin_indices = wgpuDeviceCreateBuffer(device, &bin_indices_desc),
         .dispatch = wgpuDeviceCreateBuffer(device, &dispatch_desc),
+        .value_indices = wgpuDeviceCreateBuffer(device, &value_indices_desc),
+        .values = wgpuDeviceCreateBuffer(device, &values_desc),
+        .keys = wgpuDeviceCreateBuffer(device, &keys_desc),
     };
 
     wgpuQueueWriteBuffer(
         queue,
-        buffers->bin_workgroup_size,
+        buffers->bin_config,
         0,
-        (uint32_t[13]){
-            0, 128, 64, 32,
-            16, 8, 4, 2,
-            1, 1, 1, 1,
-            1
-        },
-        13 * sizeof(uint32_t)
+        pipeline->bins,
+        13 * sizeof(msg_gpu_bin)
     );
 }
 
@@ -572,7 +810,7 @@ MERGE_EXPORT void msg_bindings_init(
         },
         (WGPUBindGroupEntry){
             .binding = 2, // bin_workgroup_size
-            .buffer = buffers->bin_workgroup_size,
+            .buffer = buffers->bin_config,
             .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
@@ -601,8 +839,46 @@ MERGE_EXPORT void msg_bindings_init(
 
     wgpuBindGroupLayoutRelease(bin_hist_layout0);
 
+    WGPUBindGroupDescriptor sort_binding_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    sort_binding_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Sort Binding",
+        .length = WGPU_STRLEN,
+    };
+    sort_binding_desc.layout = pipeline->sort_layouts.layout0;
+    sort_binding_desc.entryCount = 5;
+    sort_binding_desc.entries = (WGPUBindGroupEntry[]){
+        (WGPUBindGroupEntry){
+            .binding = 0, // global_keys
+            .buffer = buffers->keys,
+            .size = sizeof(msg_gpu_config),
+        },
+        (WGPUBindGroupEntry){
+            .binding = 1, // global_value_indices
+            .buffer = buffers->value_indices,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 2, // segments
+            .buffer = buffers->segments,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 3, // bin_offsets
+            .buffer = buffers->bin_offsets,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 4, // bin_indices
+            .buffer = buffers->bin_indices,
+            .size = WGPU_WHOLE_SIZE,
+        },
+    };
+
+    WGPUBindGroup sort_binding = wgpuDeviceCreateBindGroup(pipeline->device, &sort_binding_desc);
+
     *bindings = (msg_bindings){
         .bin = bin_binding,
+        .sort = sort_binding,
     };
 }
 
@@ -659,6 +935,157 @@ MERGE_EXPORT void msg_bin_run_group(
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.group);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
+}
+
+static char * msg__read_file(
+    const char * const path,
+    const mems_allocator * const allocator,
+    size_t * const buffer_len
+)
+{
+    FILE * const f = fopen(path, "rb");
+    if (f == NULL) abort();
+
+    if (fseek(f, 0, SEEK_END) != 0) abort();
+
+    long file_size = ftell(f);
+    if (file_size < 0) abort();
+
+    if (fseek(f, 0, SEEK_SET) != 0) abort();
+
+    char * const buffer = (char *)mems_allocator_alloc(allocator, MEMS_ALIGN_DEFAULT, file_size + 1);
+    size_t bytes_read = fread(buffer, 1, file_size, f);
+    if (bytes_read < (size_t)file_size) {
+        if (ferror(f)) {
+            perror("Error reading file");
+            free(buffer);
+            fclose(f);
+            abort();
+        }
+        file_size = bytes_read;
+    }
+
+    *buffer_len = file_size;
+    buffer[file_size] = 0;
+
+    fclose(f);
+
+    return buffer;
+}
+
+static WGPUComputePipeline msg__pipeline_get_sort_kernel(
+    msg_pipeline * const pipeline,
+    const msg_gpu_bin * const bin,
+    const mems_allocator * const allocator
+)
+{
+    const bool is_register = (bin->flags & msg_bin_flag_is_variable) != 0;
+
+    msg_sort_kernel_map_gop_result gop;
+    msg_sort_kernel_map_get_or_put(
+        &pipeline->sort_kernels,
+        (msg_sort_kernel_key){ bin->n, bin->m, is_register },
+        &gop
+    );
+
+    if (!gop.found_existing)
+    {
+        const char * const memory = is_register ? "reg" : "wg";
+
+        static char KERNEL_NAME[2048];
+        snprintf(KERNEL_NAME, 2048, "segsort_%s_n%u_m%u",
+            memory,
+            bin->n, bin->m
+        );
+
+        static char KERNEL_FILE_PATH[2048];
+        snprintf(KERNEL_FILE_PATH, 2048, "%s/%s.wgsl",
+            pipeline->options.sort_kernels_root_dir,
+            KERNEL_NAME
+        );
+
+        size_t source_len;
+        char * const source = msg__read_file(KERNEL_FILE_PATH, allocator, &source_len);
+
+        WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
+            .chain = (WGPUChainedStruct){
+                .sType = WGPUSType_ShaderSourceWGSL
+            },
+            .code = (WGPUStringView){
+                .data = source,
+                .length = source_len,
+            },
+        };
+        WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
+            .label = (WGPUStringView){
+                .data = KERNEL_NAME,
+                .length = WGPU_STRLEN,
+            },
+            .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
+        };
+        WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule(
+            pipeline->device,
+            &shader_module_desc
+        );
+
+        static char PIPELINE_NAME[2048];
+        snprintf(PIPELINE_NAME, 2048, "Sort %s", KERNEL_FILE_PATH);
+        WGPUComputePipelineDescriptor sort_kernel_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+        sort_kernel_desc.label = (WGPUStringView){
+            .data = PIPELINE_NAME,
+            .length = WGPU_STRLEN,
+        };
+        sort_kernel_desc.layout = pipeline->sort_layouts.pipeline_layout;
+        sort_kernel_desc.compute.entryPoint = (WGPUStringView){
+            .data = KERNEL_NAME,
+            .length = WGPU_STRLEN,
+        };
+        sort_kernel_desc.compute.module = shader_module;
+        sort_kernel_desc.compute.constantCount = 1;
+        sort_kernel_desc.compute.constants = (WGPUConstantEntry[]){
+            (WGPUConstantEntry){
+                .key = (WGPUStringView){
+                    .data = "WG",
+                    .length = WGPU_STRLEN
+                },
+                .value = (float)bin->wg,
+            },
+        };
+
+        *gop.value = wgpuDeviceCreateComputePipeline(pipeline->device, &sort_kernel_desc);
+    }
+
+    return *gop.value;
+}
+
+MERGE_EXPORT void msg_sort(
+    msg_pipeline * const pipeline,
+    const msg_bindings * const bindings,
+    const msg_buffers * const buffers,
+    const msg_gpu_config * const config,
+    WGPUComputePassEncoder const encoder,
+    const mems_allocator * const allocator
+)
+{
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->sort, 0, NULL);
+      
+    for (uint32_t i = 1u; i < 12u; i++)
+    {
+        const msg_gpu_bin * const bin = &pipeline->bins[i];
+
+        WGPUComputePipeline const sort_kernel = msg__pipeline_get_sort_kernel(
+            pipeline,
+            bin,
+            allocator
+        );
+
+        wgpuComputePassEncoderSetPipeline(encoder, sort_kernel);
+        wgpuComputePassEncoderDispatchWorkgroupsIndirect(
+            encoder,
+            buffers->dispatch,
+            (uint64_t)i * sizeof(msg_dispatch_size)
+        );
+    }
 }
 
 #endif
