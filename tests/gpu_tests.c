@@ -34,9 +34,9 @@ void test_bin(void)
     msg_gpu_config config;
 
     const uint32_t segments[] = {
-        0, 1, 2, 3, 4, 7,
-        8, 15, 32, 64, 128, 256,
-        512, 1024, 2048, 4096, 8888
+        0, 1, 3, 6, 10, 17,
+        25, 40, 72, 136, 264, 520,
+        1032, 2056, 4104, 8200, 17088
     };
     const size_t segments_len = sizeof(segments) / sizeof(uint32_t);
 

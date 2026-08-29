@@ -16,9 +16,22 @@ struct DispatchSize {
 @group(0) @binding(1) var<storage, read> segments: array<u32>;
 @group(0) @binding(2) var<storage, read> bin_workgroup_size: array<u32>;
 @group(0) @binding(3) var<storage, read_write> bin_counts: array<atomic<u32>>;
-@group(0) @binding(4) var<storage, read_write> dispatch: array<DispatchSize>;
+@group(0) @binding(4) var<storage, read_write> bin_offsets: array<u32>;
+@group(0) @binding(5) var<storage, read_write> dispatch: array<DispatchSize>;
 
 var <workgroup> local_bin_counts: array<atomic<u32>, 13>;
+
+fn segment_bucket(index: u32) -> u32 {
+    let segment_end = segments[index];
+    var segment_start = 0u;
+    if index > 0u {
+        segment_start = segments[index - 1u];
+    }
+    let segment_len = segment_end - segment_start;
+
+    let bucket_segment_len = max(segment_len, 1u) - 1u;
+    return min(32u - countLeadingZeros(bucket_segment_len), 12u);
+}
 
 @compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y, 1)
 fn main_histogram(
@@ -38,20 +51,8 @@ fn main_histogram(
 
     workgroupBarrier();
 
-    var bucket_index = 0u;
     if GID < ARRAY_LENGTH {
-        let segment_end = segments[GID];
-        var segment_start = 0u;
-        if GID == 0 {
-            segment_start = segments[GID - 1];
-        }
-        let segment_len = segment_end - segment_start;
-
-        // 0 -> 0 and 1 -> 0, both get bucketed in bin 0
-        let bucket_segment_len = max(segment_len, 1u) - 1u;
-        let bucket_index = min(32u - countLeadingZeros(bucket_segment_len), 12u);
-
-        atomicAdd(&local_bin_counts[bucket_index], 1u);
+        atomicAdd(&local_bin_counts[segment_bucket(GID)], 1u);
     }
 
     workgroupBarrier();
