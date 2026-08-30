@@ -9,11 +9,13 @@
 #define HWGUTIL_MEMS_ENABLED
 #define HWDS_MEMS_ENABLED
 
+#define MERGE_SORT_CPU_IMPLEMENTATION
 #define MERGE_SORT_GPU_IMPLEMENTATION
 #define HWGUTIL_IMPLEMENTATION
 #define HWDS_IMPLEMENTATION
 #define MEMS_IMPLEMENTATION
 
+#include "cpu.h"
 #include "gpu.h"
 #include "hw_gutil.h"
 #include "hw_mems.h"
@@ -51,6 +53,10 @@ void test__sort_kernel(
 
     uint32_t * const keys = (uint32_t *)malloc(len * sizeof(uint32_t));
     uint32_t * const values = (uint32_t *)malloc(len * sizeof(uint32_t));
+
+    uint32_t * expected_keys = (uint32_t *)malloc(len * sizeof(uint32_t));
+    memcpy(expected_keys, keys, len * sizeof(uint32_t));
+    msc_segsort_alloc(len, expected_keys, segments_len, segments);
 
     for (uint32_t i = 0; i < len; i++)
     {
@@ -123,6 +129,24 @@ void test__sort_kernel(
     wgpuCommandBufferRelease(commands);
     wgpuComputePassEncoderRelease(compute_pass);
     wgpuCommandEncoderRelease(encoder);
+
+    uint32_t *gpu_keys;
+    if (!hwgutil_wgpu_read_buffer_alloc(
+        pipeline.instance,
+        pipeline.device,
+        pipeline.queue,
+        buffers.keys,
+        &mems_system_allocator,
+        (void **)&gpu_keys)
+    ) abort();
+
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(expected_keys, gpu_keys, len);
+
+    mems_allocator_free(&mems_system_allocator, gpu_keys);
+    free(expected_keys);
+    free(values);
+    free(keys);
+    free(segments);
 }
 
 void test_sort_fixed_4096_seed1337()

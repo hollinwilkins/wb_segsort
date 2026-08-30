@@ -83,12 +83,15 @@ MERGE_EXPORT void msc_segsort_alloc(
     uint32_t * const swap = (uint32_t *)malloc(len * sizeof(uint32_t));
     memcpy(swap, arr, len * sizeof(uint32_t));
 
-    size_t seg_start = 0, seg_end = 0;
+    size_t seg_start = 0;
     for (size_t i = 0; i < segs_len; i++)
     {
-        seg_end = segs[i];
-        msc__sort_r(seg_start, seg_end, arr, swap);
-        seg_start = seg_end + 1;
+        const size_t seg_end = segs[i];
+        if (seg_end > seg_start)
+        {
+            msc__sort_r(seg_start, seg_end - 1, arr, swap);
+        }
+        seg_start = seg_end;
     }
 
     free(swap);
