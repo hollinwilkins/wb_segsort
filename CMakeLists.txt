@@ -11,7 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 include(WgpuNative)
 include(Cpu)
 include(Gpu)
-include(Main)
+include(Benchmark)
 
 enable_testing()
 
