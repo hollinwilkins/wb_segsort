@@ -3,7 +3,7 @@
 #include "unity.h"
 #include "unity_internals.h"
 
-#define MERGE_SORT_CPU_IMPLEMENTATION
+#define WB_SORT_CPU_IMPLEMENTATION
 
 #include "cpu.h"
 
@@ -17,14 +17,14 @@ void tearDown(void)
 
 void test_sort0()
 {
-    msc_sort_alloc(0, NULL);
+    wbc_sort_alloc(0, NULL);
 }
 
 void test_sort1()
 {
     uint32_t arr[1] = { 42 };
     TEST_ASSERT_EQUAL(42, arr[0]);
-    msc_sort_alloc(1, arr);
+    wbc_sort_alloc(1, arr);
 
     TEST_ASSERT_EQUAL(42, arr[0]);
 }
@@ -32,7 +32,7 @@ void test_sort1()
 void test_sort2()
 {
     uint32_t arr[2] = { 42, 13 };
-    msc_sort_alloc(2, arr);
+    wbc_sort_alloc(2, arr);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 13, 42 }),
@@ -44,7 +44,7 @@ void test_sort2()
 void test_sort3()
 {
     uint32_t arr[3] = { 7, 42, 13 };
-    msc_sort_alloc(3, arr);
+    wbc_sort_alloc(3, arr);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 7, 13, 42 }),
@@ -56,7 +56,7 @@ void test_sort3()
 void test_sort4()
 {
     uint32_t arr[4] = { 42, 13, 7, 2 };
-    msc_sort_alloc(4, arr);
+    wbc_sort_alloc(4, arr);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 2, 7, 13, 42 }),
@@ -90,7 +90,7 @@ void test_sort1024()
 
     qsort(expected, 1024, sizeof(uint32_t), qsort_compare_uint32);
 
-    msc_sort_alloc(1024, arr);
+    wbc_sort_alloc(1024, arr);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         expected,
@@ -117,7 +117,7 @@ void test_sort4033()
 
     qsort(expected, 4033, sizeof(uint32_t), qsort_compare_uint32);
 
-    msc_sort_alloc(4033, arr);
+    wbc_sort_alloc(4033, arr);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         expected,
@@ -131,9 +131,9 @@ void test_sort4033()
 
 void test_segsort8()
 {
-    uint32_t segs[2] = { 3, 7 };
+    uint32_t segs[2] = { 4, 8 };
     uint32_t arr[8] = { 42, 13, 7, 2, 73, 22, 97, 10 };
-    msc_segsort_alloc(8, arr, 2, segs);
+    wbc_segsort_alloc(8, arr, 2, segs);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 2, 7, 13, 42, 10, 22, 73, 97 }),
@@ -144,7 +144,7 @@ void test_segsort8()
 
 void test_segsort23()
 {
-    uint32_t segs[5] = { 3, 7, 12, 20, 22 };
+    uint32_t segs[5] = { 4, 8, 13, 21, 23 };
     uint32_t arr[23] = {
         42, 13, 7, 2,
         73, 22, 97, 10,
@@ -152,7 +152,7 @@ void test_segsort23()
         1, 2, 3, 4, 5, 6, 7, 8,
         2, 1
     };
-    msc_segsort_alloc(23, arr, 5, segs);
+    wbc_segsort_alloc(23, arr, 5, segs);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){

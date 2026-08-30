@@ -9,8 +9,8 @@
 #define HWGUTIL_MEMS_ENABLED
 #define HWDS_MEMS_ENABLED
 
-#define MERGE_SORT_CPU_IMPLEMENTATION
-#define MERGE_SORT_GPU_IMPLEMENTATION
+#define WB_SORT_CPU_IMPLEMENTATION
+#define WB_SORT_GPU_IMPLEMENTATION
 #define HWGUTIL_IMPLEMENTATION
 #define HWDS_IMPLEMENTATION
 #define MEMS_IMPLEMENTATION
@@ -21,9 +21,9 @@
 #include "hw_mems.h"
 
 hwgutil_wgpu_context context;
-msg_pipeline pipeline;
-msg_buffers buffers;
-msg_bindings bindings;
+wbg_pipeline pipeline;
+wbg_buffers buffers;
+wbg_bindings bindings;
 
 void setUp(void)
 {
@@ -62,10 +62,10 @@ void test__sort_kernel(
 
     uint32_t * expected_keys = (uint32_t *)malloc(len * sizeof(uint32_t));
     memcpy(expected_keys, keys, len * sizeof(uint32_t));
-    msc_segsort_alloc(len, expected_keys, segments_len, segments);
+    wbc_segsort_alloc(len, expected_keys, segments_len, segments);
 
-    msg_gpu_config config = {0};
-    msg_prepare(
+    wbg_gpu_config config = {0};
+    wbg_prepare(
         pipeline.queue,
         &buffers,
         segments_len, segments,
@@ -85,21 +85,21 @@ void test__sort_kernel(
         },
     });
 
-    msg_run_bin_histogram(
+    wbg_run_bin_histogram(
         &pipeline,
         &bindings,
         &config,
         bin_pass
     );
 
-    msg_bin_run_schedule(
+    wbg_bin_run_schedule(
         &pipeline,
         &bindings,
         &config,
         bin_pass
     );
 
-    msg_bin_run_group(
+    wbg_bin_run_group(
         &pipeline,
         &bindings,
         &config,
@@ -114,7 +114,7 @@ void test__sort_kernel(
         },
     });
 
-    msg_sort(
+    wbg_sort(
         &pipeline,
         &bindings,
         &buffers,
@@ -131,7 +131,7 @@ void test__sort_kernel(
         },
     });
 
-    msg_merge(
+    wbg_merge(
         &pipeline,
         &bindings,
         &buffers,
@@ -191,9 +191,9 @@ int main(void)
         1, (WGPUFeatureName[]){ WGPUFeatureName_Subgroups }
     )) abort();
 
-    msg_pipeline_init(
+    wbg_pipeline_init(
         &pipeline,
-        &(msg_options){
+        &(wbg_options){
             .sort_kernels_root_dir = "shaders/sort_kernels"
         },
         context.instance,
@@ -203,7 +203,7 @@ int main(void)
         &mems_system_allocator
     );
 
-    msg_buffers_init(
+    wbg_buffers_init(
         &pipeline,
         &buffers,
         NULL,
@@ -211,7 +211,7 @@ int main(void)
         context.queue
     );
 
-    msg_bindings_init(
+    wbg_bindings_init(
         &bindings,
         &pipeline,
         &buffers

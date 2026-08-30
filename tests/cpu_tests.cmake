@@ -10,4 +10,4 @@ add_test(
 )
 
 target_link_libraries(cpu_tests PRIVATE unity)
-target_link_libraries(cpu_tests PRIVATE merge_sort_cpu_headers)
+target_link_libraries(cpu_tests PRIVATE wb_sort_cpu_headers)

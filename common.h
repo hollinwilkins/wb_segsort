@@ -1,11 +1,11 @@
-#ifndef MERGE_SORT_COMMON_H
-#define MERGE_SORT_COMMON_H
+#ifndef WB_SORT_COMMON_H
+#define WB_SORT_COMMON_H
 
-#ifndef MERGE_EXPORT
-#   define MERGE_EXPORT static
+#ifndef WB_EXPORT
+#   define WB_EXPORT static
 #endif
 
-#define MSG_MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MSG_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define WB_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define WB_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #endif
