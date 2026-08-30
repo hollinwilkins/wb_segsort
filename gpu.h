@@ -20,6 +20,11 @@
 #include "shaders/segmerge.wgsl.h"
 #include "shaders/segsort_tile_n2048_m256.wgsl.h"
 
+#define MSG_MAX_WORKGROUP_DIMENSION 65535u
+#define MSG_MERGE_TILE_SIZE 2048u
+#define MSG_MERGE_WG 256u
+#define MSG_MERGE_TILE_MAX_DEPTH 22u
+
 typedef struct msg_gpu_config
 {
     uint32_t segments_len;
@@ -97,7 +102,7 @@ typedef struct msg_kernels
     // merge sort kernels
     WGPUComputePipeline merge_build_tiles;
     WGPUComputePipeline merge_schedule;
-    WGPUComputePipeline merge_segmerge;
+    WGPUComputePipeline merge_segmerge[MSG_MERGE_TILE_MAX_DEPTH];
     WGPUComputePipeline merge_sort;
 } msg_kernels;
 
@@ -251,10 +256,6 @@ MERGE_EXPORT void msg_sort(
 #define HWDS_EQUAL msg_sort_kernel_key_equal
 #include "hw_ds.h"
 
-#define MSG_MAX_WORKGROUP_DIMENSION 65535u
-#define MSG_MERGE_TILE_SIZE 2048u
-#define MSG_MERGE_TILE_MAX_DEPTH 22u
-
 static msg_dispatch_size msg_dispatch_size_for_len(const msg_dispatch_size * const size, const size_t len)
 {
     const uint32_t workgroup_items = size->x * size->y;
@@ -267,6 +268,424 @@ static msg_dispatch_size msg_dispatch_size_for_len(const msg_dispatch_size * con
     }
 
     return (msg_dispatch_size){ x, y, 1 };
+}
+
+static void msg__segsort_schedule_kernels_init(
+    WGPUDevice const device,
+    WGPUComputePipeline * const merge_build_tiles_kernel,
+    WGPUComputePipeline * const merge_schedule_kernel
+)
+{
+    WGPUBindGroupLayoutDescriptor layout0_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout0_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Scheduler",
+        .length = WGPU_STRLEN,
+    };
+    layout0_desc.entryCount = 7;
+    layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        (WGPUBindGroupLayoutEntry){
+            .binding = 0, // segments
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 1, // bin_offsets
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 2, // bin_indices
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 3, // tiles
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 4, // meta
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 5, // dispatch_tilesort
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 6, // dispatch_merge
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+    };
+
+    WGPUBindGroupLayout layout0 = wgpuDeviceCreateBindGroupLayout(device, &layout0_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Scheduler",
+        .length = WGPU_STRLEN,
+    };
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){
+        layout0,
+    };
+
+    WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+
+    WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
+        .chain = (WGPUChainedStruct){
+            .sType = WGPUSType_ShaderSourceWGSL
+        },
+        .code = (WGPUStringView){
+            .data = (const char *)segmerge_schedule_wgsl,
+            .length = segmerge_schedule_wgsl_len,
+        },
+    };
+    WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
+        .label = (WGPUStringView){
+            .data = "Segmerge Shcedulers shader module",
+            .length = WGPU_STRLEN,
+        },
+        .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
+    };
+    WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule(
+        device,
+        &shader_module_desc
+    );
+
+    WGPUComputePipelineDescriptor build_tiles_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    build_tiles_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Scheduler Build Tiles",
+        .length = WGPU_STRLEN,
+    };
+    build_tiles_desc.layout = pipeline_layout;
+    build_tiles_desc.compute.entryPoint = (WGPUStringView){
+        .data = "main_build_tiles",
+        .length = WGPU_STRLEN,
+    };
+    build_tiles_desc.compute.module = shader_module;
+    build_tiles_desc.compute.constantCount = 3;
+    build_tiles_desc.compute.constants = (WGPUConstantEntry[]){
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "TILE_SIZE",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_TILE_SIZE,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "WG",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_WG,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "MAX_PASSES",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_TILE_MAX_DEPTH,
+        },
+    };
+
+    *merge_build_tiles_kernel = wgpuDeviceCreateComputePipeline(device, &build_tiles_desc);
+
+    WGPUComputePipelineDescriptor schedule_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    schedule_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Scheduler Schedule",
+        .length = WGPU_STRLEN,
+    };
+    schedule_desc.layout = pipeline_layout;
+    schedule_desc.compute.entryPoint = (WGPUStringView){
+        .data = "main_merge_schedule",
+        .length = WGPU_STRLEN,
+    };
+    schedule_desc.compute.module = shader_module;
+    schedule_desc.compute.constantCount = 3;
+    schedule_desc.compute.constants = (WGPUConstantEntry[]){
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "TILE_SIZE",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_TILE_SIZE,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "WG",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_WG,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "MAX_PASSES",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_TILE_MAX_DEPTH,
+        },
+    };
+
+    *merge_schedule_kernel = wgpuDeviceCreateComputePipeline(device, &schedule_desc);
+
+    wgpuShaderModuleRelease(shader_module);
+    wgpuPipelineLayoutRelease(pipeline_layout);
+    wgpuBindGroupLayoutRelease(layout0);
+}
+
+static void msg__segsort_merge_kernels_init(
+    WGPUDevice const device,
+    WGPUComputePipeline * const merge_merge_kernels
+)
+{
+    WGPUBindGroupLayoutDescriptor layout0_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout0_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Merge",
+        .length = WGPU_STRLEN,
+    };
+    layout0_desc.entryCount = 6;
+    layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        (WGPUBindGroupLayoutEntry){
+            .binding = 0, // keys_in
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 1, // value_indices_in
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 2, // keys_out
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 3, // value_indices_out
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 4, // tiles
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 5, // meta
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            },
+        },
+    };
+
+    WGPUBindGroupLayout layout0 = wgpuDeviceCreateBindGroupLayout(device, &layout0_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Merge",
+        .length = WGPU_STRLEN,
+    };
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){
+        layout0,
+    };
+
+    WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+
+    WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
+        .chain = (WGPUChainedStruct){
+            .sType = WGPUSType_ShaderSourceWGSL
+        },
+        .code = (WGPUStringView){
+            .data = (const char *)segmerge_wgsl,
+            .length = segmerge_wgsl_len,
+        },
+    };
+    WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
+        .label = (WGPUStringView){
+            .data = "Segmerge Merge shader module",
+            .length = WGPU_STRLEN,
+        },
+        .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
+    };
+    WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule(
+        device,
+        &shader_module_desc
+    );
+
+    WGPUComputePipelineDescriptor merge_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    merge_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Merge",
+        .length = WGPU_STRLEN,
+    };
+    merge_desc.layout = pipeline_layout;
+    merge_desc.compute.entryPoint = (WGPUStringView){
+        .data = "segmerge",
+        .length = WGPU_STRLEN,
+    };
+    merge_desc.compute.module = shader_module;
+    merge_desc.compute.constantCount = 3;
+
+    WGPUConstantEntry merge_constants[] = (WGPUConstantEntry[]){
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "TILE_SIZE",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_TILE_SIZE,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "WG",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)MSG_MERGE_WG,
+        },
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "INPUT_TILE_SIZE",
+                .length = WGPU_STRLEN
+            },
+        },
+    };
+
+    uint64_t input_tile_size = MSG_MERGE_TILE_SIZE;
+    for (uint32_t i = 0; i < MSG_MERGE_TILE_MAX_DEPTH; i++)
+    {
+        merge_constants[2].value = (double)input_tile_size;
+        merge_desc.compute.constants = merge_constants;
+
+        merge_merge_kernels[i] = wgpuDeviceCreateComputePipeline(device, &merge_desc);
+        input_tile_size *= 2;
+    }
+
+    wgpuShaderModuleRelease(shader_module);
+    wgpuPipelineLayoutRelease(pipeline_layout);
+    wgpuBindGroupLayoutRelease(layout0);
+}
+
+static void msg__merge_sort_kernel_init(
+    WGPUDevice const device,
+    WGPUComputePipeline * const merge_sort_kernel
+)
+{
+    WGPUBindGroupLayoutDescriptor layout0_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout0_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Sort",
+        .length = WGPU_STRLEN,
+    };
+    layout0_desc.entryCount = 4;
+    layout0_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        (WGPUBindGroupLayoutEntry){
+            .binding = 0, // global_keys
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 1, // global_value_indices
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_Storage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 2, // tiles
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            }
+        },
+        (WGPUBindGroupLayoutEntry){
+            .binding = 3, // meta
+            .visibility = WGPUShaderStage_Compute,
+            .buffer = {
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
+            },
+        },
+    };
+
+    WGPUBindGroupLayout layout0 = wgpuDeviceCreateBindGroupLayout(device, &layout0_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Sort",
+        .length = WGPU_STRLEN,
+    };
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){
+        layout0,
+    };
+
+    WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+
+    WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
+        .chain = (WGPUChainedStruct){
+            .sType = WGPUSType_ShaderSourceWGSL
+        },
+        .code = (WGPUStringView){
+            .data = (const char *)segsort_tile_n2048_m256_wgsl,
+            .length = segsort_tile_n2048_m256_wgsl_len,
+        },
+    };
+    WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
+        .label = (WGPUStringView){
+            .data = "Segmerge Sort shader module",
+            .length = WGPU_STRLEN,
+        },
+        .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
+    };
+    WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule(
+        device,
+        &shader_module_desc
+    );
+
+    WGPUComputePipelineDescriptor sort_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    sort_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Segmerge Sort",
+        .length = WGPU_STRLEN,
+    };
+    sort_desc.layout = pipeline_layout;
+    sort_desc.compute.entryPoint = (WGPUStringView){
+        .data = "segsort_tile_n2048_m256",
+        .length = WGPU_STRLEN,
+    };
+    sort_desc.compute.module = shader_module;
+
+    *merge_sort_kernel = wgpuDeviceCreateComputePipeline(device, &sort_desc);
+
+    wgpuShaderModuleRelease(shader_module);
+    wgpuPipelineLayoutRelease(pipeline_layout);
+    wgpuBindGroupLayoutRelease(layout0);
 }
 
 static void msg__kernels_init(
@@ -453,6 +872,22 @@ static void msg__kernels_init(
         .schedule = scheduler_kernel,
         .group = group_kernel,
     };
+
+    msg__segsort_schedule_kernels_init(
+        device,
+        &kernels->merge_build_tiles,
+        &kernels->merge_schedule
+    );
+
+    msg__segsort_merge_kernels_init(
+        device,
+        kernels->merge_segmerge
+    );
+
+    msg__merge_sort_kernel_init(
+        device,
+        &kernels->merge_sort
+    );
 }
 
 static bool msg__dispatch_size_is_zero(const msg_dispatch_size * const size)
