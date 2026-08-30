@@ -862,7 +862,7 @@ MERGE_EXPORT void msg_bindings_init(
         (WGPUBindGroupEntry){
             .binding = 0, // global_keys
             .buffer = buffers->keys,
-            .size = sizeof(msg_gpu_config),
+            .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
             .binding = 1, // global_value_indices

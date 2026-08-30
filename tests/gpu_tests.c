@@ -54,15 +54,15 @@ void test__sort_kernel(
     uint32_t * const keys = (uint32_t *)malloc(len * sizeof(uint32_t));
     uint32_t * const values = (uint32_t *)malloc(len * sizeof(uint32_t));
 
-    uint32_t * expected_keys = (uint32_t *)malloc(len * sizeof(uint32_t));
-    memcpy(expected_keys, keys, len * sizeof(uint32_t));
-    msc_segsort_alloc(len, expected_keys, segments_len, segments);
-
     for (uint32_t i = 0; i < len; i++)
     {
         keys[i] = rand() % 100;
         values[i] = rand() % 712893;
     }
+
+    uint32_t * expected_keys = (uint32_t *)malloc(len * sizeof(uint32_t));
+    memcpy(expected_keys, keys, len * sizeof(uint32_t));
+    msc_segsort_alloc(len, expected_keys, segments_len, segments);
 
     msg_gpu_config config = {0};
     msg_prepare(
@@ -79,9 +79,9 @@ void test__sort_kernel(
         }
     });
 
-    WGPUComputePassEncoder compute_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+    WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
         .label = (WGPUStringView){
-            .data = "Merge Sort: Compute Pass Encoder",
+            .data = "Merge Sort: Bin Pass Encoder",
         },
     });
 
@@ -89,33 +89,41 @@ void test__sort_kernel(
         &pipeline,
         &bindings,
         &config,
-        compute_pass
+        bin_pass
     );
 
     msg_bin_run_schedule(
         &pipeline,
         &bindings,
         &config,
-        compute_pass
+        bin_pass
     );
 
     msg_bin_run_group(
         &pipeline,
         &bindings,
         &config,
-        compute_pass
+        bin_pass
     );
+
+    wgpuComputePassEncoderEnd(bin_pass);
+
+    WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Sort Pass Encoder",
+        },
+    });
 
     msg_sort(
         &pipeline,
         &bindings,
         &buffers,
         &config,
-        compute_pass,
+        sort_pass,
         &mems_system_allocator
     );
 
-    wgpuComputePassEncoderEnd(compute_pass);
+    wgpuComputePassEncoderEnd(sort_pass);
 
     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
         .label = (WGPUStringView){
@@ -127,7 +135,8 @@ void test__sort_kernel(
     wgpuQueueSubmit(pipeline.queue, 1, &commands);
 
     wgpuCommandBufferRelease(commands);
-    wgpuComputePassEncoderRelease(compute_pass);
+    wgpuComputePassEncoderRelease(bin_pass);
+    wgpuComputePassEncoderRelease(sort_pass);
     wgpuCommandEncoderRelease(encoder);
 
     uint32_t *gpu_keys;
