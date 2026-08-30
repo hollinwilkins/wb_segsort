@@ -110,6 +110,9 @@ typedef struct msg_bindings
 {
     WGPUBindGroup bin;
     WGPUBindGroup sort;
+    WGPUBindGroup merge_schedule;
+    WGPUBindGroup merge_merge[MSG_MERGE_TILE_MAX_DEPTH];
+    WGPUBindGroup merge_sort;
 } msg_bindings;
 
 typedef struct msg_dispatch_size
@@ -1411,10 +1414,154 @@ MERGE_EXPORT void msg_bindings_init(
 
     WGPUBindGroup sort_binding = wgpuDeviceCreateBindGroup(pipeline->device, &sort_binding_desc);
 
+    WGPUBindGroupLayout merge_schedule_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->kernels.merge_schedule, 0);
+
+    WGPUBindGroupDescriptor merge_schedule_binding_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    merge_schedule_binding_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Schedule Binding",
+        .length = WGPU_STRLEN,
+    };
+    merge_schedule_binding_desc.layout = bin_hist_layout0;
+    merge_schedule_binding_desc.entryCount = 7;
+    merge_schedule_binding_desc.entries = (WGPUBindGroupEntry[]){
+        (WGPUBindGroupEntry){
+            .binding = 0, // segments
+            .buffer = buffers->segments,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 1, // bin_offsets
+            .buffer = buffers->bin_offsets,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 2, // bin_indices
+            .buffer = buffers->bin_indices,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 3, // bin_tiles
+            .buffer = buffers->merge_tiles,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 4, // bin_meta
+            .buffer = buffers->merge_meta,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 5, // dispatch_tilesort
+            .buffer = buffers->merge_dispatch_tiles,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 6, // dispatch_merge
+            .buffer = buffers->merge_dispatch_merge,
+            .size = WGPU_WHOLE_SIZE,
+        },
+    };
+
+    WGPUBindGroup merge_schedule_binding = wgpuDeviceCreateBindGroup(pipeline->device, &merge_schedule_binding_desc);
+
+    WGPUBindGroupLayout merge_sort_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->kernels.merge_sort, 0);
+
+    WGPUBindGroupDescriptor merge_sort_binding_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    merge_sort_binding_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Sort Binding",
+        .length = WGPU_STRLEN,
+    };
+    merge_sort_binding_desc.layout = bin_hist_layout0;
+    merge_sort_binding_desc.entryCount = 4;
+    merge_sort_binding_desc.entries = (WGPUBindGroupEntry[]){
+        (WGPUBindGroupEntry){
+            .binding = 0, // global_keys
+            .buffer = buffers->config,
+            .size = sizeof(msg_gpu_config),
+        },
+        (WGPUBindGroupEntry){
+            .binding = 1, // global_value_indices
+            .buffer = buffers->segments,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 2, // tiles
+            .buffer = buffers->bin_config,
+            .size = WGPU_WHOLE_SIZE,
+        },
+        (WGPUBindGroupEntry){
+            .binding = 3, // meta
+            .buffer = buffers->bin_histogram,
+            .size = WGPU_WHOLE_SIZE,
+        },
+    };
+
+    WGPUBindGroup merge_sort_binding = wgpuDeviceCreateBindGroup(pipeline->device, &merge_sort_binding_desc);
+
+    wgpuBindGroupLayoutRelease(bin_hist_layout0);
+
     *bindings = (msg_bindings){
         .bin = bin_binding,
         .sort = sort_binding,
+        .merge_schedule = merge_schedule_binding,
+        .merge_sort = merge_sort_binding,
     };
+
+    wgpuBindGroupLayoutRelease(merge_schedule_layout0);
+
+    WGPUBindGroupLayout merge_merge_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->kernels.merge_segmerge[0], 0);
+
+    WGPUBindGroupDescriptor merge_merge_binding_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    merge_merge_binding_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Schedule Binding",
+        .length = WGPU_STRLEN,
+    };
+    merge_merge_binding_desc.layout = bin_hist_layout0;
+    merge_merge_binding_desc.entryCount = 6;
+
+    for (uint32_t i = 0; i < MSG_MERGE_TILE_MAX_DEPTH; i++)
+    {
+        WGPUBuffer const keys_in = (i % 1u) == 0 ? buffers->keys : buffers->merge_keys_swap;
+        WGPUBuffer const value_indices_in = (i % 1u) == 0 ? buffers->value_indices : buffers->merge_value_indices_swap;
+        WGPUBuffer const keys_out = (i % 1u) == 0 ? buffers->merge_keys_swap : buffers->keys;
+        WGPUBuffer const value_indices_out = (i % 1u) == 0 ? buffers->merge_value_indices_swap : buffers->value_indices;
+
+        merge_merge_binding_desc.entries = (WGPUBindGroupEntry[]){
+            (WGPUBindGroupEntry){
+                .binding = 0, // keys_in
+                .buffer = keys_in,
+                .size = WGPU_WHOLE_SIZE,
+            },
+            (WGPUBindGroupEntry){
+                .binding = 1, // value_indices_in
+                .buffer = value_indices_in,
+                .size = WGPU_WHOLE_SIZE,
+            },
+            (WGPUBindGroupEntry){
+                .binding = 2, // keys_out
+                .buffer = keys_out,
+                .size = WGPU_WHOLE_SIZE,
+            },
+            (WGPUBindGroupEntry){
+                .binding = 3, // value_indices_out
+                .buffer = value_indices_out,
+                .size = WGPU_WHOLE_SIZE,
+            },
+            (WGPUBindGroupEntry){
+                .binding = 4, // tiles
+                .buffer = buffers->merge_meta,
+                .size = WGPU_WHOLE_SIZE,
+            },
+            (WGPUBindGroupEntry){
+                .binding = 5, // meta
+                .buffer = buffers->merge_dispatch_tiles,
+                .size = WGPU_WHOLE_SIZE,
+            },
+        };
+
+        bindings->merge_merge[i] = wgpuDeviceCreateBindGroup(pipeline->device, &merge_merge_binding_desc);
+    }
+
+    wgpuBindGroupLayoutRelease(merge_merge_layout0);
 }
 
 MERGE_EXPORT void msg_prepare(
