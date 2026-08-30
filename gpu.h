@@ -246,6 +246,13 @@ MERGE_EXPORT void msg_sort(
     const mems_allocator * allocator
 );
 
+MERGE_EXPORT void msg_merge(
+    const msg_pipeline * pipeline,
+    const msg_bindings * bindings,
+    const msg_buffers * buffers,
+    WGPUComputePassEncoder encoder
+);
+
 #endif
 
 #ifdef MERGE_SORT_GPU_IMPLEMENTATION
@@ -1588,6 +1595,9 @@ MERGE_EXPORT void msg_prepare(
     wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
     wgpuQueueWriteBuffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
     wgpuQueueWriteBuffer(queue, buffers->merge_meta, 0, &(msg_gpu_tile_meta){0}, sizeof(msg_gpu_tile_meta));
+
+    static const uint32_t zero_hist[13] = {0};
+    wgpuQueueWriteBuffer(queue, buffers->bin_histogram, 0, zero_hist, sizeof(zero_hist));
 }
 
 MERGE_EXPORT void msg_run_bin_histogram(
@@ -1789,7 +1799,15 @@ MERGE_EXPORT void msg_sort(
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_schedule);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
+}
 
+MERGE_EXPORT void msg_merge(
+    const msg_pipeline * const pipeline,
+    const msg_bindings * const bindings,
+    const msg_buffers * const buffers,
+    WGPUComputePassEncoder const encoder
+)
+{
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_sort);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_sort, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroupsIndirect(encoder, buffers->merge_dispatch_tiles, 0);
@@ -1800,10 +1818,7 @@ MERGE_EXPORT void msg_sort(
         wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_segmerge[k]);
         wgpuComputePassEncoderSetBindGroup(encoder, 0, bg, 0, NULL);
         wgpuComputePassEncoderDispatchWorkgroupsIndirect(
-            encoder,
-            buffers->merge_dispatch_merge,
-            (uint64_t)k * sizeof(msg_dispatch_size)
-        );
+            encoder, buffers->merge_dispatch_merge, (uint64_t)k * sizeof(msg_dispatch_size));
     }
 }
 

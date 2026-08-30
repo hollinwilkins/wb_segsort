@@ -125,6 +125,21 @@ void test__sort_kernel(
 
     wgpuComputePassEncoderEnd(sort_pass);
 
+    WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Merge Pass Encoder",
+        },
+    });
+
+    msg_merge(
+        &pipeline,
+        &bindings,
+        &buffers,
+        merge_pass
+    );
+
+    wgpuComputePassEncoderEnd(merge_pass);
+
     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
         .label = (WGPUStringView){
             .data = "Merge Sort: Command Buffer",
@@ -148,7 +163,7 @@ void test__sort_kernel(
         &mems_system_allocator,
         (void **)&gpu_keys)
     ) abort();
-
+    
     TEST_ASSERT_EQUAL_UINT32_ARRAY(expected_keys, gpu_keys, len);
 
     mems_allocator_free(&mems_system_allocator, gpu_keys);
@@ -163,142 +178,10 @@ void test_sort_fixed_4096_seed1337()
     test__sort_kernel(2048, 4096, 1337);
 }
 
-// void test_bin(void)
-// {
-//     msg_gpu_config config;
-
-//     const uint32_t segments[] = {
-//         0, 1, 3, 6, 10, 17,
-//         25, 40, 72, 136, 264, 520,
-//         1032, 2056, 4104, 8200, 17088
-//     };
-//     const size_t segments_len = sizeof(segments) / sizeof(uint32_t);
-
-//     msg_prepare(pipeline.queue, &buffers, segments_len, segments, &config);
-
-//     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline.device, &(WGPUCommandEncoderDescriptor){
-//         .label = (WGPUStringView){
-//             .data = "Merge Sort: Command Encoder",
-//             .length = WGPU_STRLEN,
-//         }
-//     });
-
-//     WGPUComputePassEncoder compute_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
-//         .label = (WGPUStringView){
-//             .data = "Merge Sort: Compute Pass Encoder",
-//         },
-//     });
-
-//     msg_run_bin_histogram(
-//         &pipeline,
-//         &bindings,
-//         &config,
-//         compute_pass
-//     );
-
-//     msg_bin_run_schedule(
-//         &pipeline,
-//         &bindings,
-//         &config,
-//         compute_pass
-//     );
-
-//     msg_bin_run_group(
-//         &pipeline,
-//         &bindings,
-//         &config,
-//         compute_pass
-//     );
-
-//     wgpuComputePassEncoderEnd(compute_pass);
-
-//     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
-//         .label = (WGPUStringView){
-//             .data = "Merge Sort: Command Buffer",
-//             .length = WGPU_STRLEN,
-//         }
-//     });
-
-//     wgpuQueueSubmit(pipeline.queue, 1, &commands);
-
-//     wgpuCommandBufferRelease(commands);
-//     wgpuComputePassEncoderRelease(compute_pass);
-//     wgpuCommandEncoderRelease(encoder);
-
-//     uint32_t * bin_histogram;
-//     uint32_t * bin_offsets;
-//     uint32_t * bin_indices;
-
-//     if (!hwgutil_wgpu_read_buffer_alloc(
-//         pipeline.instance,
-//         pipeline.device,
-//         pipeline.queue,
-//         buffers.bin_histogram,
-//         &mems_system_allocator,
-//         (void **)&bin_histogram
-//     )) abort();
-
-//     if (!hwgutil_wgpu_read_buffer_alloc(
-//         pipeline.instance,
-//         pipeline.device,
-//         pipeline.queue,
-//         buffers.bin_offsets,
-//         &mems_system_allocator,
-//         (void **)&bin_offsets
-//     )) abort();
-
-//     if (!hwgutil_wgpu_read_buffer_alloc(
-//         pipeline.instance,
-//         pipeline.device,
-//         pipeline.queue,
-//         buffers.bin_indices,
-//         &mems_system_allocator,
-//         (void **)&bin_indices
-//     )) abort();
-
-//     const uint32_t expected_histogram[] = {
-//         0, 2, 3, 5,
-//         7, 8, 9, 10,
-//         11, 12, 13, 14,
-//         15
-//     };
-
-//     const uint32_t expected_offsets[] = {
-//         2, 3, 5, 7,
-//         8, 9, 10, 11,
-//         12, 13, 14, 15,
-//         17
-//     };
-
-//     const uint32_t expected_indices[] = {
-//         1, 0, 2, 4,
-//         3, 6, 5, 7,
-//         8, 9, 10, 11,
-//         12, 13, 14, 16, 15
-//     };
-
-//     TEST_ASSERT_EQUAL_UINT32_ARRAY(
-//         expected_histogram,
-//         bin_histogram,
-//         13
-//     );
-
-//     TEST_ASSERT_EQUAL_UINT32_ARRAY(
-//         expected_offsets,
-//         bin_offsets,
-//         13
-//     );
-
-//     TEST_ASSERT_EQUAL_UINT32_ARRAY(
-//         expected_indices,
-//         bin_indices,
-//         17
-//     );
-
-//     mems_allocator_free(&mems_system_allocator, bin_histogram);
-//     mems_allocator_free(&mems_system_allocator, bin_offsets);
-//     mems_allocator_free(&mems_system_allocator, bin_indices);
-// }
+void test_sort_variable_seed99()
+{
+    test__sort_kernel(10000, 128, 99);
+}
 
 int main(void)
 {
@@ -336,5 +219,6 @@ int main(void)
 
     UNITY_BEGIN();
     RUN_TEST(test_sort_fixed_4096_seed1337);
+    RUN_TEST(test_sort_variable_seed99);
     return UNITY_END();
 }
