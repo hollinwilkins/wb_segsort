@@ -153,7 +153,7 @@ fn {name}(
     @builtin(local_invocation_index) lid: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {{
-    const BIN: u32 = {N.bit_length() - 1}u
+    const BIN: u32 = {N.bit_length() - 1}u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;
@@ -161,19 +161,19 @@ fn {name}(
     let local_tid = sid & (M - 1u);
     let global_seg = (wg_id.x * WG + lid) / M;
 
-    let active = global_seg < bin_count;
-    let slot = bin_base + select(0u, global_seg, active);   // clamp so the read is in-range
+    let is_active = global_seg < bin_count;
+    let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
     let seg_id = bin_indices[slot];
     let seg_start = select(segments[seg_id - 1u], 0u, seg_id == 0u);
     let seg_end = segments[seg_id];
-    let seg_size = select(0u, seg_end - seg_start, active);
+    let seg_size = select(0u, seg_end - seg_start, is_active);
 
     var keys: array<u32, {wpt}>;
     var values: array<u32, {wpt}>;
 
     for (var r = 0u; r < WPT; r = r + 1u) {{
         let pos = local_tid * WPT + r;
-        if active && pos < seg_size {{
+        if is_active && pos < seg_size {{
             keys[r] = global_keys[seg_start + pos];
             values[r] = seg_start + pos;
         }} else {{
@@ -187,7 +187,7 @@ fn {name}(
     // blocked store
     for (var r = 0u; r < WPT; r = r + 1u) {{
         let pos = local_tid * WPT + r;
-        if active && pos < seg_size {{
+        if is_active && pos < seg_size {{
             global_keys[seg_start + pos] = keys[r];
             global_value_indices[seg_start + pos] = values[r];
         }}
@@ -219,7 +219,7 @@ fn {name}(
     @builtin(local_invocation_index) tid_g: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {{
-    const BIN: u32 = {N.bit_length() - 1}u
+    const BIN: u32 = {N.bit_length() - 1}u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;
@@ -228,19 +228,19 @@ fn {name}(
     let seg_base = tid_g - local_tid;
     let global_seg = (wg_id.x * WG + tid_g) / M;
 
-    let active = global_seg < bin_count;
-    let slot = bin_base + select(0u, global_seg, active);   // clamp so the read is in-range
+    let is_active = global_seg < bin_count;
+    let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
     let seg_id = bin_indices[slot];
     let seg_start = select(segments[seg_id - 1u], 0u, seg_id == 0u);
     let seg_end = segments[seg_id];
-    let seg_size = select(0u, seg_end - seg_start, active);
+    let seg_size = select(0u, seg_end - seg_start, is_active);
 
     var keys: array<u32, {wpt}>;
     var values: array<u32, {wpt}>;
 
     for (var r = 0u; r < WPT; r = r + 1u) {{
         let pos = local_tid * WPT + r;
-        if active && pos < seg_size {{
+        if is_active && pos < seg_size {{
             keys[r] = global_keys[seg_start + pos];
             values[r] = seg_start + pos;
         }} else {{
@@ -254,7 +254,7 @@ fn {name}(
     // blocked store
     for (var r = 0u; r < WPT; r = r + 1u) {{
         let pos = local_tid * WPT + r;
-        if active && pos < seg_size {{
+        if is_active && pos < seg_size {{
             global_keys[seg_start + pos] = keys[r];
             global_value_indices[seg_start + pos] = values[r];
         }}
@@ -293,6 +293,14 @@ SEGMENT_SIZES = [
 
 WPT_THRESHOLD = 8
 
+def msg_round_pow2(x: int) -> int:
+    if x <= 1:
+        return 1
+    return 1 << (x - 1).bit_length()
+
+def wg_m(N):
+    return min(N, msg_round_pow2((N + WPT_THRESHOLD - 1) // WPT_THRESHOLD))
+
 @dataclass(frozen=True)
 class KernelArgs:
     N: int
@@ -310,17 +318,19 @@ def main():
 
     print("Generating all kernels")
 
-    kernels = []
+    kernels = set()
 
+    # reg kernels: per subgroup size, only where register sort is viable
     for sg_size in SUBGROUP_SIZES:
         for N in SEGMENT_SIZES:
             M = min(sg_size, N)
-            wpt = N // M
+            if N // M <= WPT_THRESHOLD:
+                kernels.add(KernelArgs(N, M, N // M, True))
 
-            kernels.append(KernelArgs(N, M, wpt, False))
-            kernels.append(KernelArgs(N, M, wpt, True))
-
-    kernels = list(set(kernels))
+    # wg kernels: one per N, threshold-driven M (matches runtime wg selection)
+    for N in SEGMENT_SIZES:
+        M = wg_m(N)
+        kernels.add(KernelArgs(N, M, N // M, False))
 
     for kernel in kernels:
         print(f"Kernel: {kernel}")

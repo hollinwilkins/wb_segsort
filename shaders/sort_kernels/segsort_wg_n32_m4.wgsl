@@ -1,5 +1,5 @@
 
-override WG: u32 = 8u;
+override WG: u32 = 4u;
 
 @group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
 @group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
@@ -7,19 +7,19 @@ override WG: u32 = 8u;
 @group(0) @binding(3) var<storage, read> bin_offsets: array<u32>;
 @group(0) @binding(4) var<storage, read> bin_indices: array<u32>;
 
-const N: u32 = 64u;
-const M: u32 = 8u;
+const N: u32 = 32u;
+const M: u32 = 4u;
 const WPT: u32 = 8u;
 
 var<workgroup> smem_keys: array<u32, WG * WPT>;
 var<workgroup> smem_vals: array<u32, WG * WPT>;
 
 @compute @workgroup_size(WG, 1, 1)
-fn segsort_wg_n64_m8(
+fn segsort_wg_n32_m4(
     @builtin(local_invocation_index) tid_g: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {
-    const BIN: u32 = 6u;
+    const BIN: u32 = 5u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;
@@ -306,75 +306,6 @@ fn segsort_wg_n64_m8(
     if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
     // swap(6,7) 
     { let tmp_172 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_172;let tmp_173 = values[6]; values[6] = values[7]; values[7] = tmp_173; }
-    }
-    // exch_intxn(tmask:7,swbit:2,wpt:8)
-    { smem_keys[tid_g * WPT + 0u] = keys[0]; smem_vals[tid_g * WPT + 0u] = values[0]; smem_keys[tid_g * WPT + 1u] = keys[1]; smem_vals[tid_g * WPT + 1u] = values[1]; smem_keys[tid_g * WPT + 2u] = keys[2]; smem_vals[tid_g * WPT + 2u] = values[2]; smem_keys[tid_g * WPT + 3u] = keys[3]; smem_vals[tid_g * WPT + 3u] = values[3]; smem_keys[tid_g * WPT + 4u] = keys[4]; smem_vals[tid_g * WPT + 4u] = values[4]; smem_keys[tid_g * WPT + 5u] = keys[5]; smem_vals[tid_g * WPT + 5u] = values[5]; smem_keys[tid_g * WPT + 6u] = keys[6]; smem_vals[tid_g * WPT + 6u] = values[6]; smem_keys[tid_g * WPT + 7u] = keys[7]; smem_vals[tid_g * WPT + 7u] = values[7]; workgroupBarrier(); let tmp_174 = extractBits(local_tid, 2u, 1u) != 0u; let tmp_175 = seg_base + (local_tid ^ 7u); let tmp_176 = smem_keys[tmp_175 * WPT + 7u]; let tmp_177 = smem_vals[tmp_175 * WPT + 7u]; let tmp_178 = keys[0] < tmp_176 || (keys[0] == tmp_176 && values[0] < tmp_177); if tmp_174 == tmp_178 { keys[0] = tmp_176; values[0] = tmp_177; } let tmp_179 = smem_keys[tmp_175 * WPT + 6u]; let tmp_180 = smem_vals[tmp_175 * WPT + 6u]; let tmp_181 = keys[1] < tmp_179 || (keys[1] == tmp_179 && values[1] < tmp_180); if tmp_174 == tmp_181 { keys[1] = tmp_179; values[1] = tmp_180; } let tmp_182 = smem_keys[tmp_175 * WPT + 5u]; let tmp_183 = smem_vals[tmp_175 * WPT + 5u]; let tmp_184 = keys[2] < tmp_182 || (keys[2] == tmp_182 && values[2] < tmp_183); if tmp_174 == tmp_184 { keys[2] = tmp_182; values[2] = tmp_183; } let tmp_185 = smem_keys[tmp_175 * WPT + 4u]; let tmp_186 = smem_vals[tmp_175 * WPT + 4u]; let tmp_187 = keys[3] < tmp_185 || (keys[3] == tmp_185 && values[3] < tmp_186); if tmp_174 == tmp_187 { keys[3] = tmp_185; values[3] = tmp_186; } let tmp_188 = smem_keys[tmp_175 * WPT + 3u]; let tmp_189 = smem_vals[tmp_175 * WPT + 3u]; let tmp_190 = keys[4] < tmp_188 || (keys[4] == tmp_188 && values[4] < tmp_189); if tmp_174 == tmp_190 { keys[4] = tmp_188; values[4] = tmp_189; } let tmp_191 = smem_keys[tmp_175 * WPT + 2u]; let tmp_192 = smem_vals[tmp_175 * WPT + 2u]; let tmp_193 = keys[5] < tmp_191 || (keys[5] == tmp_191 && values[5] < tmp_192); if tmp_174 == tmp_193 { keys[5] = tmp_191; values[5] = tmp_192; } let tmp_194 = smem_keys[tmp_175 * WPT + 1u]; let tmp_195 = smem_vals[tmp_175 * WPT + 1u]; let tmp_196 = keys[6] < tmp_194 || (keys[6] == tmp_194 && values[6] < tmp_195); if tmp_174 == tmp_196 { keys[6] = tmp_194; values[6] = tmp_195; } let tmp_197 = smem_keys[tmp_175 * WPT + 0u]; let tmp_198 = smem_vals[tmp_175 * WPT + 0u]; let tmp_199 = keys[7] < tmp_197 || (keys[7] == tmp_197 && values[7] < tmp_198); if tmp_174 == tmp_199 { keys[7] = tmp_197; values[7] = tmp_198; } workgroupBarrier(); }
-    // exch_paral(tmask:2,swbit:1,wpt:8) 
-    { smem_keys[tid_g * WPT + 0u] = keys[0]; smem_vals[tid_g * WPT + 0u] = values[0]; smem_keys[tid_g * WPT + 1u] = keys[1]; smem_vals[tid_g * WPT + 1u] = values[1]; smem_keys[tid_g * WPT + 2u] = keys[2]; smem_vals[tid_g * WPT + 2u] = values[2]; smem_keys[tid_g * WPT + 3u] = keys[3]; smem_vals[tid_g * WPT + 3u] = values[3]; smem_keys[tid_g * WPT + 4u] = keys[4]; smem_vals[tid_g * WPT + 4u] = values[4]; smem_keys[tid_g * WPT + 5u] = keys[5]; smem_vals[tid_g * WPT + 5u] = values[5]; smem_keys[tid_g * WPT + 6u] = keys[6]; smem_vals[tid_g * WPT + 6u] = values[6]; smem_keys[tid_g * WPT + 7u] = keys[7]; smem_vals[tid_g * WPT + 7u] = values[7]; workgroupBarrier(); let tmp_200 = extractBits(local_tid, 1u, 1u) != 0u; let tmp_201 = seg_base + (local_tid ^ 2u); let tmp_202 = smem_keys[tmp_201 * WPT + 0u]; let tmp_203 = smem_vals[tmp_201 * WPT + 0u]; let tmp_204 = keys[0] < tmp_202 || (keys[0] == tmp_202 && values[0] < tmp_203); if tmp_200 == tmp_204 { keys[0] = tmp_202; values[0] = tmp_203; } let tmp_205 = smem_keys[tmp_201 * WPT + 1u]; let tmp_206 = smem_vals[tmp_201 * WPT + 1u]; let tmp_207 = keys[1] < tmp_205 || (keys[1] == tmp_205 && values[1] < tmp_206); if tmp_200 == tmp_207 { keys[1] = tmp_205; values[1] = tmp_206; } let tmp_208 = smem_keys[tmp_201 * WPT + 2u]; let tmp_209 = smem_vals[tmp_201 * WPT + 2u]; let tmp_210 = keys[2] < tmp_208 || (keys[2] == tmp_208 && values[2] < tmp_209); if tmp_200 == tmp_210 { keys[2] = tmp_208; values[2] = tmp_209; } let tmp_211 = smem_keys[tmp_201 * WPT + 3u]; let tmp_212 = smem_vals[tmp_201 * WPT + 3u]; let tmp_213 = keys[3] < tmp_211 || (keys[3] == tmp_211 && values[3] < tmp_212); if tmp_200 == tmp_213 { keys[3] = tmp_211; values[3] = tmp_212; } let tmp_214 = smem_keys[tmp_201 * WPT + 4u]; let tmp_215 = smem_vals[tmp_201 * WPT + 4u]; let tmp_216 = keys[4] < tmp_214 || (keys[4] == tmp_214 && values[4] < tmp_215); if tmp_200 == tmp_216 { keys[4] = tmp_214; values[4] = tmp_215; } let tmp_217 = smem_keys[tmp_201 * WPT + 5u]; let tmp_218 = smem_vals[tmp_201 * WPT + 5u]; let tmp_219 = keys[5] < tmp_217 || (keys[5] == tmp_217 && values[5] < tmp_218); if tmp_200 == tmp_219 { keys[5] = tmp_217; values[5] = tmp_218; } let tmp_220 = smem_keys[tmp_201 * WPT + 6u]; let tmp_221 = smem_vals[tmp_201 * WPT + 6u]; let tmp_222 = keys[6] < tmp_220 || (keys[6] == tmp_220 && values[6] < tmp_221); if tmp_200 == tmp_222 { keys[6] = tmp_220; values[6] = tmp_221; } let tmp_223 = smem_keys[tmp_201 * WPT + 7u]; let tmp_224 = smem_vals[tmp_201 * WPT + 7u]; let tmp_225 = keys[7] < tmp_223 || (keys[7] == tmp_223 && values[7] < tmp_224); if tmp_200 == tmp_225 { keys[7] = tmp_223; values[7] = tmp_224; } workgroupBarrier(); }
-    // exch_paral(tmask:1,swbit:0,wpt:8) 
-    { smem_keys[tid_g * WPT + 0u] = keys[0]; smem_vals[tid_g * WPT + 0u] = values[0]; smem_keys[tid_g * WPT + 1u] = keys[1]; smem_vals[tid_g * WPT + 1u] = values[1]; smem_keys[tid_g * WPT + 2u] = keys[2]; smem_vals[tid_g * WPT + 2u] = values[2]; smem_keys[tid_g * WPT + 3u] = keys[3]; smem_vals[tid_g * WPT + 3u] = values[3]; smem_keys[tid_g * WPT + 4u] = keys[4]; smem_vals[tid_g * WPT + 4u] = values[4]; smem_keys[tid_g * WPT + 5u] = keys[5]; smem_vals[tid_g * WPT + 5u] = values[5]; smem_keys[tid_g * WPT + 6u] = keys[6]; smem_vals[tid_g * WPT + 6u] = values[6]; smem_keys[tid_g * WPT + 7u] = keys[7]; smem_vals[tid_g * WPT + 7u] = values[7]; workgroupBarrier(); let tmp_226 = extractBits(local_tid, 0u, 1u) != 0u; let tmp_227 = seg_base + (local_tid ^ 1u); let tmp_228 = smem_keys[tmp_227 * WPT + 0u]; let tmp_229 = smem_vals[tmp_227 * WPT + 0u]; let tmp_230 = keys[0] < tmp_228 || (keys[0] == tmp_228 && values[0] < tmp_229); if tmp_226 == tmp_230 { keys[0] = tmp_228; values[0] = tmp_229; } let tmp_231 = smem_keys[tmp_227 * WPT + 1u]; let tmp_232 = smem_vals[tmp_227 * WPT + 1u]; let tmp_233 = keys[1] < tmp_231 || (keys[1] == tmp_231 && values[1] < tmp_232); if tmp_226 == tmp_233 { keys[1] = tmp_231; values[1] = tmp_232; } let tmp_234 = smem_keys[tmp_227 * WPT + 2u]; let tmp_235 = smem_vals[tmp_227 * WPT + 2u]; let tmp_236 = keys[2] < tmp_234 || (keys[2] == tmp_234 && values[2] < tmp_235); if tmp_226 == tmp_236 { keys[2] = tmp_234; values[2] = tmp_235; } let tmp_237 = smem_keys[tmp_227 * WPT + 3u]; let tmp_238 = smem_vals[tmp_227 * WPT + 3u]; let tmp_239 = keys[3] < tmp_237 || (keys[3] == tmp_237 && values[3] < tmp_238); if tmp_226 == tmp_239 { keys[3] = tmp_237; values[3] = tmp_238; } let tmp_240 = smem_keys[tmp_227 * WPT + 4u]; let tmp_241 = smem_vals[tmp_227 * WPT + 4u]; let tmp_242 = keys[4] < tmp_240 || (keys[4] == tmp_240 && values[4] < tmp_241); if tmp_226 == tmp_242 { keys[4] = tmp_240; values[4] = tmp_241; } let tmp_243 = smem_keys[tmp_227 * WPT + 5u]; let tmp_244 = smem_vals[tmp_227 * WPT + 5u]; let tmp_245 = keys[5] < tmp_243 || (keys[5] == tmp_243 && values[5] < tmp_244); if tmp_226 == tmp_245 { keys[5] = tmp_243; values[5] = tmp_244; } let tmp_246 = smem_keys[tmp_227 * WPT + 6u]; let tmp_247 = smem_vals[tmp_227 * WPT + 6u]; let tmp_248 = keys[6] < tmp_246 || (keys[6] == tmp_246 && values[6] < tmp_247); if tmp_226 == tmp_248 { keys[6] = tmp_246; values[6] = tmp_247; } let tmp_249 = smem_keys[tmp_227 * WPT + 7u]; let tmp_250 = smem_vals[tmp_227 * WPT + 7u]; let tmp_251 = keys[7] < tmp_249 || (keys[7] == tmp_249 && values[7] < tmp_250); if tmp_226 == tmp_251 { keys[7] = tmp_249; values[7] = tmp_250; } workgroupBarrier(); }
-    // exch_local(4,8) 
-    // cmp_swap(0,4)
-    if keys[0] > keys[4] || (keys[0] == keys[4] && values[0] > values[4]) {
-    // swap(0,4) 
-    { let tmp_252 = keys[0]; keys[0] = keys[4]; keys[4] = tmp_252;let tmp_253 = values[0]; values[0] = values[4]; values[4] = tmp_253; }
-    }
-    // cmp_swap(1,5)
-    if keys[1] > keys[5] || (keys[1] == keys[5] && values[1] > values[5]) {
-    // swap(1,5) 
-    { let tmp_254 = keys[1]; keys[1] = keys[5]; keys[5] = tmp_254;let tmp_255 = values[1]; values[1] = values[5]; values[5] = tmp_255; }
-    }
-    // cmp_swap(2,6)
-    if keys[2] > keys[6] || (keys[2] == keys[6] && values[2] > values[6]) {
-    // swap(2,6) 
-    { let tmp_256 = keys[2]; keys[2] = keys[6]; keys[6] = tmp_256;let tmp_257 = values[2]; values[2] = values[6]; values[6] = tmp_257; }
-    }
-    // cmp_swap(3,7)
-    if keys[3] > keys[7] || (keys[3] == keys[7] && values[3] > values[7]) {
-    // swap(3,7) 
-    { let tmp_258 = keys[3]; keys[3] = keys[7]; keys[7] = tmp_258;let tmp_259 = values[3]; values[3] = values[7]; values[7] = tmp_259; }
-    }
-    // exch_local(2,8) 
-    // cmp_swap(0,2)
-    if keys[0] > keys[2] || (keys[0] == keys[2] && values[0] > values[2]) {
-    // swap(0,2) 
-    { let tmp_260 = keys[0]; keys[0] = keys[2]; keys[2] = tmp_260;let tmp_261 = values[0]; values[0] = values[2]; values[2] = tmp_261; }
-    }
-    // cmp_swap(1,3)
-    if keys[1] > keys[3] || (keys[1] == keys[3] && values[1] > values[3]) {
-    // swap(1,3) 
-    { let tmp_262 = keys[1]; keys[1] = keys[3]; keys[3] = tmp_262;let tmp_263 = values[1]; values[1] = values[3]; values[3] = tmp_263; }
-    }
-    // cmp_swap(4,6)
-    if keys[4] > keys[6] || (keys[4] == keys[6] && values[4] > values[6]) {
-    // swap(4,6) 
-    { let tmp_264 = keys[4]; keys[4] = keys[6]; keys[6] = tmp_264;let tmp_265 = values[4]; values[4] = values[6]; values[6] = tmp_265; }
-    }
-    // cmp_swap(5,7)
-    if keys[5] > keys[7] || (keys[5] == keys[7] && values[5] > values[7]) {
-    // swap(5,7) 
-    { let tmp_266 = keys[5]; keys[5] = keys[7]; keys[7] = tmp_266;let tmp_267 = values[5]; values[5] = values[7]; values[7] = tmp_267; }
-    }
-    // exch_local(1,8) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_268 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_268;let tmp_269 = values[0]; values[0] = values[1]; values[1] = tmp_269; }
-    }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_270 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_270;let tmp_271 = values[2]; values[2] = values[3]; values[3] = tmp_271; }
-    }
-    // cmp_swap(4,5)
-    if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
-    // swap(4,5) 
-    { let tmp_272 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_272;let tmp_273 = values[4]; values[4] = values[5]; values[5] = tmp_273; }
-    }
-    // cmp_swap(6,7)
-    if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
-    // swap(6,7) 
-    { let tmp_274 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_274;let tmp_275 = values[6]; values[6] = values[7]; values[7] = tmp_275; }
     }
 
     // blocked store

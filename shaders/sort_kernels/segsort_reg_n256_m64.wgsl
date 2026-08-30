@@ -19,7 +19,7 @@ fn segsort_reg_n256_m64(
     @builtin(local_invocation_index) lid: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {
-    const BIN: u32 = 8u
+    const BIN: u32 = 8u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;
@@ -27,19 +27,19 @@ fn segsort_reg_n256_m64(
     let local_tid = sid & (M - 1u);
     let global_seg = (wg_id.x * WG + lid) / M;
 
-    let active = global_seg < bin_count;
-    let slot = bin_base + select(0u, global_seg, active);   // clamp so the read is in-range
+    let is_active = global_seg < bin_count;
+    let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
     let seg_id = bin_indices[slot];
     let seg_start = select(segments[seg_id - 1u], 0u, seg_id == 0u);
     let seg_end = segments[seg_id];
-    let seg_size = select(0u, seg_end - seg_start, active);
+    let seg_size = select(0u, seg_end - seg_start, is_active);
 
     var keys: array<u32, 4>;
     var values: array<u32, 4>;
 
     for (var r = 0u; r < WPT; r = r + 1u) {
         let pos = local_tid * WPT + r;
-        if active && pos < seg_size {
+        if is_active && pos < seg_size {
             keys[r] = global_keys[seg_start + pos];
             values[r] = seg_start + pos;
         } else {
@@ -637,7 +637,7 @@ fn segsort_reg_n256_m64(
     // blocked store
     for (var r = 0u; r < WPT; r = r + 1u) {
         let pos = local_tid * WPT + r;
-        if active && pos < seg_size {
+        if is_active && pos < seg_size {
             global_keys[seg_start + pos] = keys[r];
             global_value_indices[seg_start + pos] = values[r];
         }

@@ -275,11 +275,6 @@ int main(void)
         1, (WGPUFeatureName[]){ WGPUFeatureName_Subgroups }
     )) abort();
 
-    WGPUSupportedFeatures feats = {0};
-    wgpuAdapterGetFeatures(context.adapter, &feats);
-    for (size_t i = 0; i < feats.featureCount; i++)
-        printf("feature: 0x%08x\n", feats.features[i]);
-
     msg_pipeline_init(
         &pipeline,
         &(msg_options){

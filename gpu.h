@@ -501,14 +501,14 @@ static void msg__sort_layouts_init(
             .binding = 3, // bin_offsets
             .visibility = WGPUShaderStage_Compute,
             .buffer = {
-                .type = WGPUBufferBindingType_Storage,
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
             },
         },
         (WGPUBindGroupLayoutEntry){
             .binding = 4, // bin_indices
             .visibility = WGPUShaderStage_Compute,
             .buffer = {
-                .type = WGPUBufferBindingType_Storage,
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
             },
         },
     };
@@ -597,7 +597,8 @@ MERGE_EXPORT void msg_pipeline_init(
         msg__sort_kernels_len
     )) abort();
 
-        for (uint32_t i = 0; i < 13; i++)
+    pipeline->bins[0] = (msg_gpu_bin){0};
+    for (uint32_t i = 1u; i < 12u; i++)
     {
         const uint32_t N = 1u << i;
         uint32_t M = 0;
@@ -617,7 +618,7 @@ MERGE_EXPORT void msg_pipeline_init(
             is_register = false;
             M = MSG_MIN(N, msg__round_pow2(((N + pipeline->options.wpt_threshold - 1) / pipeline->options.wpt_threshold)));
 
-            if (N * 8u > pipeline->options.wpt_threshold) M = 0;
+            if (N * 8u > pipeline->max_smem_size) M = 0;
         }
 
         const uint32_t wpt = N / M;
@@ -655,10 +656,20 @@ MERGE_EXPORT void msg_pipeline_init(
             .flags = flags,
         };
     }
+    pipeline->bins[12] = (msg_gpu_bin){
+        .flags = (uint32_t)msg_bin_flag_is_variable,
+    };
+
+    for (int i = 0; i < 13; i++)
+    {
+        const msg_gpu_bin bin = pipeline->bins[i];
+        printf("Bin(%d): N(%u), M(%u), WG(%u), Flags(%u)\n",
+            i, bin.n, bin.m, bin.wg, bin.flags);
+    }
 }
 
-#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS 1024
-#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS 1024 * 256
+#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS (1024 * 1024)
+#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS (MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS * 32)
 
 static void msg_buffers_options_init(msg_buffers_options * const options)
 {
@@ -735,14 +746,14 @@ MERGE_EXPORT void msg_buffers_init(
         .length = WGPU_STRLEN,
     };
     dispatch_desc.size = 13 * sizeof(msg_dispatch_size);
-    dispatch_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+    dispatch_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_Indirect | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
     WGPUBufferDescriptor value_indices_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     value_indices_desc.label = (WGPUStringView){
         .data = "Merge Sort: Value Indices",
         .length = WGPU_STRLEN,
     };
-    value_indices_desc.size = options2.max_items * sizeof(msg_dispatch_size);
+    value_indices_desc.size = options2.max_items * sizeof(uint32_t);
     value_indices_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
     WGPUBufferDescriptor values_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
@@ -897,7 +908,7 @@ MERGE_EXPORT void msg_prepare(
 
     wgpuQueueWriteBuffer(queue, buffers->config, 0, config, sizeof(msg_gpu_config));
     wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
-    wgpuQueueWriteBuffer(queue, buffers->segments, 0, keys, keys_len * sizeof(uint32_t));
+    wgpuQueueWriteBuffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
 }
 
 MERGE_EXPORT void msg_run_bin_histogram(
@@ -982,7 +993,7 @@ static WGPUComputePipeline msg__pipeline_get_sort_kernel(
     const mems_allocator * const allocator
 )
 {
-    const bool is_register = (bin->flags & msg_bin_flag_is_variable) != 0;
+    const bool is_register = (bin->flags & msg_bin_flag_is_register) != 0;
 
     msg_sort_kernel_map_gop_result gop;
     msg_sort_kernel_map_get_or_put(
