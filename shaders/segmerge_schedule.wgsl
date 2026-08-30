@@ -23,7 +23,7 @@ struct DispatchSize {
 @group(0) @binding(1) var<storage, read> bin_offsets: array<u32>;
 @group(0) @binding(2) var<storage, read> bin_indices: array<u32>;
 @group(0) @binding(3) var<storage, read_write> tiles: array<TileInfo>;
-@group(0) @binding(4) var<storage, read_write> meta: TileMeta;
+@group(0) @binding(4) var<storage, read_write> tile_meta: TileMeta;
 @group(0) @binding(5) var<storage, read_write> dispatch_tilesort: DispatchSize;
 @group(0) @binding(6) var<storage, read_write> dispatch_merge: array<DispatchSize>;
 
@@ -40,8 +40,8 @@ fn main_build_tiles(@builtin(global_invocation_id) gid: vec3<u32>) {
         let size = seg_end - seg_start;
 
         let tile_count = (size + TILE_SIZE - 1u) / TILE_SIZE;
-        let tile_base = atomicAdd(&meta.tile_count, tile_count);
-        atomicMax(&meta.max_size, size);
+        let tile_base = atomicAdd(&tile_meta.tile_count, tile_count);
+        atomicMax(&tile_meta.max_size, size);
 
         for (var i = 0u; i < tile_count; i = i + 1u) {
             tiles[tile_base + i] = TileInfo(seg_start, size, i * TILE_SIZE);
@@ -62,15 +62,15 @@ fn dispatch_for_len(n: u32) -> DispatchSize {
 
 @compute @workgroup_size(1, 1, 1)
 fn main_merge_schedule() {
-    let tile_count = atomicLoad(&meta.tile_count);
-    let max_size = atomicLoad(&meta.max_size);
+    let tile_count = atomicLoad(&tile_meta.tile_count);
+    let max_size = atomicLoad(&tile_meta.max_size);
 
     let tile_dispatch = dispatch_for_len(tile_count);
-    dispatch_tilesort = select(
-        tile_dispatch,
-        DispatchSize(0u, 0u, 0u),
-        tile_count == 0u
-    );
+    if (tile_count == 0u) {
+        dispatch_tilesort = DispatchSize(0u, 0u, 0u);
+    } else {
+        dispatch_tilesort = tile_dispatch;
+    }
 
     var pass_count = 0u;
     var w = TILE_SIZE;
@@ -82,10 +82,10 @@ fn main_merge_schedule() {
     if ((pass_count & 1u) == 1u) { pass_count = pass_count + 1u; }
 
     for (var i = 0u; i < MAX_PASSES; i = i + 1u) {
-        dispatch_merge[i] = select(
-            DispatchSize(0u, 0u, 0u),
-            tile_dispatch,
-            i < pass_count && tile_count > 0u
-        );
+        if (i < pass_count && tile_count > 0u) {
+            dispatch_merge[i] = tile_dispatch;
+        } else {
+            dispatch_merge[i] = DispatchSize(0u, 0u, 0u);
+        }
     }
 }

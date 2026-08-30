@@ -18,7 +18,7 @@ struct TileMeta {
 @group(0) @binding(2) var<storage, read_write> keys_out: array<u32>;
 @group(0) @binding(3) var<storage, read_write> value_indices_out: array<u32>;
 @group(0) @binding(4) var<storage, read> tiles: array<TileInfo>;
-@group(0) @binding(5) var<storage, read> meta: TileMeta;
+@group(0) @binding(5) var<storage, read> tile_meta: TileMeta;
 
 fn less(ak: u32, av: u32, bk: u32, bv: u32) -> bool {
     return ak < bk || (ak == bk && av < bv);
@@ -48,7 +48,7 @@ fn segmerge(
     @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {
     let GID = wg_id.x;
-    if (GID >= meta.tile_count) { return; }
+    if (GID >= tile_meta.tile_count) { return; }
 
     let wg_els = TILE_SIZE / WG;
 

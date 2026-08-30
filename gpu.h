@@ -23,7 +23,7 @@
 #define MSG_MAX_WORKGROUP_DIMENSION 65535u
 #define MSG_MERGE_TILE_SIZE 2048u
 #define MSG_MERGE_WG 256u
-#define MSG_MERGE_TILE_MAX_DEPTH 22u
+#define MSG_MERGE_TILE_MAX_DEPTH 20u
 
 typedef struct msg_gpu_config
 {
@@ -111,7 +111,8 @@ typedef struct msg_bindings
     WGPUBindGroup bin;
     WGPUBindGroup sort;
     WGPUBindGroup merge_schedule;
-    WGPUBindGroup merge_merge[MSG_MERGE_TILE_MAX_DEPTH];
+    WGPUBindGroup merge_merge;
+    WGPUBindGroup merge_merge_swap;
     WGPUBindGroup merge_sort;
 } msg_bindings;
 
@@ -497,14 +498,14 @@ static void msg__segsort_merge_kernels_init(
             .binding = 4, // tiles
             .visibility = WGPUShaderStage_Compute,
             .buffer = {
-                .type = WGPUBufferBindingType_Storage,
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
             },
         },
         (WGPUBindGroupLayoutEntry){
             .binding = 5, // meta
             .visibility = WGPUShaderStage_Compute,
             .buffer = {
-                .type = WGPUBufferBindingType_Storage,
+                .type = WGPUBufferBindingType_ReadOnlyStorage,
             },
         },
     };
@@ -1421,7 +1422,7 @@ MERGE_EXPORT void msg_bindings_init(
         .data = "Merge Sort: Merge Schedule Binding",
         .length = WGPU_STRLEN,
     };
-    merge_schedule_binding_desc.layout = bin_hist_layout0;
+    merge_schedule_binding_desc.layout = merge_schedule_layout0;
     merge_schedule_binding_desc.entryCount = 7;
     merge_schedule_binding_desc.entries = (WGPUBindGroupEntry[]){
         (WGPUBindGroupEntry){
@@ -1470,34 +1471,34 @@ MERGE_EXPORT void msg_bindings_init(
         .data = "Merge Sort: Merge Sort Binding",
         .length = WGPU_STRLEN,
     };
-    merge_sort_binding_desc.layout = bin_hist_layout0;
+    merge_sort_binding_desc.layout = merge_sort_layout0;
     merge_sort_binding_desc.entryCount = 4;
     merge_sort_binding_desc.entries = (WGPUBindGroupEntry[]){
         (WGPUBindGroupEntry){
             .binding = 0, // global_keys
-            .buffer = buffers->config,
-            .size = sizeof(msg_gpu_config),
+            .buffer = buffers->keys,
+            .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
             .binding = 1, // global_value_indices
-            .buffer = buffers->segments,
+            .buffer = buffers->value_indices,
             .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
             .binding = 2, // tiles
-            .buffer = buffers->bin_config,
+            .buffer = buffers->merge_tiles,
             .size = WGPU_WHOLE_SIZE,
         },
         (WGPUBindGroupEntry){
             .binding = 3, // meta
-            .buffer = buffers->bin_histogram,
+            .buffer = buffers->merge_meta,
             .size = WGPU_WHOLE_SIZE,
         },
     };
 
     WGPUBindGroup merge_sort_binding = wgpuDeviceCreateBindGroup(pipeline->device, &merge_sort_binding_desc);
 
-    wgpuBindGroupLayoutRelease(bin_hist_layout0);
+    wgpuBindGroupLayoutRelease(merge_sort_layout0);
 
     *bindings = (msg_bindings){
         .bin = bin_binding,
@@ -1515,15 +1516,15 @@ MERGE_EXPORT void msg_bindings_init(
         .data = "Merge Sort: Merge Schedule Binding",
         .length = WGPU_STRLEN,
     };
-    merge_merge_binding_desc.layout = bin_hist_layout0;
+    merge_merge_binding_desc.layout = merge_merge_layout0;
     merge_merge_binding_desc.entryCount = 6;
 
-    for (uint32_t i = 0; i < MSG_MERGE_TILE_MAX_DEPTH; i++)
+    for (uint32_t i = 0; i < 2; i++)
     {
-        WGPUBuffer const keys_in = (i % 1u) == 0 ? buffers->keys : buffers->merge_keys_swap;
-        WGPUBuffer const value_indices_in = (i % 1u) == 0 ? buffers->value_indices : buffers->merge_value_indices_swap;
-        WGPUBuffer const keys_out = (i % 1u) == 0 ? buffers->merge_keys_swap : buffers->keys;
-        WGPUBuffer const value_indices_out = (i % 1u) == 0 ? buffers->merge_value_indices_swap : buffers->value_indices;
+        WGPUBuffer const keys_in = (i & 1u) == 0 ? buffers->keys : buffers->merge_keys_swap;
+        WGPUBuffer const value_indices_in = (i & 1u) == 0 ? buffers->value_indices : buffers->merge_value_indices_swap;
+        WGPUBuffer const keys_out = (i & 1u) == 0 ? buffers->merge_keys_swap : buffers->keys;
+        WGPUBuffer const value_indices_out = (i & 1u) == 0 ? buffers->merge_value_indices_swap : buffers->value_indices;
 
         merge_merge_binding_desc.entries = (WGPUBindGroupEntry[]){
             (WGPUBindGroupEntry){
@@ -1548,17 +1549,24 @@ MERGE_EXPORT void msg_bindings_init(
             },
             (WGPUBindGroupEntry){
                 .binding = 4, // tiles
-                .buffer = buffers->merge_meta,
+                .buffer = buffers->merge_tiles,
                 .size = WGPU_WHOLE_SIZE,
             },
             (WGPUBindGroupEntry){
                 .binding = 5, // meta
-                .buffer = buffers->merge_dispatch_tiles,
+                .buffer = buffers->merge_meta,
                 .size = WGPU_WHOLE_SIZE,
             },
         };
 
-        bindings->merge_merge[i] = wgpuDeviceCreateBindGroup(pipeline->device, &merge_merge_binding_desc);
+        if (i == 0)
+        {
+            bindings->merge_merge = wgpuDeviceCreateBindGroup(pipeline->device, &merge_merge_binding_desc);
+        }
+        else
+        {
+            bindings->merge_merge_swap = wgpuDeviceCreateBindGroup(pipeline->device, &merge_merge_binding_desc);
+        }
     }
 
     wgpuBindGroupLayoutRelease(merge_merge_layout0);
@@ -1769,6 +1777,32 @@ MERGE_EXPORT void msg_sort(
             encoder,
             buffers->dispatch,
             (uint64_t)i * sizeof(msg_dispatch_size)
+        );
+    }
+
+    const uint32_t merge_groups = (uint32_t)((config->segments_len + 256u - 1u) / 256u);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_build_tiles);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, merge_groups, 1, 1);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_schedule);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_sort);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_sort, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroupsIndirect(encoder, buffers->merge_dispatch_tiles, 0);
+
+    for (uint32_t k = 0; k < MSG_MERGE_TILE_MAX_DEPTH; k++)
+    {
+        WGPUBindGroup bg = (k % 2u == 0u) ? bindings->merge_merge : bindings->merge_merge_swap;
+        wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_segmerge[k]);
+        wgpuComputePassEncoderSetBindGroup(encoder, 0, bg, 0, NULL);
+        wgpuComputePassEncoderDispatchWorkgroupsIndirect(
+            encoder,
+            buffers->merge_dispatch_merge,
+            (uint64_t)k * sizeof(msg_dispatch_size)
         );
     }
 }

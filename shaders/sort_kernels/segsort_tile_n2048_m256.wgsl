@@ -11,7 +11,7 @@ struct TileMeta { tile_count: u32, max_size: u32 }
 @group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
 @group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
 @group(0) @binding(2) var<storage, read> tiles: array<TileInfo>;
-@group(0) @binding(3) var<storage, read> meta: TileMeta;
+@group(0) @binding(3) var<storage, read> tile_meta: TileMeta;
 
 var<workgroup> smem_keys: array<u32, WG * WPT>;
 var<workgroup> smem_vals: array<u32, WG * WPT>;
@@ -23,7 +23,7 @@ fn segsort_tile_n2048_m256(
     @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {
     let GID = wg_id.x + wg_id.y * wg_dim.x;
-    if GID >= meta.tile_count { return; }
+    if GID >= tile_meta.tile_count { return; }
 
     let info = tiles[GID];
     let tile_lo = info.seg_start + info.offset;
