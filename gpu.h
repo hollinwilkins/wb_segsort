@@ -16,6 +16,9 @@
 #include "hw_mems.h"
 
 #include "shaders/merge_bin.wgsl.h"
+#include "shaders/segmerge_schedule.wgsl.h"
+#include "shaders/segmerge.wgsl.h"
+#include "shaders/segsort_tile_n2048_m256.wgsl.h"
 
 typedef struct msg_gpu_config
 {
@@ -40,10 +43,23 @@ typedef struct msg_gpu_bin
     msg_bin_flag flags;
 } msg_gpu_bin;
 
+typedef struct msg_gpu_tile_meta
+{
+    uint32_t tile_count;
+    uint32_t max_size;
+} msg_gpu_tile_meta;
+
+typedef struct msg_gpu_tile_info {
+    uint32_t seg_start;
+    uint32_t seg_len;
+    uint32_t offset;
+} msg_gpu_tile_info;
+
 typedef struct msg_buffers_options
 {
     size_t max_segments;
     size_t max_items;
+    size_t max_merge_tiles;
     size_t value_size;
     bool is_initialized;
 } msg_buffers_options;
@@ -62,6 +78,14 @@ typedef struct msg_buffers
     WGPUBuffer value_indices;
     WGPUBuffer values;
     WGPUBuffer keys;
+
+    // merge sort buffers
+    WGPUBuffer merge_tiles;
+    WGPUBuffer merge_meta;
+    WGPUBuffer merge_dispatch_tiles;
+    WGPUBuffer merge_dispatch_merge;
+    WGPUBuffer merge_keys_swap;
+    WGPUBuffer merge_value_indices_swap;
 } msg_buffers;
 
 typedef struct msg_kernels
@@ -69,6 +93,12 @@ typedef struct msg_kernels
     WGPUComputePipeline bin_histogram;
     WGPUComputePipeline schedule;
     WGPUComputePipeline group;
+
+    // merge sort kernels
+    WGPUComputePipeline merge_build_tiles;
+    WGPUComputePipeline merge_schedule;
+    WGPUComputePipeline merge_segmerge;
+    WGPUComputePipeline merge_sort;
 } msg_kernels;
 
 typedef struct msg_bindings
@@ -222,6 +252,8 @@ MERGE_EXPORT void msg_sort(
 #include "hw_ds.h"
 
 #define MSG_MAX_WORKGROUP_DIMENSION 65535u
+#define MSG_MERGE_TILE_SIZE 2048u
+#define MSG_MERGE_TILE_MAX_DEPTH 22u
 
 static msg_dispatch_size msg_dispatch_size_for_len(const msg_dispatch_size * const size, const size_t len)
 {
@@ -677,6 +709,7 @@ static void msg_buffers_options_init(msg_buffers_options * const options)
 
     options->max_segments = options->max_segments == 0 ? MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS : options->max_segments;
     options->max_items = options->max_items == 0 ? MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS : options->max_items;
+    options->max_merge_tiles = 2u * (options->max_items / MSG_MERGE_TILE_SIZE);
 
     options->is_initialized = true;
 }
@@ -772,6 +805,54 @@ MERGE_EXPORT void msg_buffers_init(
     keys_desc.size = options2.max_items * sizeof(uint32_t);
     keys_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
+    WGPUBufferDescriptor merge_tiles_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    merge_tiles_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Tiles",
+        .length = WGPU_STRLEN,
+    };
+    merge_tiles_desc.size = options2.max_merge_tiles * sizeof(msg_gpu_tile_info);
+    merge_tiles_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor merge_meta_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    merge_meta_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Meta",
+        .length = WGPU_STRLEN,
+    };
+    merge_meta_desc.size = sizeof(msg_gpu_tile_meta);
+    merge_meta_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor merge_dispatch_tiles_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    merge_dispatch_tiles_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Dispatch Tiles",
+        .length = WGPU_STRLEN,
+    };
+    merge_dispatch_tiles_desc.size = sizeof(msg_dispatch_size);
+    merge_dispatch_tiles_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_Indirect | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor merge_dispatch_merge_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    merge_dispatch_merge_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Dispatch Merge",
+        .length = WGPU_STRLEN,
+    };
+    merge_dispatch_merge_desc.size = MSG_MERGE_TILE_MAX_DEPTH * sizeof(msg_dispatch_size);
+    merge_dispatch_merge_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_Indirect | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor merge_keys_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    merge_keys_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Keys Swap",
+        .length = WGPU_STRLEN,
+    };
+    merge_keys_desc.size = options2.max_items * sizeof(uint32_t);
+    merge_keys_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor merge_value_indices_swap_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    merge_value_indices_swap_desc.label = (WGPUStringView){
+        .data = "Merge Sort: Merge Value Indices Swap",
+        .length = WGPU_STRLEN,
+    };
+    merge_value_indices_swap_desc.size = options2.max_items * sizeof(uint32_t);
+    merge_value_indices_swap_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
     *buffers = (msg_buffers){
         .config = wgpuDeviceCreateBuffer(device, &config_desc),
         .bin_config = wgpuDeviceCreateBuffer(device, &bin_config_desc),
@@ -783,6 +864,13 @@ MERGE_EXPORT void msg_buffers_init(
         .value_indices = wgpuDeviceCreateBuffer(device, &value_indices_desc),
         .values = wgpuDeviceCreateBuffer(device, &values_desc),
         .keys = wgpuDeviceCreateBuffer(device, &keys_desc),
+
+        .merge_tiles = wgpuDeviceCreateBuffer(device, &merge_tiles_desc),
+        .merge_meta = wgpuDeviceCreateBuffer(device, &merge_meta_desc),
+        .merge_dispatch_tiles = wgpuDeviceCreateBuffer(device, &merge_dispatch_tiles_desc),
+        .merge_dispatch_merge = wgpuDeviceCreateBuffer(device, &merge_dispatch_merge_desc),
+        .merge_keys_swap = wgpuDeviceCreateBuffer(device, &merge_keys_desc),
+        .merge_value_indices_swap = wgpuDeviceCreateBuffer(device, &merge_value_indices_swap_desc),
     };
 
     wgpuQueueWriteBuffer(
@@ -909,6 +997,7 @@ MERGE_EXPORT void msg_prepare(
     wgpuQueueWriteBuffer(queue, buffers->config, 0, config, sizeof(msg_gpu_config));
     wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
     wgpuQueueWriteBuffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
+    wgpuQueueWriteBuffer(queue, buffers->merge_meta, 0, &(msg_gpu_tile_meta){0}, sizeof(msg_gpu_tile_meta));
 }
 
 MERGE_EXPORT void msg_run_bin_histogram(

@@ -267,6 +267,72 @@ fn {name}(
             return self.sort_kernel_reg(name, N, M)
         else:
             return self.sort_kernel_workgroup(name, N, M)
+
+    def tile_sort_kernel(self, name: str, N: int, M: int):
+        assert self._memory == "workgroup"
+
+        wpt = N // M
+        stages = "\n".join("    " + ln for ln in self.reg_sort(N, M).split("\n"))
+        return f"""
+const WG: u32 = {M}u;
+const N: u32 = {N}u;
+const M: u32 = {M}u;
+const WPT: u32 = {wpt}u;
+const TILE_SIZE: u32 = {N}u;
+
+struct TileInfo {{ seg_start: u32, seg_size: u32, offset: u32 }}
+struct TileMeta {{ tile_count: u32, max_size: u32 }}
+
+@group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
+@group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
+@group(0) @binding(2) var<storage, read> tiles: array<TileInfo>;
+@group(0) @binding(3) var<storage, read> meta: TileMeta;
+
+var<workgroup> smem_keys: array<u32, WG * WPT>;
+var<workgroup> smem_vals: array<u32, WG * WPT>;
+
+@compute @workgroup_size(WG, 1, 1)
+fn {name}(
+    @builtin(local_invocation_index) tid_g: u32,
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
+) {{
+    let GID = wg_id.x + wg_id.y * wg_dim.x;
+    if GID >= meta.tile_count {{ return; }}
+
+    let info = tiles[GID];
+    let tile_lo = info.seg_start + info.offset;
+    let tile_len = min(TILE_SIZE, info.seg_size - info.offset);
+
+    let local_tid = tid_g;
+    let seg_base = 0u;
+
+    var keys: array<u32, {wpt}>;
+    var values: array<u32, {wpt}>;
+
+    for (var r = 0u; r < WPT; r = r + 1u) {{
+        let pos = local_tid * WPT + r;
+        if pos < tile_len {{
+            keys[r] = global_keys[tile_lo + pos];
+            values[r] = tile_lo + pos;
+        }} else {{
+            keys[r] = 0xffffffffu;
+            values[r] = 0xffffffffu;
+        }}
+    }}
+
+{stages}
+
+    // blocked store
+    for (var r = 0u; r < WPT; r = r + 1u) {{
+        let pos = local_tid * WPT + r;
+        if pos < tile_len {{
+            global_keys[tile_lo + pos] = keys[r];
+            global_value_indices[tile_lo + pos] = values[r];
+        }}
+    }}
+}}
+"""
     
 
 SUBGROUP_SIZES = [
@@ -342,6 +408,11 @@ def main():
 
         with open(f"{output_dir}/{kernel_name}.wgsl", "w") as f:
             f.write(source)
+
+    tile_gen = KernelGenerator("workgroup")
+    tile_src = tile_gen.tile_sort_kernel("segsort_tile_n2048_m256", 2048, 256)
+    with open(f"{output_dir}/segsort_tile_n2048_m256.wgsl", "w") as f:
+        f.write(tile_src)
 
 
 if __name__ == "__main__":

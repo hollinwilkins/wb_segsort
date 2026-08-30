@@ -50,5 +50,11 @@ function(msg_embed_shader SHADER OUT_VAR)
 endfunction()
 
 msg_embed_shader("${CMAKE_SOURCE_DIR}/shaders/merge_bin.wgsl" MERGE_BIN_HEADER)
+msg_embed_shader("${CMAKE_SOURCE_DIR}/shaders/segmerge_schedule.wgsl" SEGMERGE_SCHEDULE_HEADER)
+msg_embed_shader("${CMAKE_SOURCE_DIR}/shaders/segmerge.wgsl" SEGMERGE_HEADER)
+msg_embed_shader("${CMAKE_SOURCE_DIR}/shaders/sort_kernels/segsort_tile_n2048_m256.wgsl" SEGMERGE_SORT_HEADER)
 
 target_sources(merge_sort_gpu PRIVATE "${MERGE_BIN_HEADER}")
+target_sources(merge_sort_gpu PRIVATE "${SEGMERGE_SCHEDULE_HEADER}")
+target_sources(merge_sort_gpu PRIVATE "${SEGMERGE_HEADER}")
+target_sources(merge_sort_gpu PRIVATE "${SEGMERGE_SORT_HEADER}")
