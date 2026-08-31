@@ -153,11 +153,13 @@ typedef struct hwstats_normal
     hwstats_randomizer * r;
     hwstats_bool has_spare;
     double spare;
+    double mean;
+    double stddev;
 } hwstats_normal;
 
 typedef struct hwstats_beta
 {
-    hwstats_normal * normal;
+    hwstats_normal normal;
     double alpha;
     double beta;
 } hwstats_beta;
@@ -185,7 +187,8 @@ HWSTATS_EXPORT void hwstats_x256pp_rand_init(
     hwstats_randomizer * r
 );
 
-HWSTATS_EXPORT void hwstats_normal_init(hwstats_normal * state, hwstats_randomizer * r);
+HWSTATS_EXPORT void hwstats_normal_init_standard(hwstats_normal * state, hwstats_randomizer * r);
+HWSTATS_EXPORT void hwstats_normal_init(hwstats_normal * state, hwstats_randomizer * r, double mean, double stddev);
 HWSTATS_EXPORT double hwstats_normal_sample(hwstats_normal * state);
 HWSTATS_EXPORT void hwstats_normal_sampler_init(
     hwstats_sampler * sampler,
@@ -194,7 +197,7 @@ HWSTATS_EXPORT void hwstats_normal_sampler_init(
 
 HWSTATS_EXPORT void hwstats_beta_init(
     hwstats_beta * state,
-    hwstats_normal * normal,
+    hwstats_randomizer * r,
     double alpha,
     double beta
 );
@@ -291,10 +294,23 @@ HWSTATS_EXPORT void hwstats_x256pp_rand_init(
     };
 }
 
-HWSTATS_EXPORT void hwstats_normal_init(hwstats_normal * const state, hwstats_randomizer * const r)
+HWSTATS_EXPORT void hwstats_normal_init_standard(hwstats_normal * const state, hwstats_randomizer * const r)
+{
+    return hwstats_normal_init(state, r, 0.0, 1.0);
+}
+
+
+HWSTATS_EXPORT void hwstats_normal_init(
+    hwstats_normal * const state,
+    hwstats_randomizer * const r,
+    const double mean,
+    const double stddev
+)
 {
     *state = (hwstats_normal){
         .r = r,
+        .mean = mean,
+        .stddev = stddev,
     };
 }
 
@@ -303,7 +319,7 @@ HWSTATS_EXPORT double hwstats_normal_sample(hwstats_normal * const state)
     if (state->has_spare)
     {
         state->has_spare = hwstats_false;
-        return state->spare;
+        return state->mean + state->stddev * state->spare;
     }
 
     double u, v, s;
@@ -316,7 +332,7 @@ HWSTATS_EXPORT double hwstats_normal_sample(hwstats_normal * const state)
     const double factor = sqrt(-2.0 * log(s) / s);
     state->spare = v * factor;
     state->has_spare = hwstats_true;
-    return u * factor;
+    return state->mean + state->stddev * (u * factor);
 }
 
 static double hwstats__normal_sample(void * const state)
@@ -337,11 +353,14 @@ HWSTATS_EXPORT void hwstats_normal_sampler_init(
 
 HWSTATS_EXPORT void hwstats_beta_init(
     hwstats_beta * const state,
-    hwstats_normal * const normal,
+    hwstats_randomizer * const r,
     const double alpha,
     const double beta
 )
 {
+    hwstats_normal normal;
+    hwstats_normal_init_standard(&normal, r);
+
     *state = (hwstats_beta){
         .normal = normal,
         .alpha = alpha,
@@ -379,8 +398,8 @@ static double hwstats__gamma_sample(hwstats_normal * const n, const double k)
 
 HWSTATS_EXPORT double hwstats_beta_sample(hwstats_beta * const state)
 {
-    const double ga = hwstats__gamma_sample(state->normal, state->alpha);
-    const double gb = hwstats__gamma_sample(state->normal, state->beta);
+    const double ga = hwstats__gamma_sample(&state->normal, state->alpha);
+    const double gb = hwstats__gamma_sample(&state->normal, state->beta);
     return ga / (ga + gb);
 }
 
