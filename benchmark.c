@@ -4,9 +4,11 @@
 
 #define WB_SORT_CPU_IMPLEMENTATION
 #define WB_SORT_GPU_IMPLEMENTATION
+#define HWSTATS_IMPLEMENTATION
 #define HWDS_IMPLEMENTATION
 #define MEMS_IMPLEMENTATION
 
+#include "hw_stats.h"
 #include "cpu.h"
 #include "gpu.h"
 

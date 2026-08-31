@@ -64,14 +64,6 @@ void test__sort_kernel(
     memcpy(expected_keys, keys, len * sizeof(uint32_t));
     wbc_segsort_alloc(len, expected_keys, segments_len, segments);
 
-    wbg_gpu_config config = {0};
-    wbg_prepare(
-        pipeline.queue,
-        &buffers,
-        segments_len, segments,
-        len, keys,
-        &config);
-
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline.device, &(WGPUCommandEncoderDescriptor){
         .label = (WGPUStringView){
             .data = "Merge Sort: Command Encoder",
@@ -79,70 +71,18 @@ void test__sort_kernel(
         }
     });
 
-    WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
-        .label = (WGPUStringView){
-            .data = "Merge Sort: Bin Pass Encoder",
-        },
-    });
-
-    wbg_run_bin_histogram(
-        &pipeline,
-        &bindings,
-        &config,
-        bin_pass
-    );
-
-    wbg_bin_run_schedule(
-        &pipeline,
-        &bindings,
-        &config,
-        bin_pass
-    );
-
-    wbg_bin_run_group(
-        &pipeline,
-        &bindings,
-        &config,
-        bin_pass
-    );
-
-    wgpuComputePassEncoderEnd(bin_pass);
-
-    WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
-        .label = (WGPUStringView){
-            .data = "Merge Sort: Sort Pass Encoder",
-        },
-    });
-
     wbg_sort(
         &pipeline,
         &bindings,
         &buffers,
-        &config,
-        sort_pass,
-        &mems_system_allocator
+        encoder,
+        segments_len, segments,
+        len, keys
     );
-
-    wgpuComputePassEncoderEnd(sort_pass);
-
-    WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
-        .label = (WGPUStringView){
-            .data = "Merge Sort: Merge Pass Encoder",
-        },
-    });
-
-    wbg_merge(
-        &pipeline,
-        &bindings,
-        &buffers,
-        merge_pass
-    );
-
-    wgpuComputePassEncoderEnd(merge_pass);
 
     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
         .label = (WGPUStringView){
-            .data = "Merge Sort: Command Buffer",
+            .data = "WB Sort: Command Buffer",
             .length = WGPU_STRLEN,
         }
     });
@@ -150,8 +90,6 @@ void test__sort_kernel(
     wgpuQueueSubmit(pipeline.queue, 1, &commands);
 
     wgpuCommandBufferRelease(commands);
-    wgpuComputePassEncoderRelease(bin_pass);
-    wgpuComputePassEncoderRelease(sort_pass);
     wgpuCommandEncoderRelease(encoder);
 
     uint32_t *gpu_keys;

@@ -158,14 +158,6 @@ static inline bool wbg_sort_kernel_key_equal(const wbg_sort_kernel_key a, const 
     return a.n == b.n && a.m == b.m && a.is_register == b.is_register;
 }
 
-#define HWDS_HM_DECLARATION
-#define HWDS_NAME wbg_sort_kernel_map
-#define HWDS_KEY wbg_sort_kernel_key
-#define HWDS_VALUE WGPUComputePipeline
-#define HWDS_HASH wbg_sort_kernel_key_hash
-#define HWDS_EQUAL wbg_sort_kernel_key_equal
-#include "hw_ds.h"
-
 typedef struct wbg_pipeline
 {
     wbg_options options;
@@ -178,10 +170,10 @@ typedef struct wbg_pipeline
     uint32_t subgroup_size;
     bool has_subgroups;
     wbg_kernels kernels;
-    wbg_sort_kernel_map sort_kernels;
     wbg_sort_layouts sort_layouts;
 
     wbg_gpu_bin bins[13];
+    WGPUComputePipeline sort_kernels[13];
 } wbg_pipeline;
 
 WB_EXPORT void wbg_pipeline_init(
@@ -237,8 +229,8 @@ WB_EXPORT void wbg_bin_run_group(
     WGPUComputePassEncoder encoder
 );
 
-WB_EXPORT void wbg_sort(
-    wbg_pipeline * pipeline,
+WB_EXPORT void wbg_segsort(
+    const wbg_pipeline * pipeline,
     const wbg_bindings * bindings,
     const wbg_buffers * buffers,
     const wbg_gpu_config * config,
@@ -253,19 +245,21 @@ WB_EXPORT void wbg_merge(
     WGPUComputePassEncoder encoder
 );
 
+WB_EXPORT void wbg_sort(
+    const wbg_pipeline * pipeline,
+    const wbg_bindings * bindings,
+    const wbg_buffers * buffers,
+    WGPUCommandEncoder encoder,
+    size_t segments_len, uint32_t * segments,
+    size_t keys_len, uint32_t * keys
+);
+
 #endif
 
 #ifdef WB_SORT_GPU_IMPLEMENTATION
 #ifndef WB_SORT_GPU_IMPLEMENTED
 #define WB_SORT_GPU_IMPLEMENTED
 
-#define HWDS_HM_IMPLEMENTATION
-#define HWDS_NAME wbg_sort_kernel_map
-#define HWDS_KEY wbg_sort_kernel_key
-#define HWDS_VALUE WGPUComputePipeline
-#define HWDS_HASH wbg_sort_kernel_key_hash
-#define HWDS_EQUAL wbg_sort_kernel_key_equal
-#include "hw_ds.h"
 
 static wbg_dispatch_size wbg_dispatch_size_for_len(const wbg_dispatch_size * const size, const size_t len)
 {
@@ -1019,6 +1013,115 @@ static size_t wbg__round_pow2(size_t a) {
     return a + 1;
 }
 
+static char * wbg__read_file(
+    const char * const path,
+    const mems_allocator * const allocator,
+    size_t * const buffer_len
+)
+{
+    FILE * const f = fopen(path, "rb");
+    if (f == NULL) abort();
+
+    if (fseek(f, 0, SEEK_END) != 0) abort();
+
+    long file_size = ftell(f);
+    if (file_size < 0) abort();
+
+    if (fseek(f, 0, SEEK_SET) != 0) abort();
+
+    char * const buffer = (char *)mems_allocator_alloc(allocator, MEMS_ALIGN_DEFAULT, file_size + 1);
+    size_t bytes_read = fread(buffer, 1, file_size, f);
+    if (bytes_read < (size_t)file_size) {
+        if (ferror(f)) {
+            perror("Error reading file");
+            free(buffer);
+            fclose(f);
+            abort();
+        }
+        file_size = bytes_read;
+    }
+
+    *buffer_len = file_size;
+    buffer[file_size] = 0;
+
+    fclose(f);
+
+    return buffer;
+}
+
+static WGPUComputePipeline wbg__pipeline_create_sort_kernel(
+    wbg_pipeline * const pipeline,
+    const wbg_gpu_bin * const bin,
+    const mems_allocator * const allocator
+)
+{
+    const bool is_register = (bin->flags & wbg_bin_flag_is_register) != 0;
+
+    const char * const memory = is_register ? "reg" : "wg";
+
+    static char KERNEL_NAME[2048];
+    snprintf(KERNEL_NAME, 2048, "segsort_%s_n%u_m%u",
+        memory,
+        bin->n, bin->m
+    );
+
+    static char KERNEL_FILE_PATH[2048];
+    snprintf(KERNEL_FILE_PATH, 2048, "%s/%s.wgsl",
+        pipeline->options.sort_kernels_root_dir,
+        KERNEL_NAME
+    );
+
+    size_t source_len;
+    char * const source = wbg__read_file(KERNEL_FILE_PATH, allocator, &source_len);
+
+    WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
+        .chain = (WGPUChainedStruct){
+            .sType = WGPUSType_ShaderSourceWGSL
+        },
+        .code = (WGPUStringView){
+            .data = source,
+            .length = source_len,
+        },
+    };
+    WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
+        .label = (WGPUStringView){
+            .data = KERNEL_NAME,
+            .length = WGPU_STRLEN,
+        },
+        .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
+    };
+    WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule(
+        pipeline->device,
+        &shader_module_desc
+    );
+
+    static char PIPELINE_NAME[2048];
+    snprintf(PIPELINE_NAME, 2048, "Sort %s", KERNEL_FILE_PATH);
+    WGPUComputePipelineDescriptor sort_kernel_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    sort_kernel_desc.label = (WGPUStringView){
+        .data = PIPELINE_NAME,
+        .length = WGPU_STRLEN,
+    };
+    sort_kernel_desc.layout = pipeline->sort_layouts.pipeline_layout;
+    sort_kernel_desc.compute.entryPoint = (WGPUStringView){
+        .data = KERNEL_NAME,
+        .length = WGPU_STRLEN,
+    };
+    sort_kernel_desc.compute.module = shader_module;
+    sort_kernel_desc.compute.constantCount = 1;
+    sort_kernel_desc.compute.constants = (WGPUConstantEntry[]){
+        (WGPUConstantEntry){
+            .key = (WGPUStringView){
+                .data = "WG",
+                .length = WGPU_STRLEN
+            },
+            .value = (float)bin->wg,
+        },
+    };
+
+    return wgpuDeviceCreateComputePipeline(pipeline->device, &sort_kernel_desc);
+}
+
 WB_EXPORT void wbg_pipeline_init(
     wbg_pipeline * const pipeline,
     const wbg_options * const options,
@@ -1067,13 +1170,6 @@ WB_EXPORT void wbg_pipeline_init(
         &pipeline->sort_layouts,
         device
     );
-
-    if (!wbg_sort_kernel_map_init_alloc(
-        &pipeline->sort_kernels,
-        allocator,
-        wbg__sort_kernels_len * 4,
-        wbg__sort_kernels_len
-    )) abort();
 
     pipeline->bins[0] = (wbg_gpu_bin){0};
     for (uint32_t i = 1u; i < 12u; i++)
@@ -1138,11 +1234,17 @@ WB_EXPORT void wbg_pipeline_init(
         .flags = (uint32_t)wbg_bin_flag_is_variable,
     };
 
-    for (int i = 0; i < 13; i++)
+    for (int i = 1; i < 12; i++)
     {
         const wbg_gpu_bin bin = pipeline->bins[i];
         printf("Bin(%d): N(%u), M(%u), WG(%u), Flags(%u)\n",
             i, bin.n, bin.m, bin.wg, bin.flags);
+
+        pipeline->sort_kernels[i] = wbg__pipeline_create_sort_kernel(
+            pipeline,
+            &bin,
+            allocator
+        );
     }
 }
 
@@ -1640,129 +1742,8 @@ WB_EXPORT void wbg_bin_run_group(
     wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
 }
 
-static char * wbg__read_file(
-    const char * const path,
-    const mems_allocator * const allocator,
-    size_t * const buffer_len
-)
-{
-    FILE * const f = fopen(path, "rb");
-    if (f == NULL) abort();
-
-    if (fseek(f, 0, SEEK_END) != 0) abort();
-
-    long file_size = ftell(f);
-    if (file_size < 0) abort();
-
-    if (fseek(f, 0, SEEK_SET) != 0) abort();
-
-    char * const buffer = (char *)mems_allocator_alloc(allocator, MEMS_ALIGN_DEFAULT, file_size + 1);
-    size_t bytes_read = fread(buffer, 1, file_size, f);
-    if (bytes_read < (size_t)file_size) {
-        if (ferror(f)) {
-            perror("Error reading file");
-            free(buffer);
-            fclose(f);
-            abort();
-        }
-        file_size = bytes_read;
-    }
-
-    *buffer_len = file_size;
-    buffer[file_size] = 0;
-
-    fclose(f);
-
-    return buffer;
-}
-
-static WGPUComputePipeline wbg__pipeline_get_sort_kernel(
-    wbg_pipeline * const pipeline,
-    const wbg_gpu_bin * const bin,
-    const mems_allocator * const allocator
-)
-{
-    const bool is_register = (bin->flags & wbg_bin_flag_is_register) != 0;
-
-    wbg_sort_kernel_map_gop_result gop;
-    wbg_sort_kernel_map_get_or_put(
-        &pipeline->sort_kernels,
-        (wbg_sort_kernel_key){ bin->n, bin->m, is_register },
-        &gop
-    );
-
-    if (!gop.found_existing)
-    {
-        const char * const memory = is_register ? "reg" : "wg";
-
-        static char KERNEL_NAME[2048];
-        snprintf(KERNEL_NAME, 2048, "segsort_%s_n%u_m%u",
-            memory,
-            bin->n, bin->m
-        );
-
-        static char KERNEL_FILE_PATH[2048];
-        snprintf(KERNEL_FILE_PATH, 2048, "%s/%s.wgsl",
-            pipeline->options.sort_kernels_root_dir,
-            KERNEL_NAME
-        );
-
-        size_t source_len;
-        char * const source = wbg__read_file(KERNEL_FILE_PATH, allocator, &source_len);
-
-        WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
-            .chain = (WGPUChainedStruct){
-                .sType = WGPUSType_ShaderSourceWGSL
-            },
-            .code = (WGPUStringView){
-                .data = source,
-                .length = source_len,
-            },
-        };
-        WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
-            .label = (WGPUStringView){
-                .data = KERNEL_NAME,
-                .length = WGPU_STRLEN,
-            },
-            .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
-        };
-        WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule(
-            pipeline->device,
-            &shader_module_desc
-        );
-
-        static char PIPELINE_NAME[2048];
-        snprintf(PIPELINE_NAME, 2048, "Sort %s", KERNEL_FILE_PATH);
-        WGPUComputePipelineDescriptor sort_kernel_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
-        sort_kernel_desc.label = (WGPUStringView){
-            .data = PIPELINE_NAME,
-            .length = WGPU_STRLEN,
-        };
-        sort_kernel_desc.layout = pipeline->sort_layouts.pipeline_layout;
-        sort_kernel_desc.compute.entryPoint = (WGPUStringView){
-            .data = KERNEL_NAME,
-            .length = WGPU_STRLEN,
-        };
-        sort_kernel_desc.compute.module = shader_module;
-        sort_kernel_desc.compute.constantCount = 1;
-        sort_kernel_desc.compute.constants = (WGPUConstantEntry[]){
-            (WGPUConstantEntry){
-                .key = (WGPUStringView){
-                    .data = "WG",
-                    .length = WGPU_STRLEN
-                },
-                .value = (float)bin->wg,
-            },
-        };
-
-        *gop.value = wgpuDeviceCreateComputePipeline(pipeline->device, &sort_kernel_desc);
-    }
-
-    return *gop.value;
-}
-
-WB_EXPORT void wbg_sort(
-    wbg_pipeline * const pipeline,
+WB_EXPORT void wbg_segsort(
+    const wbg_pipeline * const pipeline,
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
     const wbg_gpu_config * const config,
@@ -1776,11 +1757,7 @@ WB_EXPORT void wbg_sort(
     {
         const wbg_gpu_bin * const bin = &pipeline->bins[i];
 
-        WGPUComputePipeline const sort_kernel = wbg__pipeline_get_sort_kernel(
-            pipeline,
-            bin,
-            allocator
-        );
+        WGPUComputePipeline const sort_kernel = pipeline->sort_kernels[i];
 
         wgpuComputePassEncoderSetPipeline(encoder, sort_kernel);
         wgpuComputePassEncoderDispatchWorkgroupsIndirect(
@@ -1820,6 +1797,86 @@ WB_EXPORT void wbg_merge(
         wgpuComputePassEncoderDispatchWorkgroupsIndirect(
             encoder, buffers->merge_dispatch_merge, (uint64_t)k * sizeof(wbg_dispatch_size));
     }
+}
+
+WB_EXPORT void wbg_sort(
+    const wbg_pipeline * const pipeline,
+    const wbg_bindings * const bindings,
+    const wbg_buffers * const buffers,
+    WGPUCommandEncoder const encoder,
+    const size_t segments_len, uint32_t * const segments,
+    const size_t keys_len, uint32_t * const keys
+)
+{
+    wbg_gpu_config config = {0};
+    wbg_prepare(
+        pipeline->queue,
+        buffers,
+        segments_len, segments,
+        keys_len, keys,
+        &config
+    );
+
+    WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+        .label = (WGPUStringView){
+            .data = "WB Sort: Bin Pass Encoder",
+        },
+    });
+
+    wbg_run_bin_histogram(
+        pipeline,
+        bindings,
+        &config,
+        bin_pass
+    );
+
+    wbg_bin_run_schedule(
+        pipeline,
+        bindings,
+        &config,
+        bin_pass
+    );
+
+    wbg_bin_run_group(
+        pipeline,
+        bindings,
+        &config,
+        bin_pass
+    );
+
+    wgpuComputePassEncoderEnd(bin_pass);
+
+    WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+        .label = (WGPUStringView){
+            .data = "WB Sort: Sort Pass Encoder",
+        },
+    });
+
+    wbg_segsort(
+        pipeline,
+        bindings,
+        buffers,
+        &config,
+        sort_pass,
+        &mems_system_allocator
+    );
+
+    wgpuComputePassEncoderEnd(sort_pass);
+
+    WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+        .label = (WGPUStringView){
+            .data = "WB Sort: Merge Pass Encoder",
+        },
+    });
+
+    wbg_merge(
+        pipeline,
+        bindings,
+        buffers,
+        merge_pass
+    );
+
+    wgpuComputePassEncoderEnd(merge_pass);
 }
 
 #endif
