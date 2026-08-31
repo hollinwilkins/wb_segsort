@@ -84,6 +84,10 @@ typedef struct benchmark_result_wbc
 {
     uint64_t wall_start_ns;
     uint64_t wall_end_ns;
+    uint64_t upload_start_ns;
+    uint64_t upload_end_ns;
+    uint64_t sort_start_ns;
+    uint64_t sort_end_ns;
 } benchmark_result_wbc;
 
 typedef struct benchmark_result_wbg
@@ -193,6 +197,7 @@ static uint32_t sample_range(hwstats_sampler * const sampler, const uint32_t min
 
 static void benchmark_run_wbc_sample(
     const benchmark_data * const data,
+    uint32_t * const keys,
     uint32_t * const value_indices,
     const size_t swap_len,
     void * const swap,
@@ -203,11 +208,10 @@ static void benchmark_run_wbc_sample(
         .kind = benchmark_wbc,
     };
 
-    uint32_t * const keys = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
-    memcpy(keys, data->keys, data->keys_len * sizeof(uint32_t));
-
     const uint64_t start_ns = now_ns();
-    result->data.wbc.wall_start_ns = start_ns;
+    memcpy(keys, data->keys, data->keys_len * sizeof(uint32_t));
+    result->data.wbc.upload_start_ns = start_ns;
+    result->data.wbc.upload_end_ns = now_ns();
 
     size_t required_size;
     if (!wbc_segsort(
@@ -225,6 +229,8 @@ static void benchmark_run_wbc_sample(
 
     result->data.wbc.wall_start_ns = start_ns;
     result->data.wbc.wall_end_ns = end_ns;
+    result->data.wbc.sort_start_ns = result->data.wbc.upload_end_ns;
+    result->data.wbc.sort_end_ns = end_ns;
 }
 
 #define QUERY_COUNT 8
@@ -377,6 +383,7 @@ static void benchmark_run_wbc(
         &required_swap_size
     )) PANIC("could not evaluate swap size");
 
+    void * const keys = malloc(data->keys_len * sizeof(uint32_t));
     void * const swap = malloc(required_swap_size);
     uint32_t * const value_indices = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
 
@@ -385,6 +392,7 @@ static void benchmark_run_wbc(
     {
         benchmark_run_wbc_sample(
             data,
+            keys,
             value_indices,
             required_swap_size,
             swap,
@@ -396,6 +404,7 @@ static void benchmark_run_wbc(
     {
         benchmark_run_wbc_sample(
             data,
+            keys,
             value_indices,
             required_swap_size,
             swap,
@@ -971,18 +980,33 @@ static void write_benchmark_results_wbc(
 
     snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/timing.csv", BENCHMARK_DIR);
     FILE * rf = fopen(BENCHMARK_FILE, "w");
-    fprintf(rf, "wall_ms,wall_us,wall_ns\n,");
+    fprintf(rf, "wall_ms,wall_upload_ms,walL_sort_ms,wall_us,wall_upload_us,wall_sort_us,wall_ns,wall_upload_ns,wall_sort_ns\n,");
     for (uint32_t i = 0; i < meta->n_runs; i++)
     {
         const uint64_t wall_start_ns = results[i].data.wbc.wall_start_ns;
         const uint64_t wall_end_ns = results[i].data.wbc.wall_end_ns;
+        const uint64_t wall_upload_start_ns = results[i].data.wbc.upload_start_ns;
+        const uint64_t wall_upload_end_ns = results[i].data.wbc.upload_end_ns;
+        const uint64_t wall_sort_start_ns = results[i].data.wbc.sort_start_ns;
+        const uint64_t wall_sort_end_ns = results[i].data.wbc.sort_end_ns;
 
         const uint64_t wall_ns = wall_end_ns - wall_start_ns;
-        const uint64_t wall_ms = wall_ns / 1000000;
-        const uint64_t wall_us = wall_ns / 1000;
+        const uint64_t wall_upload_ns = wall_upload_end_ns - wall_upload_start_ns;
+        const uint64_t wall_sort_ns = wall_sort_end_ns - wall_sort_start_ns;
 
-        fprintf(rf, "%llu,%llu,%llu\n",
-            wall_ms, wall_us, wall_ns);
+        const uint64_t wall_ms = wall_ns / 1000000;
+        const uint64_t wall_upload_ms = wall_upload_ns / 1000000;
+        const uint64_t wall_sort_ms = wall_sort_ns / 1000000;
+
+        const uint64_t wall_us = wall_ns / 1000;
+        const uint64_t wall_upload_us = wall_upload_ns / 1000;
+        const uint64_t wall_sort_us = wall_sort_ns / 1000;
+
+        fprintf(rf, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+            wall_ms, wall_upload_ms, wall_sort_ms,
+            wall_us, wall_upload_us, wall_sort_us,
+            wall_ns, wall_upload_ns, wall_sort_ns
+        );
     }
     fclose(rf);
 }
