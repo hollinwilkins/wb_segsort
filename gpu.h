@@ -132,6 +132,12 @@ typedef struct wbg_sort_layouts
     WGPUPipelineLayout pipeline_layout;
 } wbg_sort_layouts;
 
+typedef struct wbg_sort_timing
+{
+    WGPUQuerySet query;
+    size_t index;
+} wbg_sort_timing;
+
 typedef struct wbg_options
 {
     const char * sort_kernels_root_dir;
@@ -251,7 +257,8 @@ WB_EXPORT void wbg_sort(
     const wbg_buffers * buffers,
     WGPUCommandEncoder encoder,
     size_t segments_len, uint32_t * segments,
-    size_t keys_len, uint32_t * keys
+    size_t keys_len, uint32_t * keys,
+    wbg_sort_timing * timing
 );
 
 #endif
@@ -1799,13 +1806,20 @@ WB_EXPORT void wbg_merge(
     }
 }
 
+static wbg_sort_timing * wbg__sort_timing_add_index(wbg_sort_timing * const timing, const size_t n)
+{
+    timing->index += n;
+    return timing;
+}
+
 WB_EXPORT void wbg_sort(
     const wbg_pipeline * const pipeline,
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
     WGPUCommandEncoder const encoder,
     const size_t segments_len, uint32_t * const segments,
-    const size_t keys_len, uint32_t * const keys
+    const size_t keys_len, uint32_t * const keys,
+    wbg_sort_timing * const timing
 )
 {
     wbg_gpu_config config = {0};
@@ -1817,11 +1831,18 @@ WB_EXPORT void wbg_sort(
         &config
     );
 
-    WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+    WGPUComputePassDescriptor bin_pass_desc = (WGPUComputePassDescriptor){
         .label = (WGPUStringView){
             .data = "WB Sort: Bin Pass Encoder",
         },
-    });
+    };
+    if (timing != NULL) bin_pass_desc.timestampWrites = &(WGPUPassTimestampWrites){
+        .querySet = timing->query,
+        .beginningOfPassWriteIndex = timing->index++,
+        .endOfPassWriteIndex = timing->index++,
+    };
+
+    WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &bin_pass_desc);
 
     wbg_run_bin_histogram(
         pipeline,
@@ -1846,11 +1867,18 @@ WB_EXPORT void wbg_sort(
 
     wgpuComputePassEncoderEnd(bin_pass);
 
-    WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+    WGPUComputePassDescriptor sort_pass_desc = (WGPUComputePassDescriptor){
         .label = (WGPUStringView){
             .data = "WB Sort: Sort Pass Encoder",
         },
-    });
+    };
+    if (timing != NULL) sort_pass_desc.timestampWrites = &(WGPUPassTimestampWrites){
+        .querySet = timing->query,
+        .beginningOfPassWriteIndex = timing->index++,
+        .endOfPassWriteIndex = timing->index++,
+    };
+
+    WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &sort_pass_desc);
 
     wbg_segsort(
         pipeline,
@@ -1863,11 +1891,18 @@ WB_EXPORT void wbg_sort(
 
     wgpuComputePassEncoderEnd(sort_pass);
 
-    WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &(WGPUComputePassDescriptor){
+    WGPUComputePassDescriptor merge_pass_desc = (WGPUComputePassDescriptor){
         .label = (WGPUStringView){
             .data = "WB Sort: Merge Pass Encoder",
         },
-    });
+    };
+    if (timing != NULL) merge_pass_desc.timestampWrites = &(WGPUPassTimestampWrites){
+        .querySet = timing->query,
+        .beginningOfPassWriteIndex = timing->index++,
+        .endOfPassWriteIndex = timing->index++,
+    };
+
+    WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &merge_pass_desc);
 
     wbg_merge(
         pipeline,

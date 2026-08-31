@@ -187,6 +187,8 @@ HWSTATS_EXPORT void hwstats_x256pp_rand_init(
     hwstats_randomizer * r
 );
 
+HWSTATS_EXPORT void hwstats_uniform_sampler_init(hwstats_sampler * sampler, hwstats_randomizer * r);
+
 HWSTATS_EXPORT void hwstats_normal_init_standard(hwstats_normal * state, hwstats_randomizer * r);
 HWSTATS_EXPORT void hwstats_normal_init(hwstats_normal * state, hwstats_randomizer * r, double mean, double stddev);
 HWSTATS_EXPORT double hwstats_normal_sample(hwstats_normal * state);
@@ -291,6 +293,19 @@ HWSTATS_EXPORT void hwstats_x256pp_rand_init(
     *r = (hwstats_randomizer){
         .state = (void *)state,
         .rand = hwstats__x256pp_rand,
+    };
+}
+
+static double hwstats__uniform_sample(void * const state)
+{
+    return hwstats_uniform((hwstats_randomizer *)state);
+}
+
+HWSTATS_EXPORT void hwstats_uniform_sampler_init(hwstats_sampler * const sampler, hwstats_randomizer * const r)
+{
+    *sampler = (hwstats_sampler){
+        .state = r,
+        .sample = hwstats__uniform_sample,
     };
 }
 

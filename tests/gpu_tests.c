@@ -77,7 +77,8 @@ void test__sort_kernel(
         &buffers,
         encoder,
         segments_len, segments,
-        len, keys
+        len, keys,
+        NULL
     );
 
     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
