@@ -1688,6 +1688,31 @@ WB_EXPORT void wbg_bindings_init(
     wgpuBindGroupLayoutRelease(merge_merge_layout0);
 }
 
+static void wbg__write_buffer(
+    WGPUQueue const queue,
+    WGPUBuffer const buffer,
+    const uint64_t buffer_offset,
+    const void * const data,
+    const size_t size
+)
+{
+    if (size % 8 != 0)
+    {
+        // Dawn errors when uploading large chunks that are not multiples of 8 size
+        // so special case it here...
+
+        const size_t chunk1_size = MEMS_ALIGN_BACKWARD(size, 8);
+        const size_t chunk2_size = size - chunk1_size;
+
+        wgpuQueueWriteBuffer(queue, buffer, buffer_offset, data, chunk1_size);
+        wgpuQueueWriteBuffer(queue, buffer, buffer_offset + chunk1_size, (void *)((mems_ptr)data + chunk1_size), chunk2_size);
+    }
+    else
+    {
+        wgpuQueueWriteBuffer(queue, buffer, buffer_offset, data, size);
+    }
+}
+
 WB_EXPORT void wbg_prepare(
     WGPUQueue const queue,
     const wbg_buffers * const buffers,
@@ -1700,13 +1725,13 @@ WB_EXPORT void wbg_prepare(
         .segments_len = segments_len,
     };
 
-    wgpuQueueWriteBuffer(queue, buffers->config, 0, config, sizeof(wbg_gpu_config));
-    wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
-    wgpuQueueWriteBuffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
-    wgpuQueueWriteBuffer(queue, buffers->merge_meta, 0, &(wbg_gpu_tile_meta){0}, sizeof(wbg_gpu_tile_meta));
+    wbg__write_buffer(queue, buffers->config, 0, config, sizeof(wbg_gpu_config));
+    wbg__write_buffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
+    wbg__write_buffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
+    wbg__write_buffer(queue, buffers->merge_meta, 0, &(wbg_gpu_tile_meta){0}, sizeof(wbg_gpu_tile_meta));
 
     static const uint32_t zero_hist[13] = {0};
-    wgpuQueueWriteBuffer(queue, buffers->bin_histogram, 0, zero_hist, sizeof(zero_hist));
+    wbg__write_buffer(queue, buffers->bin_histogram, 0, zero_hist, sizeof(zero_hist));
 }
 
 WB_EXPORT void wbg_run_bin_histogram(

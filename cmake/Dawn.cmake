@@ -9,10 +9,18 @@ if (NOT DEFINED SCRIBLZ_DAWN_COMMIT)
 endif()
 
 if (NOT DEFINED SCRIBLZ_DAWN_CONFIG)
-    set(SCRIBLZ_DAWN_CONFIG "Release"
-        CACHE STRING "Dawn prebuilt config: Release or Debug")
+    # Track the CMake build type: a Debug cmake build pulls the Debug Dawn
+    # prebuilt (assertions + error messages), everything else pulls Release.
+    # Left as a plain (uncached) variable so it re-derives every configure;
+    # pass -DSCRIBLZ_DAWN_CONFIG=... to override.
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(SCRIBLZ_DAWN_CONFIG "Debug")
+    else()
+        set(SCRIBLZ_DAWN_CONFIG "Release")
+    endif()
 endif()
 set(_dawn_config "${SCRIBLZ_DAWN_CONFIG}")
+message(STATUS "[dawn] config: ${_dawn_config} (CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})")
 
 if (APPLE)
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
