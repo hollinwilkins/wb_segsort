@@ -43,7 +43,6 @@ typedef enum benchmark_kind
 
 typedef struct benchmark_meta
 {
-    const char * kind_name;
     benchmark_kind kind;
     const char * git_commit;
     const char * os_string;
@@ -81,6 +80,12 @@ typedef struct benchmark_meta
     size_t n_runs;
 } benchmark_meta;
 
+typedef struct benchmark_result_wbc
+{
+    uint64_t wall_start_ns;
+    uint64_t wall_end_ns;
+} benchmark_result_wbc;
+
 typedef struct benchmark_result_wbg
 {
     uint64_t timestamps[6];
@@ -94,6 +99,7 @@ typedef struct benchmark_result_wbg
 
 typedef struct benchmark_result_data
 {
+    benchmark_result_wbc wbc;
     benchmark_result_wbg wbg;
 } benchmark_result_data;
 
@@ -183,6 +189,25 @@ static uint32_t sample_range(hwstats_sampler * const sampler, const uint32_t min
 {
     const uint32_t range = max - min;
     return min + (uint32_t)round(hwstats_sample(sampler) * (double)range);
+}
+
+static void benchmark_run_wbc_sample(
+    const benchmark_data * const data,
+    const size_t len,
+    uint32_t * const keys,
+    uint32_t * const value_indices,
+    void * const swap,
+    benchmark_result * const result
+)
+{
+    *result = (benchmark_result){
+        .kind = benchmark_wbc,
+    };
+
+    const uint64_t start_ns = now_ns();
+    result->data.wbc.wall_start_ns = start_ns;
+
+    wbc_segsort();
 }
 
 #define QUERY_COUNT 8
@@ -311,6 +336,43 @@ static void benchmark_validate(
 
     free(expected_keys);
     mems_allocator_free(&mems_system_allocator, keys);
+}
+
+static void benchmark_run_wbc(
+    const size_t n_runs,
+    const size_t n_warmup_runs,
+    const benchmark_data * const data,
+    benchmark_result * const results
+)
+{
+    benchmark_result warmup_result;
+    for (size_t i = 0; i < n_warmup_runs; i++)
+    {
+        benchmark_run_wbg_sample(
+            pipeline,
+            buffers,
+            bindings,
+            data,
+            &timing,
+            query_buffer,
+            &warmup_result
+        );
+    }
+
+    for (size_t i = 0; i < n_runs; i++)
+    {
+        timing.index = 0;
+
+        benchmark_run_wbg_sample(
+            pipeline,
+            buffers,
+            bindings,
+            data,
+            &timing,
+            query_buffer,
+            results + i
+        );
+    }
 }
 
 static void benchmark_run_wbg(
@@ -531,26 +593,53 @@ static void benchmark_meta_init(
 )
 {
     WGPUAdapterInfo adapter_info;
-    wgpuAdapterGetInfo(context->adapter, &adapter_info);
+    const char * gpu_vendor = "";
+    const char * gpu_architecture = "";
+    const char * gpu_device = "";
+    const char * gpu_description = "";
+    const char * gpu_backend_type = "";
+    const char * gpu_adapter_type = "";
+    uint32_t gpu_vendor_id = 0;
+    uint32_t gpu_device_id = 0;
+    uint32_t subgroup_min_size = 0;
+    uint32_t subgroup_max_size = 0;
+    if (context != NULL)
+    {
+        wgpuAdapterGetInfo(context->adapter, &adapter_info);
+        gpu_vendor = copy_string_view(adapter_info.vendor);
+        gpu_architecture = copy_string_view(adapter_info.architecture);
+        gpu_device = copy_string_view(adapter_info.device);
+        gpu_description = copy_string_view(adapter_info.description);
+        gpu_backend_type = copy_string(benchmark_meta_gpu_backend_type_name(adapter_info.backendType));
+        gpu_adapter_type = copy_string(benchmark_meta_gpu_adapter_type_name(adapter_info.adapterType));
+        gpu_vendor_id = adapter_info.vendorID;
+        gpu_device_id = adapter_info.deviceID;
+        subgroup_min_size = adapter_info.subgroupMinSize;
+        subgroup_max_size = adapter_info.subgroupMaxSize;
+    }
 
-    wbg_gpu_bin * const bins = (wbg_gpu_bin *)malloc(sizeof(pipeline->bins));
-    memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
+    wbg_gpu_bin * bins = NULL;
+    if (pipeline != NULL)
+    {
+        bins = (wbg_gpu_bin *)malloc(sizeof(pipeline->bins));
+        memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
+    }
 
     *meta = (benchmark_meta){
         .kind = kind,
         .git_commit = BENCH_GIT_COMMIT,
         .os_string = copy_string(benchmark_os_string()),
         .cpu_string = copy_string(benchmark_cpu_string()),
-        .gpu_vendor = copy_string_view(adapter_info.vendor),
-        .gpu_architecture = copy_string_view(adapter_info.architecture),
-        .gpu_device = copy_string_view(adapter_info.device),
-        .gpu_description = copy_string_view(adapter_info.description),
-        .gpu_backend_type = copy_string(benchmark_meta_gpu_backend_type_name(adapter_info.backendType)),
-        .gpu_adapter_type = copy_string(benchmark_meta_gpu_adapter_type_name(adapter_info.adapterType)),
-        .gpu_vendor_id = adapter_info.vendorID,
-        .gpu_device_id = adapter_info.deviceID,
-        .subgroup_min_size = adapter_info.subgroupMinSize,
-        .subgroup_max_size = adapter_info.subgroupMaxSize,
+        .gpu_vendor = gpu_vendor,
+        .gpu_architecture = gpu_architecture,
+        .gpu_device = gpu_device,
+        .gpu_description = gpu_description,
+        .gpu_backend_type = gpu_backend_type,
+        .gpu_adapter_type = gpu_adapter_type,
+        .gpu_vendor_id = gpu_vendor_id,
+        .gpu_device_id = gpu_device_id,
+        .subgroup_min_size = subgroup_min_size,
+        .subgroup_max_size = subgroup_max_size,
         .bins = bins,
         .wgpu_backend_name = BENCH_BACKEND_NAME,
         .wgpu_backend_version = BENCH_BACKEND_VERSION,
@@ -720,8 +809,16 @@ static void write_benchmark_meta(
     const benchmark_meta * const meta
 )
 {
+    const char * kind_name;
+    switch (meta->kind)
+    {
+        case benchmark_wbc: kind_name = "wbc"; break;
+        case benchmark_wbg: kind_name = "wbg"; break;
+        default: PANIC("unknown benchmark kind");
+    }
+
     fprintf(mf, "{\n");
-        write_json_string_field(mf, false, 2, "kind", meta->kind_name);
+        write_json_string_field(mf, false, 2, "kind", kind_name);
         write_json_string_field(mf, false, 2, "git_commit", meta->git_commit);
         write_json_string_field(mf, false, 2, "os_string", meta->os_string);
         write_json_string_field(mf, false, 2, "cpu_string", meta->cpu_string);
@@ -760,29 +857,39 @@ static void write_benchmark_meta(
             wbg_gpu_bin bin = meta->bins[i];
             if (i != 0) fprintf(mf, ", ");
             fprintf(mf, "{\n");
-            if (i == 0)
+
+            if (meta->bins != NULL)
+            {
+                if (i == 0)
+                {
+                    write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                    write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                    write_json_bool_field(mf, true, 4, "is_empty", true);
+                }
+                else if (i > 0)
+                {
+                    if ((bin.flags & wbg_bin_flag_is_variable) != 0)
+                    {
+                        write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                        write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                        write_json_bool_field(mf, true, 4, "is_merge", true);
+                    }
+                    else
+                    {
+                        write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                        write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                        write_json_uint32_field(mf, false, 4, "N", bin.n);
+                        write_json_uint32_field(mf, false, 4, "M", bin.m);
+                        write_json_uint32_field(mf, true, 4, "wg", bin.wg);
+                    }
+                }
+            }
+            else
             {
                 write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
-                write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
-                write_json_bool_field(mf, true, 4, "is_empty", true);
+                write_json_uint32_field(mf, true, 4, "n_keys", meta->bin_key_counts[i]);
             }
-            else if (i > 0)
-            {
-                if ((bin.flags & wbg_bin_flag_is_variable) != 0)
-                {
-                    write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
-                    write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
-                    write_json_bool_field(mf, true, 4, "is_merge", true);
-                }
-                else
-                {
-                    write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
-                    write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
-                    write_json_uint32_field(mf, false, 4, "N", bin.n);
-                    write_json_uint32_field(mf, false, 4, "M", bin.m);
-                    write_json_uint32_field(mf, true, 4, "wg", bin.wg);
-                }
-            }
+
             fprintf(mf, "  }");
         }
         fprintf(mf, "]\n");
@@ -898,6 +1005,65 @@ static void write_benchmark_results_wbg(
     fclose(rf);
 }
 
+int benchmark_wbc_main(const benchmark_config * const config)
+{
+    hwstats_sampler * const bin_sampler = create_sampler(
+        config->sampler_name,
+        config->seed
+    );
+
+    hwstats_sampler * const key_sampler = create_sampler(
+        config->key_sampler_name,
+        config->seed
+    );
+
+    benchmark_data data;
+    benchmark_data_init(
+        &data,
+        config->key_budget,
+        config->max_key,
+        bin_sampler,
+        key_sampler
+    );
+
+    benchmark_meta meta;
+    benchmark_meta_init(
+        &meta,
+        benchmark_wbc,
+        data.bin_counts,
+        data.bin_key_counts,
+        config->sampler_name,
+        config->key_sampler_name,
+        config->seed,
+        config->max_key,
+        data.segments_len,
+        data.keys_len,
+        config->n_warmup_runs,
+        config->n_runs,
+        true,
+        NULL,
+        NULL
+    );
+
+    benchmark_result * const results = (benchmark_result *)malloc(config->n_runs * sizeof(benchmark_result));
+
+    benchmark_run_wbc(
+        config->n_runs,
+        config->n_warmup_runs,
+        &data,
+        results
+    );
+
+    write_benchmark_results_wbc(
+        config->results_dir,
+        &meta,
+        config->n_runs,
+        results
+    );
+
+    return 0;
+}
+
 int benchmark_wbg_main(const benchmark_config * const config)
 {
     hwgutil_wgpu_context context;
@@ -961,9 +1127,6 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &pipeline,
         &buffers
     );
-
-    static const size_t BUFFER_LEN = 1024 * 1024 * 32;
-    void * const buffer = malloc(BUFFER_LEN);
 
     hwstats_sampler * const bin_sampler = create_sampler(
         config->sampler_name,
@@ -1057,6 +1220,10 @@ int main(int argc, char ** argv)
     if (strcmp("wbg", kind_name) == 0)
     {
         return benchmark_wbg_main(&config);
+    }
+    else if (strcmp("wbc", kind_name) == 0)
+    {
+        return benchmark_wbc_main(&config);
     }
     else
     {
