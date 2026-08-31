@@ -252,6 +252,15 @@ WB_EXPORT void wbg_merge(
     WGPUComputePassEncoder encoder
 );
 
+WB_EXPORT void wbg_run_sort(
+    const wbg_pipeline * pipeline,
+    const wbg_bindings * bindings,
+    const wbg_buffers * buffers,
+    const wbg_gpu_config * config,
+    WGPUCommandEncoder encoder,
+    wbg_sort_timing * timing
+);
+
 WB_EXPORT void wbg_sort(
     const wbg_pipeline * pipeline,
     const wbg_bindings * bindings,
@@ -1846,25 +1855,15 @@ static wbg_sort_timing * wbg__sort_timing_add_index(wbg_sort_timing * const timi
     return timing;
 }
 
-WB_EXPORT void wbg_sort(
+WB_EXPORT void wbg_run_sort(
     const wbg_pipeline * const pipeline,
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
+    const wbg_gpu_config * const config,
     WGPUCommandEncoder const encoder,
-    const size_t segments_len, const uint32_t * const segments,
-    const size_t keys_len, const uint32_t * const keys,
     wbg_sort_timing * const timing
 )
 {
-    wbg_gpu_config config = {0};
-    wbg_prepare(
-        pipeline->queue,
-        buffers,
-        segments_len, segments,
-        keys_len, keys,
-        &config
-    );
-
     WGPUComputePassDescriptor bin_pass_desc = (WGPUComputePassDescriptor){
         .label = (WGPUStringView){
             .data = "WB Sort: Bin Pass Encoder",
@@ -1886,21 +1885,21 @@ WB_EXPORT void wbg_sort(
     wbg_run_bin_histogram(
         pipeline,
         bindings,
-        &config,
+        config,
         bin_pass
     );
 
     wbg_bin_run_schedule(
         pipeline,
         bindings,
-        &config,
+        config,
         bin_pass
     );
 
     wbg_bin_run_group(
         pipeline,
         bindings,
-        &config,
+        config,
         bin_pass
     );
 
@@ -1928,7 +1927,7 @@ WB_EXPORT void wbg_sort(
         pipeline,
         bindings,
         buffers,
-        &config,
+        config,
         sort_pass,
         &mems_system_allocator
     );
@@ -1965,6 +1964,35 @@ WB_EXPORT void wbg_sort(
     wgpuComputePassEncoderRelease(bin_pass);
     wgpuComputePassEncoderRelease(sort_pass);
     wgpuComputePassEncoderRelease(merge_pass);
+}
+
+WB_EXPORT void wbg_sort(
+    const wbg_pipeline * const pipeline,
+    const wbg_bindings * const bindings,
+    const wbg_buffers * const buffers,
+    WGPUCommandEncoder const encoder,
+    const size_t segments_len, const uint32_t * const segments,
+    const size_t keys_len, const uint32_t * const keys,
+    wbg_sort_timing * const timing
+)
+{
+    wbg_gpu_config config = {0};
+    wbg_prepare(
+        pipeline->queue,
+        buffers,
+        segments_len, segments,
+        keys_len, keys,
+        &config
+    );
+
+    wbg_run_sort(
+        pipeline,
+        bindings,
+        buffers,
+        &config,
+        encoder,
+        timing
+    );
 }
 
 #endif

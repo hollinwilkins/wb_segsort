@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 
 #include <time.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +75,12 @@ typedef struct benchmark_meta
 typedef struct benchmark_result
 {
     uint64_t timestamps[6];
-    uint64_t wall_time;
+    uint64_t wall_start_ns;
+    uint64_t wall_end_ns;
+    uint64_t upload_start_ns;
+    uint64_t upload_end_ns;
+    uint64_t sort_start_ns;
+    uint64_t sort_end_ns;
 } benchmark_result;
 
 typedef struct benchmark_data
@@ -86,6 +92,36 @@ typedef struct benchmark_data
     size_t keys_len;
     const uint32_t * keys;
 } benchmark_data;
+
+static uint64_t now_ns(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000u + (uint64_t)ts.tv_nsec;
+}
+
+static void benchmark_work_done_cb(
+    WGPUQueueWorkDoneStatus const status,
+    WGPUStringView const message,
+    void * const userdata1,
+    void * const userdata2
+)
+{
+    (void)status;
+    (void)message;
+    (void)userdata1;
+    (void)userdata2;
+}
+
+static void benchmark_wait_idle(WGPUInstance const instance, WGPUQueue const queue) {
+    WGPUQueueWorkDoneCallbackInfo cb = WGPU_QUEUE_WORK_DONE_CALLBACK_INFO_INIT;
+    cb.mode = WGPUCallbackMode_WaitAnyOnly;
+    cb.callback = benchmark_work_done_cb;
+    WGPUFuture f = wgpuQueueOnSubmittedWorkDone(queue, cb);
+
+    WGPUFutureWaitInfo wait = WGPU_FUTURE_WAIT_INFO_INIT;
+    wait.future = f;
+    wgpuInstanceWaitAny(instance, 1, &wait, (uint64_t)5 * 1000000000);
+}
 
 static hwstats_sampler * create_uniform_sampler(const uint64_t seed)
 {
@@ -127,6 +163,21 @@ static void benchmark_sample(
     benchmark_result * const result
 )
 {
+    wbg_gpu_config config = {0};
+
+    const uint64_t start_ns = now_ns();
+    wbg_prepare(
+        pipeline->queue,
+        buffers,
+        data->segments_len, data->segments,
+        data->keys_len, data->keys,
+        &config
+    );
+    benchmark_wait_idle(pipeline->instance, pipeline->queue);
+    const uint64_t end_upload_ns = now_ns();
+    result->upload_start_ns = start_ns;
+    result->upload_end_ns = end_upload_ns;
+
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
         .label = (WGPUStringView){
             .data = "Merge Sort: Command Encoder",
@@ -134,13 +185,12 @@ static void benchmark_sample(
         }
     });
 
-    wbg_sort(
+    wbg_run_sort(
         pipeline,
         bindings,
         buffers,
+        &config,
         encoder,
-        data->segments_len, data->segments,
-        data->keys_len, data->keys,
         timing
     );
 
@@ -160,7 +210,14 @@ static void benchmark_sample(
         }
     });
 
+    const uint64_t start_sort_ns = now_ns();
     wgpuQueueSubmit(pipeline->queue, 1, &commands);
+    benchmark_wait_idle(pipeline->instance, pipeline->queue);
+    const uint64_t end_sort_ns = now_ns();
+    result->sort_start_ns = start_sort_ns;
+    result->sort_end_ns = end_sort_ns;
+    result->wall_start_ns = start_ns;
+    result->wall_end_ns = end_sort_ns;
 
     wgpuCommandBufferRelease(commands);
     wgpuCommandEncoderRelease(encoder);
@@ -175,7 +232,7 @@ static void benchmark_sample(
         (void **)&timestamps
     );
 
-    memcpy(result->timestamps, timestamps, QUERY_COUNT * sizeof(uint64_t));
+    memcpy(result->timestamps, timestamps, sizeof(result->timestamps));
 }
 
 static void benchmark_validate(
@@ -691,12 +748,21 @@ static void write_benchmark_meta(
     fprintf(mf, "}\n");
 }
 
-static void write_benchmark_result(
-    FILE * file,
-    const benchmark_result * const result
-)
-{
+static bool mkdir_p(const char *path) {
+    char buf[1024];
+    size_t len = strlen(path);
+    if (len >= sizeof(buf)) return false;
+    memcpy(buf, path, len + 1);
 
+    for (char *p = buf + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(buf, 0755) != 0 && errno != EEXIST) return false;
+            *p = '/';
+        }
+    }
+    if (mkdir(buf, 0755) != 0 && errno != EEXIST) return false;
+    return true;
 }
 
 static void write_benchmark_results(
@@ -713,7 +779,7 @@ static void write_benchmark_results(
     static char BENCHMARK_DIR[1024];
     snprintf(BENCHMARK_DIR, sizeof(BENCHMARK_DIR), "%s/benchmark_%llu", root_dir, timestamp);
 
-    if (mkdir(BENCHMARK_DIR, 0755) != 0)
+    if (!mkdir_p(BENCHMARK_DIR))
     {
         fprintf(stderr, "could not create benchmark dir: %s\n", BENCHMARK_DIR);
         abort();
@@ -728,7 +794,11 @@ static void write_benchmark_results(
 
     snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/timing.csv", BENCHMARK_DIR);
     FILE * rf = fopen(BENCHMARK_FILE, "w");
-    fprintf(rf, "bin_ms,sort_ms,merge_ms,bin_us,sort_us,merge_us,bin_ns,sort_ns,merge_ns,bin_start_ns,bin_end_ns,sort_start_ns,sort_end_ns,merge_start_ns,merge_end_ns\n");
+    fprintf(rf,
+        "wall_ms,wall_upload_ms,wall_sort_ms,wall_us,wall_upload_us,wall_sort_us,wall_ns,wall_upload_ns,wall_sort_ns,"
+        "bin_ms,sort_ms,merge_ms,bin_us,sort_us,merge_us,bin_ns,sort_ns,merge_ns,"
+        "bin_start_ns,bin_end_ns,sort_start_ns,sort_end_ns,merge_start_ns,merge_end_ns,"
+        "wall_start_ns,wall_end_ns,wall_upload_start_ns,wall_upload_end_ns,wall_sort_start_ns,wall_sort_end_ns\n");
     for (uint32_t i = 0; i < meta->n_runs; i++)
     {
         const uint64_t bin_start_ns = results[i].timestamps[0];
@@ -750,13 +820,38 @@ static void write_benchmark_results(
         const uint64_t sort_us = sort_ns / 1000;
         const uint64_t merge_us = merge_ns / 1000;
 
-        fprintf(rf, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+        const uint64_t wall_start_ns = results[i].wall_start_ns;
+        const uint64_t wall_end_ns = results[i].wall_end_ns;
+        const uint64_t wall_upload_start_ns = results[i].upload_start_ns;
+        const uint64_t wall_upload_end_ns = results[i].upload_end_ns;
+        const uint64_t wall_sort_start_ns = results[i].sort_start_ns;
+        const uint64_t wall_sort_end_ns = results[i].sort_end_ns;
+
+        const uint64_t wall_ns = wall_end_ns - wall_start_ns;
+        const uint64_t wall_upload_ns = wall_upload_end_ns - wall_upload_start_ns;
+        const uint64_t wall_sort_ns = wall_sort_end_ns - wall_sort_start_ns;
+
+        const uint64_t wall_ms = wall_ns / 1000000;
+        const uint64_t wall_upload_ms = wall_upload_ns / 1000000;
+        const uint64_t wall_sort_ms = wall_sort_ns / 1000000;
+
+        const uint64_t wall_us = wall_ns / 1000;
+        const uint64_t wall_upload_us = wall_upload_ns / 1000;
+        const uint64_t wall_sort_us = wall_sort_ns / 1000;
+
+        fprintf(rf, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+            wall_ms, wall_upload_ms, wall_sort_ms,
+            wall_us, wall_upload_us, wall_sort_us,
+            wall_ns, wall_upload_ns, wall_sort_ns,
             bin_ms, sort_ms, merge_ms,
             bin_us, sort_us, merge_us,
             bin_ns, sort_ns, merge_ns,
             bin_start_ns, bin_end_ns,
             sort_start_ns, sort_end_ns,
-            merge_start_ns, merge_end_ns
+            merge_start_ns, merge_end_ns,
+            wall_start_ns, wall_end_ns,
+            wall_upload_start_ns, wall_upload_end_ns,
+            wall_sort_start_ns, wall_sort_end_ns
         );
     }
     fclose(rf);
@@ -766,14 +861,15 @@ int main(int argc, char ** argv)
 {
     char * endptr;
 
-    const char * const sampler_name = argv[1];
-    const char * const key_sampler_name = argv[2];
-    const uint64_t seed = strtoull(argv[3], &endptr, 10);
-    const size_t key_budget = strtoull(argv[4], &endptr, 10);
-    const size_t n_runs = strtoull(argv[5], &endptr, 10);
-    const size_t n_warmup_runs = strtoull(argv[6], &endptr, 10);
-    const uint32_t max_key = strtol(argv[7], &endptr, 10);
-    const uint32_t subgroup_test = strtol(argv[8], &endptr, 10);
+    const char * const results_dir = argv[1];
+    const char * const sampler_name = argv[2];
+    const char * const key_sampler_name = argv[3];
+    const uint64_t seed = strtoull(argv[4], &endptr, 10);
+    const size_t key_budget = strtoull(argv[5], &endptr, 10);
+    const size_t n_runs = strtoull(argv[6], &endptr, 10);
+    const size_t n_warmup_runs = strtoull(argv[7], &endptr, 10);
+    const uint32_t max_key = strtol(argv[8], &endptr, 10);
+    const uint32_t subgroup_test = strtol(argv[9], &endptr, 10);
     
     const bool subgroups_enabled = subgroup_test == 1;
 
@@ -892,7 +988,7 @@ int main(int argc, char ** argv)
     );
 
     write_benchmark_results(
-        "output",
+        results_dir,
         &meta,
         n_runs,
         results
