@@ -1,3 +1,9 @@
+#include <sys/utsname.h>
+
+#if defined(__APPLE__)
+#   include <sys/sysctl.h>
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 
@@ -29,6 +35,37 @@
     fprintf(stderr, __VA_ARGS__); \
     abort(); \
 }
+
+typedef struct benchmark_meta
+{
+    const char * os_string;
+    const char * gpu_vendor;
+    const char * gpu_architecture;
+    const char * gpu_device;
+    const char * gpu_description;
+    const char * gpu_backend_type;
+    const char * gpu_adapter_type;
+    uint32_t gpu_vendor_id;
+    uint32_t gpu_device_id;
+    uint32_t subgroup_min_size;
+    uint32_t subgroup_max_size;
+    const wbg_gpu_bin * bins;
+    const char * wgpu_backend_name;
+    const char * wgpu_backend_version;
+    const char * wgpu_backend_release_type;
+    const char * cpu_release_type;
+    const char * bin_sampler;
+    const char * key_sampler;
+    bool subgroups_enabled;
+    size_t n_segments;
+    size_t n_runs;
+} benchmark_meta;
+
+typedef struct benchmark_result
+{
+    uint32_t bin_counts[13];
+    uint64_t timestamps[6];
+} benchmark_result;
 
 static hwstats_sampler * create_uniform_sampler(const uint64_t seed, const mems_allocator * const allocator)
 {
@@ -71,7 +108,80 @@ static uint32_t sample_range(hwstats_sampler * const sampler, const uint32_t min
     return min + (uint32_t)round(hwstats_sample(sampler) * (double)range);
 }
 
+static void report_results(
+    const size_t len,
+    benchmark_result * const results
+)
+{
+    for (size_t i = 0; i < len; i++)
+    {
+
+    }
+}
+
 #define QUERY_COUNT 8
+
+static void benchmark_sample(
+    const wbg_pipeline * const pipeline,
+    const wbg_buffers * const buffers,
+    const wbg_bindings * const bindings,
+    hwstats_sampler * const bin_sampler,
+    hwstats_sampler * const key_sampler,
+    wbg_sort_timing * const timing,
+    WGPUBuffer const query_buffer,
+    const size_t segments_len, uint32_t * const segments,
+    const size_t keys_len, uint32_t * const keys,
+    benchmark_result * const result
+)
+{
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Command Encoder",
+            .length = WGPU_STRLEN,
+        }
+    });
+
+    wbg_sort(
+        pipeline,
+        bindings,
+        buffers,
+        encoder,
+        segments_len, segments,
+        keys_len, keys,
+        timing
+    );
+
+    wgpuCommandEncoderResolveQuerySet(
+        encoder,
+        timing->query,
+        0,
+        QUERY_COUNT,
+        query_buffer,
+        0
+    );
+
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
+        .label = (WGPUStringView){
+            .data = "WB Sort: Command Buffer",
+            .length = WGPU_STRLEN,
+        }
+    });
+
+    wgpuQueueSubmit(pipeline->queue, 1, &commands);
+
+    wgpuCommandBufferRelease(commands);
+    wgpuCommandEncoderRelease(encoder);
+
+    uint64_t * timestamps;
+    hwgutil_wgpu_read_buffer_alloc(
+        pipeline->instance,
+        pipeline->device,
+        pipeline->queue,
+        query_buffer,
+        &mems_system_allocator,
+        (void **)&timestamps
+    );
+}
 
 static void benchmark(
     const wbg_pipeline * const pipeline,
@@ -79,8 +189,8 @@ static void benchmark(
     const wbg_bindings * const bindings,
     hwstats_sampler * const bin_sampler,
     hwstats_sampler * const key_sampler,
-    const uint64_t n_segments,
-    const uint64_t n_runs,
+    const size_t n_segments,
+    const size_t n_runs,
     const mems_allocator * const allocator
 )
 {
@@ -112,14 +222,6 @@ static void benchmark(
 
     uint32_t * const segments = (uint32_t *)malloc(n_segments * sizeof(uint32_t));
 
-    for (uint32_t i = 0; i < 13; i++)
-    {
-        const uint32_t lo = i == 0 ? 0 : 1u << (i - 1u);
-        const uint32_t hi = 1u << i;
-
-        printf("Bin(%u): Lo(%u) -> Hi(%u)\n", i, lo, hi);
-    }
-
     uint32_t len = 0;
     for (uint32_t i = 0; i < n_segments; i++)
     {
@@ -141,65 +243,162 @@ static void benchmark(
         keys[i] = rand() % 100;
     }
 
-    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
-        .label = (WGPUStringView){
-            .data = "Merge Sort: Command Encoder",
-            .length = WGPU_STRLEN,
-        }
-    });
-
-    wbg_sort(
-        pipeline,
-        bindings,
-        buffers,
-        encoder,
-        n_segments, segments,
-        len, keys,
-        &timing
+    benchmark_result * const results = (benchmark_result *)mems_allocator_alloc(
+        allocator,
+        MEMS_ALIGNOF(benchmark_result),
+        sizeof(benchmark_result)
     );
 
-    wgpuCommandEncoderResolveQuerySet(
-        encoder,
-        timing.query,
-        0,
-        QUERY_COUNT,
-        query_buffer,
-        0
-    );
-
-    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
-        .label = (WGPUStringView){
-            .data = "WB Sort: Command Buffer",
-            .length = WGPU_STRLEN,
-        }
-    });
-
-    wgpuQueueSubmit(pipeline->queue, 1, &commands);
-
-    wgpuCommandBufferRelease(commands);
-    wgpuCommandEncoderRelease(encoder);
-
-    uint64_t * timestamps;
-    hwgutil_wgpu_read_buffer_alloc(
-        pipeline->instance,
-        pipeline->device,
-        pipeline->queue,
-        query_buffer,
-        &mems_system_allocator,
-        (void **)&timestamps
-    );
-
-    for (uint32_t i = 0; i < 13; i++)
+    for (size_t i = 0; i < n_runs; i++)
     {
-        printf("Bin(%u) segment count %u\n", i, bin_counts[i]);
+        timing.index = 0;
+
+        benchmark_sample(
+            pipeline,
+            buffers,
+            bindings,
+            bin_sampler,
+            key_sampler,
+            &timing,
+            query_buffer,
+            n_segments, segments,
+            len, keys,
+            results + i
+        );
     }
 
-    printf("\n\n");
+    report_results(n_runs, results);
+}
 
-    for (int i = 0; i < QUERY_COUNT; i++)
+static const char * copy_string(
+    const char * const str,
+    const mems_allocator * const allocator
+)
+{
+    const size_t len = strlen(str);
+    char * const copy_str = (char *)mems_allocator_alloc(
+        allocator,
+        MEMS_ALIGNOF(char),
+        len + 1
+    );
+    memcpy(copy_str, str, len);
+    copy_str[len] = 0;
+
+    return copy_str;
+}
+
+static const char * copy_string_view(
+    WGPUStringView view,
+    const mems_allocator * const allocator
+)
+{
+    const size_t len = view.length == WGPU_STRLEN ? strlen(view.data) : view.length;
+    char * const copy_str = (char *)mems_allocator_alloc(
+        allocator,
+        MEMS_ALIGNOF(char),
+        len + 1
+    );
+    memcpy(copy_str, view.data, len);
+    copy_str[len] = 0;
+
+    return copy_str;
+}
+
+static char OS_STRING[1024];
+static const char * benchmark_os_string() {
+    struct utsname u;
+    uname(&u);
+
+#if defined(__APPLE__)
+    char product[256] = {0};
+    size_t len = sizeof(product);
+    if (sysctlbyname("kern.osproductversion", product, &len, NULL, 0) == 0)
     {
-        printf("Blah %llu\n", timestamps[i]);
+        const size_t required_len = snprintf(OS_STRING, sizeof(OS_STRING), "macOS %s (Darwin %s %s)",
+            product,
+            u.release,
+            u.machine
+        );
+
+        if (required_len >= sizeof(OS_STRING)) PANIC("increase size of OS_STRING");
     }
+    else
+    {
+        snprintf(OS_STRING, sizeof(OS_STRING), "%s %s %s", u.sysname, u.release, u.machine);
+    }
+#else
+    snprintf(OS_STRING, sizeof(OS_STRING), "%s %s %s", u.sysname, u.release, u.machine);
+#endif
+
+    return OS_STRING;
+}
+
+static const char * benchmark_meta_gpu_backend_type_name(const WGPUBackendType t)
+{
+    switch (t)
+    {
+        case WGPUBackendType_WebGPU: return "WebGPU";
+        case WGPUBackendType_D3D11: return "D3D11";
+        case WGPUBackendType_D3D12: return "D3D12";
+        case WGPUBackendType_Metal: return "Metal";
+        case WGPUBackendType_OpenGL: return "OpenGL";
+        case WGPUBackendType_OpenGLES: return "OpenGLES";
+        case WGPUBackendType_Vulkan: return "Vulkan";
+        default: PANIC("Unknown backend type");
+    }
+}
+
+static const char * benchmark_meta_gpu_adapter_type_name(const WGPUAdapterType t)
+{
+    switch (t)
+    {
+        case WGPUAdapterType_DiscreteGPU: return "discrete_gpu";
+        case WGPUAdapterType_IntegratedGPU: return "integrated_gpu";
+        case WGPUAdapterType_CPU: return "cpu";
+        default: PANIC("unknown adapter type name");
+    }
+}
+
+static void benchmark_meta_init(
+    benchmark_meta * const meta,
+    const char * bin_sampler,
+    const char * key_sampler,
+    uint64_t seed,
+    size_t n_segments,
+    size_t n_runs,
+    bool subgroups_enabled,
+    const wbg_pipeline * const pipeline,
+    const hwgutil_wgpu_context * const context,
+    const mems_allocator * const allocator
+)
+{
+    WGPUAdapterInfo adapter_info;
+    wgpuAdapterGetInfo(context->adapter, &adapter_info);
+
+    wbg_gpu_bin * const bins = (wbg_gpu_bin *)malloc(sizeof(pipeline->bins));
+    memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
+
+    *meta = (benchmark_meta){
+        .os_string = copy_string(benchmark_os_string(), allocator),
+        .gpu_vendor = copy_string_view(adapter_info.vendor, allocator),
+        .gpu_architecture = copy_string_view(adapter_info.architecture, allocator),
+        .gpu_device = copy_string_view(adapter_info.device, allocator),
+        .gpu_description = copy_string_view(adapter_info.description, allocator),
+        .gpu_backend_type = copy_string(benchmark_meta_gpu_backend_type_name(adapter_info.backendType), allocator),
+        .gpu_adapter_type = copy_string(benchmark_meta_gpu_adapter_type_name(adapter_info.adapterType), allocator),
+        .gpu_vendor_id = adapter_info.vendorID,
+        .gpu_device_id = adapter_info.deviceID,
+        .subgroup_min_size = adapter_info.subgroupMinSize,
+        .subgroup_max_size = adapter_info.subgroupMaxSize,
+        .bins = bins,
+        .wgpu_backend_name = BENCH_BACKEND_NAME,
+        .wgpu_backend_version = BENCH_BACKEND_VERSION,
+        .bin_sampler = copy_string(bin_sampler, allocator),
+        .key_sampler = copy_string(key_sampler, allocator),
+        .subgroups_enabled = subgroups_enabled,
+        .n_segments = n_segments,
+        .n_runs = n_runs,
+    };
 }
 
 int main(int argc, char ** argv)
@@ -208,8 +407,8 @@ int main(int argc, char ** argv)
 
     const char * const sampler_name = argv[1];
     const uint64_t seed = strtoull(argv[2], &endptr, 10);
-    const uint64_t n_segments = strtoull(argv[3], &endptr, 10);
-    const uint64_t n_runs = strtoull(argv[4], &endptr, 10);
+    const size_t n_segments = strtoull(argv[3], &endptr, 10);
+    const size_t n_runs = strtoull(argv[4], &endptr, 10);
 
     hwgutil_wgpu_context context;
     wbg_pipeline pipeline;
@@ -250,7 +449,7 @@ int main(int argc, char ** argv)
         &buffers
     );
 
-    static const size_t BUFFER_LEN = 1024 * 1024 * 4;
+    static const size_t BUFFER_LEN = 1024 * 1024 * 32;
     void * const buffer = malloc(BUFFER_LEN);
 
     mems_bump bump;

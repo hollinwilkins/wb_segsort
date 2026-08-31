@@ -67,7 +67,11 @@ else()
     target_link_libraries(dawn INTERFACE stdc++)
 endif()
 
-target_compile_definitions(dawn INTERFACE HWGUTIL_WEBGPU_BACKEND_DAWN)
+target_compile_definitions(dawn INTERFACE
+    HWGUTIL_WEBGPU_BACKEND_DAWN
+    "BENCH_BACKEND_NAME=\"dawn\""
+    "BENCH_BACKEND_VERSION=\"${SCRIBLZ_DAWN_VERSION} (${SCRIBLZ_DAWN_COMMIT})\""
+)
 
 add_library(dawn_headers INTERFACE)
 get_target_property(_dawn_inc dawn::webgpu_dawn INTERFACE_INCLUDE_DIRECTORIES)

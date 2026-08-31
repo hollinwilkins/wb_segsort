@@ -101,8 +101,9 @@ elseif (UNIX)
     )
 endif()
 
-# define for hw_gutil.h to use wgpu-native as the WebGPU backend
 target_compile_definitions(
     wgpu_native
     INTERFACE HWGUTIL_WEBGPU_BACKEND_WGPU
+    "BENCH_BACKEND_NAME=\"wgpu_native\""
+    "BENCH_BACKEND_VERSION=\"${SCRIBLZ_WGPU_NATIVE_VERSION}\""
 )
