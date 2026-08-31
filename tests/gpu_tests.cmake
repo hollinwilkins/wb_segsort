@@ -11,4 +11,4 @@ add_test(
 
 target_link_libraries(gpu_tests PRIVATE unity)
 target_link_libraries(gpu_tests PRIVATE wb_sort_gpu_headers)
-target_link_libraries(gpu_tests PRIVATE wgpu_native)
+target_link_libraries(gpu_tests PRIVATE webgpu_backend)

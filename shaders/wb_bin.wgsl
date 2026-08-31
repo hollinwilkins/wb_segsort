@@ -65,7 +65,7 @@ fn main_histogram(
     workgroupBarrier();
 
     if (TID < 13) {
-        atomicAdd(&bin_histogram[TID], local_bin_counts[TID]);
+        atomicAdd(&bin_histogram[TID], atomicLoad(&local_bin_counts[TID]));
     }
 }
 

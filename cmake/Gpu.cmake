@@ -10,7 +10,7 @@ add_library(
 )
 set_source_files_properties(gpu.h PROPERTIES LANGUAGE C)
 
-target_link_libraries(wb_sort_gpu PRIVATE wgpu_native)
+target_link_libraries(wb_sort_gpu PRIVATE webgpu_backend)
 
 target_compile_definitions(
     wb_sort_gpu PRIVATE

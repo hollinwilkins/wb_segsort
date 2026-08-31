@@ -1836,11 +1836,16 @@ WB_EXPORT void wbg_sort(
             .data = "WB Sort: Bin Pass Encoder",
         },
     };
-    if (timing != NULL) bin_pass_desc.timestampWrites = &(WGPUPassTimestampWrites){
-        .querySet = timing->query,
-        .beginningOfPassWriteIndex = timing->index++,
-        .endOfPassWriteIndex = timing->index++,
-    };
+    WGPUPassTimestampWrites bin_ts = WGPU_PASS_TIMESTAMP_WRITES_INIT;
+    if (timing != NULL)
+    {
+        bin_ts = (WGPUPassTimestampWrites){
+            .querySet = timing->query,
+            .beginningOfPassWriteIndex = timing->index++,
+            .endOfPassWriteIndex = timing->index++,
+        };
+        bin_pass_desc.timestampWrites = &bin_ts;
+    }
 
     WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &bin_pass_desc);
 
@@ -1872,11 +1877,16 @@ WB_EXPORT void wbg_sort(
             .data = "WB Sort: Sort Pass Encoder",
         },
     };
-    if (timing != NULL) sort_pass_desc.timestampWrites = &(WGPUPassTimestampWrites){
-        .querySet = timing->query,
-        .beginningOfPassWriteIndex = timing->index++,
-        .endOfPassWriteIndex = timing->index++,
-    };
+    WGPUPassTimestampWrites sort_ts = WGPU_PASS_TIMESTAMP_WRITES_INIT;
+    if (timing != NULL)
+    {
+        sort_ts = (WGPUPassTimestampWrites){
+            .querySet = timing->query,
+            .beginningOfPassWriteIndex = timing->index++,
+            .endOfPassWriteIndex = timing->index++,
+        };
+        sort_pass_desc.timestampWrites = &sort_ts;
+    }
 
     WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &sort_pass_desc);
 
@@ -1896,11 +1906,16 @@ WB_EXPORT void wbg_sort(
             .data = "WB Sort: Merge Pass Encoder",
         },
     };
-    if (timing != NULL) merge_pass_desc.timestampWrites = &(WGPUPassTimestampWrites){
-        .querySet = timing->query,
-        .beginningOfPassWriteIndex = timing->index++,
-        .endOfPassWriteIndex = timing->index++,
-    };
+    WGPUPassTimestampWrites merge_ts = WGPU_PASS_TIMESTAMP_WRITES_INIT;
+    if (timing != NULL)
+    {
+        merge_ts = (WGPUPassTimestampWrites){
+            .querySet = timing->query,
+            .beginningOfPassWriteIndex = timing->index++,
+            .endOfPassWriteIndex = timing->index++,
+        };
+        merge_pass_desc.timestampWrites = &merge_ts;
+    }
 
     WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &merge_pass_desc);
 
@@ -1912,6 +1927,10 @@ WB_EXPORT void wbg_sort(
     );
 
     wgpuComputePassEncoderEnd(merge_pass);
+
+    wgpuComputePassEncoderRelease(bin_pass);
+    wgpuComputePassEncoderRelease(sort_pass);
+    wgpuComputePassEncoderRelease(merge_pass);
 }
 
 #endif

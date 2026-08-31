@@ -9,6 +9,6 @@ add_executable(
     benchmark.c
 )
 
-target_link_libraries(wb_benchmark PRIVATE wgpu_native)
+target_link_libraries(wb_benchmark PRIVATE webgpu_backend)
 target_link_libraries(wb_benchmark PRIVATE wb_sort_cpu_headers)
 target_link_libraries(wb_benchmark PRIVATE wb_sort_gpu_headers)
