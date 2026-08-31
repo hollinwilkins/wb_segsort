@@ -11,6 +11,16 @@
 
 WB_EXPORT void wbc_sort_alloc(size_t len, uint32_t * arr);
 
+WB_EXPORT bool wbc_segsort(
+    size_t len,
+    uint32_t * arr,
+    size_t segs_len,
+    const uint32_t * segs,
+    size_t buffer_len,
+    void * buffer,
+    size_t * required_size
+);
+
 WB_EXPORT void wbc_segsort_alloc(
     size_t len,
     uint32_t * arr,
@@ -71,16 +81,23 @@ WB_EXPORT void wbc_sort_alloc(const size_t len, uint32_t * const arr)
     free(swap);
 }
 
-WB_EXPORT void wbc_segsort_alloc(
+WB_EXPORT bool wbc_segsort(
     const size_t len,
     uint32_t * const arr,
     const size_t segs_len,
-    const uint32_t * const segs
+    const uint32_t * const segs,
+    const size_t buffer_len,
+    void * const buffer,
+    size_t * const required_size
 )
 {
-    if (len < 2) return;
+    if (len < 2) return true;
 
-    uint32_t * const swap = (uint32_t *)malloc(len * sizeof(uint32_t));
+    *required_size = len * sizeof(uint32_t);
+
+    if (buffer_len < *required_size) return false;
+
+    uint32_t * const swap = (uint32_t *)buffer;
     memcpy(swap, arr, len * sizeof(uint32_t));
 
     size_t seg_start = 0;
@@ -94,7 +111,41 @@ WB_EXPORT void wbc_segsort_alloc(
         seg_start = seg_end;
     }
 
-    free(swap);
+    return true;
+}
+
+WB_EXPORT void wbc_segsort_alloc(
+    const size_t len,
+    uint32_t * const arr,
+    const size_t segs_len,
+    const uint32_t * const segs
+)
+{
+    size_t required_size;
+    if (!wbc_segsort(
+        len,
+        arr,
+        segs_len,
+        segs,
+        0,
+        NULL,
+        &required_size
+    ))
+    {
+        void * const buffer = malloc(required_size);
+
+        if (!wbc_segsort(
+            len,
+            arr,
+            segs_len,
+            segs,
+            required_size,
+            buffer,
+            &required_size
+        )) abort();
+
+        free(buffer);
+    }
 }
 
 #endif
