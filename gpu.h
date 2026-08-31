@@ -10,6 +10,7 @@
 
 #include <webgpu/webgpu.h>
 
+#include "build-debug/_deps/dawn_dist-src/include/webgpu/webgpu.h"
 #include "common.h"
 
 #include "hw_ds.h"
@@ -1166,7 +1167,7 @@ WB_EXPORT void wbg_pipeline_init(
     const WGPUBool has_subgroups = wgpuAdapterHasFeature(adapter, WGPUFeatureName_Subgroups);
     if (options2.subgroups_enabled)
     {
-        if (!has_subgroups)
+        if (has_subgroups != WGPU_TRUE)
         {
             fprintf(stderr, "subgroups are not available");
             abort();
@@ -1182,7 +1183,7 @@ WB_EXPORT void wbg_pipeline_init(
         .max_invocations = limits.maxComputeInvocationsPerWorkgroup,
         .max_smem_size = limits.maxComputeWorkgroupStorageSize,
         .subgroup_size = info.subgroupMinSize,
-        .has_subgroups = has_subgroups == WGPU_TRUE,
+        .has_subgroups = options2.subgroups_enabled,
     };
 
     wbg__kernels_init(
@@ -1262,8 +1263,6 @@ WB_EXPORT void wbg_pipeline_init(
     for (int i = 1; i < 12; i++)
     {
         const wbg_gpu_bin bin = pipeline->bins[i];
-        printf("Bin(%d): N(%u), M(%u), WG(%u), Flags(%u)\n",
-            i, bin.n, bin.m, bin.wg, bin.flags);
 
         pipeline->sort_kernels[i] = wbg__pipeline_create_sort_kernel(
             pipeline,

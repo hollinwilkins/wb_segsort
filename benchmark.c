@@ -630,7 +630,7 @@ static void benchmark_meta_init(
     const hwgutil_wgpu_context * const context
 )
 {
-    WGPUAdapterInfo adapter_info;
+    WGPUAdapterInfo adapter_info = WGPU_ADAPTER_INFO_INIT;
     const char * gpu_vendor = "";
     const char * gpu_architecture = "";
     const char * gpu_device = "";
