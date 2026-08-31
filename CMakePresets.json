@@ -7,11 +7,34 @@
         "generator": "Ninja",
         "binaryDir": "${sourceDir}/build-${presetName}"
     }, {
+        "name": "release",
+        "inherits": "base",
+        "displayName": "Relese (Dawn)",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release"
+        }
+    }, {
         "name": "debug",
         "inherits": "base",
-        "displayName": "Debug Examples",
+        "displayName": "Debug (Dawn)",
         "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug"
+        }
+    }, {
+        "name": "release-wgpu",
+        "inherits": "base",
+        "displayName": "Release (WGPU)",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "USE_DAWN": "OFF"
+        }
+    }, {
+        "name": "debug-wgpu",
+        "inherits": "base",
+        "displayName": "Debug (WGPU)",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "USE_DAWN": "OFF"
         }
     }],
     "buildPresets": [{
