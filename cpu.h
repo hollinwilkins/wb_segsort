@@ -15,7 +15,7 @@ WB_EXPORT void wbc_segsort_alloc(
     size_t len,
     uint32_t * arr,
     size_t segs_len,
-    uint32_t * segs
+    const uint32_t * segs
 );
 
 #endif
@@ -75,7 +75,7 @@ WB_EXPORT void wbc_segsort_alloc(
     const size_t len,
     uint32_t * const arr,
     const size_t segs_len,
-    uint32_t * const segs
+    const uint32_t * const segs
 )
 {
     if (len < 2) return;

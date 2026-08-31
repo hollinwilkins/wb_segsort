@@ -174,6 +174,48 @@ static void benchmark_sample(
         &mems_system_allocator,
         (void **)&timestamps
     );
+
+    memcpy(result->timestamps, timestamps, QUERY_COUNT * sizeof(uint64_t));
+}
+
+static void benchmark_validate(
+    const wbg_pipeline * const pipeline,
+    const wbg_buffers * const buffers,
+    const benchmark_data * const data
+)
+{
+    uint32_t * const expected_keys = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
+
+    memcpy(expected_keys, data->keys, data->keys_len * sizeof(uint32_t));
+
+    wbc_segsort_alloc(
+        data->keys_len,
+        expected_keys,
+        data->segments_len,
+        data->segments
+    );
+
+    uint32_t * keys;
+    hwgutil_wgpu_read_buffer_alloc(
+        pipeline->instance,
+        pipeline->device,
+        pipeline->queue,
+        buffers->keys,
+        &mems_system_allocator,
+        (void **)&keys
+    );
+
+    for (size_t i = 0; i < data->keys_len; i++)
+    {
+        if (expected_keys[i] != keys[i])
+        {
+            fprintf(stderr, "invalid sort, doesn't match cpu\n");
+            abort();
+        }
+    }
+
+    free(expected_keys);
+    mems_allocator_free(&mems_system_allocator, keys);
 }
 
 static void benchmark(
@@ -208,6 +250,24 @@ static void benchmark(
     query_buffer_desc.size = QUERY_COUNT * sizeof(uint64_t);
 
     WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(pipeline->device, &query_buffer_desc);
+
+    // validation run
+    {
+        timing.index = 0;
+
+        benchmark_result validate_result;
+        benchmark_sample(
+            pipeline,
+            buffers,
+            bindings,
+            data,
+            &timing,
+            query_buffer,
+            &validate_result
+        );
+
+        benchmark_validate(pipeline, buffers, data);
+    }
 
     benchmark_result warmup_result;
     for (size_t i = 0; i < n_warmup_runs; i++)
@@ -558,30 +618,11 @@ static void write_json_bool_field(
     fprintf(file, "\"%s\": %s%s\n", key, bool_name, comma);
 }
 
-static void write_benchmark_results(
-    const char * const root_dir,
-    const benchmark_meta * const meta,
-    const size_t results_len,
-    const benchmark_result * const results
+static void write_benchmark_meta(
+    FILE * mf,
+    const benchmark_meta * const meta
 )
 {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    const uint64_t timestamp = (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
-
-    static char BENCHMARK_DIR[1024];
-    snprintf(BENCHMARK_DIR, sizeof(BENCHMARK_DIR), "%s/benchmark_%llu", root_dir, timestamp);
-
-    if (mkdir(BENCHMARK_DIR, 0755) != 0)
-    {
-        fprintf(stderr, "could not create benchmark dir: %s\n", BENCHMARK_DIR);
-        abort();
-    }
-
-    static char BENCHMARK_FILE[1024];
-    snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/meta.json", BENCHMARK_DIR);
-
-    FILE * mf = fopen(BENCHMARK_FILE, "w");
     fprintf(mf, "{\n");
         write_json_string_field(mf, false, 2, "git_commit", meta->git_commit);
         write_json_string_field(mf, false, 2, "os_string", meta->os_string);
@@ -648,6 +689,77 @@ static void write_benchmark_results(
         }
         fprintf(mf, "]\n");
     fprintf(mf, "}\n");
+}
+
+static void write_benchmark_result(
+    FILE * file,
+    const benchmark_result * const result
+)
+{
+
+}
+
+static void write_benchmark_results(
+    const char * const root_dir,
+    const benchmark_meta * const meta,
+    const size_t results_len,
+    const benchmark_result * const results
+)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    const uint64_t timestamp = (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
+
+    static char BENCHMARK_DIR[1024];
+    snprintf(BENCHMARK_DIR, sizeof(BENCHMARK_DIR), "%s/benchmark_%llu", root_dir, timestamp);
+
+    if (mkdir(BENCHMARK_DIR, 0755) != 0)
+    {
+        fprintf(stderr, "could not create benchmark dir: %s\n", BENCHMARK_DIR);
+        abort();
+    }
+
+    static char BENCHMARK_FILE[1024];
+    snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/meta.json", BENCHMARK_DIR);
+
+    FILE * mf = fopen(BENCHMARK_FILE, "w");
+    write_benchmark_meta(mf, meta);
+    fclose(mf);
+
+    snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/timing.csv", BENCHMARK_DIR);
+    FILE * rf = fopen(BENCHMARK_FILE, "w");
+    fprintf(rf, "bin_ms,sort_ms,merge_ms,bin_us,sort_us,merge_us,bin_ns,sort_ns,merge_ns,bin_start_ns,bin_end_ns,sort_start_ns,sort_end_ns,merge_start_ns,merge_end_ns\n");
+    for (uint32_t i = 0; i < meta->n_runs; i++)
+    {
+        const uint64_t bin_start_ns = results[i].timestamps[0];
+        const uint64_t bin_end_ns = results[i].timestamps[1];
+        const uint64_t sort_start_ns = results[i].timestamps[2];
+        const uint64_t sort_end_ns = results[i].timestamps[3];
+        const uint64_t merge_start_ns = results[i].timestamps[4];
+        const uint64_t merge_end_ns = results[i].timestamps[5];
+
+        const uint64_t bin_ns = bin_end_ns - bin_start_ns;
+        const uint64_t sort_ns = sort_end_ns - sort_start_ns;
+        const uint64_t merge_ns = merge_end_ns - merge_start_ns;
+
+        const uint64_t bin_ms = bin_ns / 1000000;
+        const uint64_t sort_ms = sort_ns / 1000000;
+        const uint64_t merge_ms = merge_ns / 1000000;
+
+        const uint64_t bin_us = bin_ns / 1000;
+        const uint64_t sort_us = sort_ns / 1000;
+        const uint64_t merge_us = merge_ns / 1000;
+
+        fprintf(rf, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+            bin_ms, sort_ms, merge_ms,
+            bin_us, sort_us, merge_us,
+            bin_ns, sort_ns, merge_ns,
+            bin_start_ns, bin_end_ns,
+            sort_start_ns, sort_end_ns,
+            merge_start_ns, merge_end_ns
+        );
+    }
+    fclose(rf);
 }
 
 int main(int argc, char ** argv)
