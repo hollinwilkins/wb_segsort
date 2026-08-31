@@ -1,10 +1,10 @@
 #include <stdbool.h>
 #include <sys/utsname.h>
 #include <sys/sysctl.h>
+#include <sys/stat.h>
 
+#include <time.h>
 #include <stdint.h>
-#include <stdio.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,13 +50,14 @@ typedef struct benchmark_meta
     uint32_t subgroup_max_size;
     const wbg_gpu_bin * bins;
     uint32_t bin_counts[13];
+    uint32_t bin_key_counts[13];
     const char * wgpu_backend_name;
     const char * wgpu_backend_version;
     const char * wgpu_backend_release_type;
     const char * cpu_release_type;
     const char * bin_sampler;
     const char * key_sampler;
-    uint64_t max_key;
+    uint32_t max_key;
     bool subgroups_enabled;
     uint32_t merge_wg;
     uint32_t merge_tile_size;
@@ -79,6 +80,7 @@ typedef struct benchmark_result
 typedef struct benchmark_data
 {
     uint32_t bin_counts[13];
+    uint32_t bin_key_counts[13];
     size_t segments_len;
     const uint32_t * segments;
     size_t keys_len;
@@ -111,16 +113,6 @@ static uint32_t sample_range(hwstats_sampler * const sampler, const uint32_t min
 {
     const uint32_t range = max - min;
     return min + (uint32_t)round(hwstats_sample(sampler) * (double)range);
-}
-
-static void report_results(
-    const size_t len,
-    benchmark_result * const results
-)
-{
-    for (size_t i = 0; i < len; i++)
-    {
-    }
 }
 
 #define QUERY_COUNT 8
@@ -189,7 +181,9 @@ static void benchmark(
     const wbg_buffers * const buffers,
     const wbg_bindings * const bindings,
     const size_t n_runs,
-    const benchmark_data * const data
+    const size_t n_warmup_runs,
+    const benchmark_data * const data,
+    benchmark_result * const results
 )
 {
     WGPUQuerySetDescriptor query_desc = WGPU_QUERY_SET_DESCRIPTOR_INIT;
@@ -215,7 +209,21 @@ static void benchmark(
 
     WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(pipeline->device, &query_buffer_desc);
 
-    benchmark_result * const results = (benchmark_result *)malloc(n_runs * sizeof(benchmark_result));
+    benchmark_result warmup_result;
+    for (size_t i = 0; i < n_warmup_runs; i++)
+    {
+        timing.index = 0;
+
+        benchmark_sample(
+            pipeline,
+            buffers,
+            bindings,
+            data,
+            &timing,
+            query_buffer,
+            &warmup_result
+        );
+    }
 
     for (size_t i = 0; i < n_runs; i++)
     {
@@ -231,8 +239,6 @@ static void benchmark(
             results + i
         );
     }
-
-    report_results(n_runs, results);
 }
 
 static const char * copy_string(
@@ -354,6 +360,7 @@ static const char * benchmark_meta_gpu_adapter_type_name(const WGPUAdapterType t
 static void benchmark_meta_init(
     benchmark_meta * const meta,
     const uint32_t * const bin_counts,
+    const uint32_t * const bin_key_counts,
     const char * bin_sampler,
     const char * key_sampler,
     const uint64_t seed,
@@ -409,19 +416,21 @@ static void benchmark_meta_init(
     };
 
     memcpy(meta->bin_counts, bin_counts, sizeof(meta->bin_counts));
+    memcpy(meta->bin_key_counts, bin_key_counts, sizeof(meta->bin_key_counts));
 }
 
 static void benchmark_data_init(
     benchmark_data * const data,
     const size_t n_segments,
-    const uint64_t max_key,
+    const uint32_t max_key,
     hwstats_sampler * const bin_sampler,
     hwstats_sampler * const key_sampler,
     const mems_allocator * const allocator
 )
 {
     uint32_t * const segments = (uint32_t *)mems_allocator_alloc(allocator, MEMS_ALIGNOF(uint32_t), n_segments * sizeof(uint32_t));
-    uint32_t bin_counts[13];
+    uint32_t bin_counts[13] = {0};
+    uint32_t bin_key_counts[13] = {0};
 
     uint32_t len = 0;
     for (uint32_t i = 0; i < n_segments; i++)
@@ -436,10 +445,11 @@ static void benchmark_data_init(
         // 4 -> [8,15]
         const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 1u));
         const uint32_t hi = bin == 12 ?
-            (uint32_t)max_key :
+            max_key :
             (bin <= 1 ? bin : (1u << bin) - 1u);
-        const uint32_t segment_len = sample_range(key_sampler, lo, hi);
+        const uint32_t segment_len = sample_range(bin_sampler, lo, hi);
 
+        bin_key_counts[bin] += segment_len;
         len += segment_len;
         segments[i] = len;
     }
@@ -448,7 +458,7 @@ static void benchmark_data_init(
 
     for (uint32_t i = 0; i < len; i++)
     {
-        keys[i] = rand() % 100;
+        keys[i] = sample_range(key_sampler, 0, max_key);
     }
 
     *data = (benchmark_data){
@@ -457,6 +467,167 @@ static void benchmark_data_init(
         .segments_len = n_segments,
         .segments = segments,
     };
+
+    memcpy(data->bin_counts, bin_counts, sizeof(bin_counts));
+    memcpy(data->bin_key_counts, bin_key_counts, sizeof(bin_key_counts));
+}
+
+static void write_json_string_field(
+    FILE * file,
+    const bool last_field,
+    const uint32_t indent,
+    const char * const key,
+    const char * const value
+)
+{
+    const char * const comma = last_field ? "" : ",";
+    for (uint32_t i = 0; i < indent; i++) fprintf(file, " ");
+    fprintf(file, "\"%s\": \"%s\"%s\n", key, value, comma);
+}
+
+static void write_json_uint32_field(
+    FILE * file,
+    const bool last_field,
+    const uint32_t indent,
+    const char * const key,
+    const uint32_t value
+)
+{
+    const char * const comma = last_field ? "" : ",";
+    for (uint32_t i = 0; i < indent; i++) fprintf(file, " ");
+    fprintf(file, "\"%s\": %u%s\n", key, value, comma);
+}
+
+static void write_json_uint64_field(
+    FILE * file,
+    const bool last_field,
+    const uint32_t indent,
+    const char * const key,
+    const uint64_t value
+)
+{
+    static char STRING_VALUE[128];
+    snprintf(STRING_VALUE, sizeof(STRING_VALUE), "%llu", value);
+    write_json_string_field(file, last_field, indent, key, STRING_VALUE);
+}
+
+static void write_json_size_field(
+    FILE * file,
+    const bool last_field,
+    const uint32_t indent,
+    const char * const key,
+    const size_t value
+)
+{
+    const char * const comma = last_field ? "" : ",";
+    for (uint32_t i = 0; i < indent; i++) fprintf(file, " ");
+    fprintf(file, "\"%s\": %zu%s\n", key, value, comma);
+}
+
+static void write_json_bool_field(
+    FILE * file,
+    const bool last_field,
+    const uint32_t indent,
+    const char * const key,
+    const bool value
+)
+{
+    const char * const comma = last_field ? "" : ",";
+    const char * const bool_name = value ? "true" : "false";
+    for (uint32_t i = 0; i < indent; i++) fprintf(file, " ");
+    fprintf(file, "\"%s\": %s%s\n", key, bool_name, comma);
+}
+
+static void write_benchmark_results(
+    const char * const root_dir,
+    const benchmark_meta * const meta,
+    const size_t results_len,
+    const benchmark_result * const results
+)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    const uint64_t timestamp = (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
+
+    static char BENCHMARK_DIR[1024];
+    snprintf(BENCHMARK_DIR, sizeof(BENCHMARK_DIR), "%s/benchmark_%llu", root_dir, timestamp);
+
+    if (mkdir(BENCHMARK_DIR, 0755) != 0)
+    {
+        fprintf(stderr, "could not create benchmark dir: %s\n", BENCHMARK_DIR);
+        abort();
+    }
+
+    static char BENCHMARK_FILE[1024];
+    snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/meta.json", BENCHMARK_DIR);
+
+    FILE * mf = fopen(BENCHMARK_FILE, "w");
+    fprintf(mf, "{\n");
+        write_json_string_field(mf, false, 2, "git_commit", meta->git_commit);
+        write_json_string_field(mf, false, 2, "os_string", meta->os_string);
+        write_json_string_field(mf, false, 2, "cpu_string", meta->cpu_string);
+        write_json_string_field(mf, false, 2, "gpu_vendor", meta->gpu_vendor);
+        write_json_string_field(mf, false, 2, "gpu_architecture", meta->gpu_architecture);
+        write_json_string_field(mf, false, 2, "gpu_device", meta->gpu_device);
+        write_json_string_field(mf, false, 2, "gpu_description", meta->gpu_description);
+        write_json_string_field(mf, false, 2, "gpu_backend_type", meta->gpu_backend_type);
+        write_json_string_field(mf, false, 2, "gpu_adapter_type", meta->gpu_adapter_type);
+        write_json_uint32_field(mf, false, 2, "gpu_vendor_id", meta->gpu_vendor_id);
+        write_json_uint32_field(mf, false, 2, "gpu_device_id", meta->gpu_device_id);
+        write_json_uint32_field(mf, false, 2, "subgroup_min_size", meta->subgroup_min_size);
+        write_json_uint32_field(mf, false, 2, "subgroup_max_size", meta->subgroup_max_size);
+        write_json_string_field(mf, false, 2, "wgpu_backend_name", meta->wgpu_backend_name);
+        write_json_string_field(mf, false, 2, "wgpu_backend_version", meta->wgpu_backend_version);
+        write_json_string_field(mf, false, 2, "wgpu_backend_release_type", meta->wgpu_backend_release_type);
+        write_json_string_field(mf, false, 2, "cpu_release_type", meta->cpu_release_type);
+        write_json_string_field(mf, false, 2, "bin_sampler", meta->bin_sampler);
+        write_json_string_field(mf, false, 2, "key_sampler", meta->key_sampler);
+        write_json_uint32_field(mf, false, 2, "max_key", meta->max_key);
+        write_json_bool_field(mf, false, 2, "subgroups_enabled", meta->subgroups_enabled);
+        write_json_uint32_field(mf, false, 2, "merge_wg", meta->merge_wg);
+        write_json_uint32_field(mf, false, 2, "merge_tile_size", meta->merge_tile_size);
+        write_json_uint32_field(mf, false, 2, "merge_input_tile_size", meta->merge_input_tile_size);
+        write_json_uint32_field(mf, false, 2, "merge_max_passes", meta->merge_max_passes);
+        write_json_uint64_field(mf, false, 2, "seed", meta->seed);
+        write_json_size_field(mf, false, 2, "key_bit_size", meta->key_bit_size);
+        write_json_size_field(mf, false, 2, "n_segments", meta->n_segments);
+        write_json_size_field(mf, false, 2, "n_keys", meta->n_keys);
+        write_json_size_field(mf, false, 2, "n_warmup_runs", meta->n_warmup_runs);
+        write_json_size_field(mf, false, 2, "n_runs", meta->n_runs);
+
+        fprintf(mf, "  \"bins\": [");
+        for (int i = 0; i < 13; i++)
+        {
+            wbg_gpu_bin bin = meta->bins[i];
+            if (i != 0) fprintf(mf, ", ");
+            fprintf(mf, "{\n");
+            if (i == 0)
+            {
+                write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                write_json_bool_field(mf, true, 4, "is_empty", true);
+            }
+            else if (i > 0)
+            {
+                if ((bin.flags & wbg_bin_flag_is_variable) != 0)
+                {
+                    write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                    write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                    write_json_bool_field(mf, true, 4, "is_merge", true);
+                }
+                else
+                {
+                    write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                    write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                    write_json_uint32_field(mf, false, 4, "N", bin.n);
+                    write_json_uint32_field(mf, false, 4, "M", bin.m);
+                    write_json_uint32_field(mf, true, 4, "wg", bin.wg);
+                }
+            }
+            fprintf(mf, "  }");
+        }
+        fprintf(mf, "]\n");
+    fprintf(mf, "}\n");
 }
 
 int main(int argc, char ** argv)
@@ -464,12 +635,13 @@ int main(int argc, char ** argv)
     char * endptr;
 
     const char * const sampler_name = argv[1];
-    const uint64_t seed = strtoull(argv[2], &endptr, 10);
-    const size_t n_segments = strtoull(argv[3], &endptr, 10);
-    const size_t n_runs = strtoull(argv[4], &endptr, 10);
-    const size_t n_warmup_runs = strtoull(argv[5], &endptr, 10);
-    const uint64_t max_key = strtoull(argv[6], &endptr, 10);
-    const uint32_t subgroup_test = strtol(argv[6], &endptr, 10);
+    const char * const key_sampler_name = argv[2];
+    const uint64_t seed = strtoull(argv[3], &endptr, 10);
+    const size_t n_segments = strtoull(argv[4], &endptr, 10);
+    const size_t n_runs = strtoull(argv[5], &endptr, 10);
+    const size_t n_warmup_runs = strtoull(argv[6], &endptr, 10);
+    const uint32_t max_key = strtol(argv[7], &endptr, 10);
+    const uint32_t subgroup_test = strtol(argv[8], &endptr, 10);
     
     const bool subgroups_enabled = subgroup_test == 1;
 
@@ -543,7 +715,10 @@ int main(int argc, char ** argv)
         seed
     );
 
-    hwstats_sampler * const key_sampler = create_uniform_sampler(seed);
+    hwstats_sampler * const key_sampler = create_sampler(
+        key_sampler_name,
+        seed
+    );
 
     benchmark_data data;
     benchmark_data_init(
@@ -559,8 +734,9 @@ int main(int argc, char ** argv)
     benchmark_meta_init(
         &meta,
         data.bin_counts,
+        data.bin_key_counts,
         sampler_name,
-        "uniform",
+        key_sampler_name,
         seed,
         max_key,
         n_segments,
@@ -572,12 +748,23 @@ int main(int argc, char ** argv)
         &context
     );
 
+    benchmark_result * const results = (benchmark_result *)malloc(n_runs * sizeof(benchmark_result));
+
     benchmark(
         &pipeline,
         &buffers,
         &bindings,
         n_runs,
-        &data
+        n_warmup_runs,
+        &data,
+        results
+    );
+
+    write_benchmark_results(
+        "output",
+        &meta,
+        n_runs,
+        results
     );
 
     return 0;
