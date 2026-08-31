@@ -34,8 +34,17 @@
     abort(); \
 }
 
+typedef enum benchmark_kind
+{
+    benchmark_wbc = 1,
+    benchmark_wbg = 2,
+    // add bb_segsort and friend here later
+} benchmark_kind;
+
 typedef struct benchmark_meta
 {
+    const char * kind_name;
+    benchmark_kind kind;
     const char * git_commit;
     const char * os_string;
     const char * cpu_string;
@@ -72,7 +81,7 @@ typedef struct benchmark_meta
     size_t n_runs;
 } benchmark_meta;
 
-typedef struct benchmark_result
+typedef struct benchmark_result_wbg
 {
     uint64_t timestamps[6];
     uint64_t wall_start_ns;
@@ -81,6 +90,17 @@ typedef struct benchmark_result
     uint64_t upload_end_ns;
     uint64_t sort_start_ns;
     uint64_t sort_end_ns;
+} benchmark_result_wbg;
+
+typedef struct benchmark_result_data
+{
+    benchmark_result_wbg wbg;
+} benchmark_result_data;
+
+typedef struct benchmark_result
+{
+    benchmark_kind kind;
+    benchmark_result_data data;
 } benchmark_result;
 
 typedef struct benchmark_data
@@ -92,6 +112,20 @@ typedef struct benchmark_data
     size_t keys_len;
     const uint32_t * keys;
 } benchmark_data;
+
+typedef struct benchmark_config
+{
+    const char * kind_name;
+    const char * results_dir;
+    const char * sampler_name;
+    const char * key_sampler_name;
+    uint64_t seed;
+    size_t key_budget;
+    size_t n_runs;
+    size_t n_warmup_runs;
+    uint32_t max_key;
+    bool subgroups_enabled;
+} benchmark_config;
 
 static uint64_t now_ns(void) {
     struct timespec ts;
@@ -153,7 +187,7 @@ static uint32_t sample_range(hwstats_sampler * const sampler, const uint32_t min
 
 #define QUERY_COUNT 8
 
-static void benchmark_sample(
+static void benchmark_run_wbg_sample(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
     const wbg_bindings * const bindings,
@@ -163,6 +197,10 @@ static void benchmark_sample(
     benchmark_result * const result
 )
 {
+    *result = (benchmark_result){
+        .kind = benchmark_wbg,
+    };
+
     wbg_gpu_config config = {0};
 
     const uint64_t start_ns = now_ns();
@@ -175,8 +213,8 @@ static void benchmark_sample(
     );
     benchmark_wait_idle(pipeline->instance, pipeline->queue);
     const uint64_t end_upload_ns = now_ns();
-    result->upload_start_ns = start_ns;
-    result->upload_end_ns = end_upload_ns;
+    result->data.wbg.upload_start_ns = start_ns;
+    result->data.wbg.upload_end_ns = end_upload_ns;
 
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
         .label = (WGPUStringView){
@@ -214,10 +252,10 @@ static void benchmark_sample(
     wgpuQueueSubmit(pipeline->queue, 1, &commands);
     benchmark_wait_idle(pipeline->instance, pipeline->queue);
     const uint64_t end_sort_ns = now_ns();
-    result->sort_start_ns = start_sort_ns;
-    result->sort_end_ns = end_sort_ns;
-    result->wall_start_ns = start_ns;
-    result->wall_end_ns = end_sort_ns;
+    result->data.wbg.sort_start_ns = start_sort_ns;
+    result->data.wbg.sort_end_ns = end_sort_ns;
+    result->data.wbg.wall_start_ns = start_ns;
+    result->data.wbg.wall_end_ns = end_sort_ns;
 
     wgpuCommandBufferRelease(commands);
     wgpuCommandEncoderRelease(encoder);
@@ -232,7 +270,7 @@ static void benchmark_sample(
         (void **)&timestamps
     );
 
-    memcpy(result->timestamps, timestamps, sizeof(result->timestamps));
+    memcpy(result->data.wbg.timestamps, timestamps, sizeof(result->data.wbg.timestamps));
 }
 
 static void benchmark_validate(
@@ -275,7 +313,7 @@ static void benchmark_validate(
     mems_allocator_free(&mems_system_allocator, keys);
 }
 
-static void benchmark(
+static void benchmark_run_wbg(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
     const wbg_bindings * const bindings,
@@ -313,7 +351,7 @@ static void benchmark(
         timing.index = 0;
 
         benchmark_result validate_result;
-        benchmark_sample(
+        benchmark_run_wbg_sample(
             pipeline,
             buffers,
             bindings,
@@ -331,7 +369,7 @@ static void benchmark(
     {
         timing.index = 0;
 
-        benchmark_sample(
+        benchmark_run_wbg_sample(
             pipeline,
             buffers,
             bindings,
@@ -346,7 +384,7 @@ static void benchmark(
     {
         timing.index = 0;
 
-        benchmark_sample(
+        benchmark_run_wbg_sample(
             pipeline,
             buffers,
             bindings,
@@ -476,6 +514,7 @@ static const char * benchmark_meta_gpu_adapter_type_name(const WGPUAdapterType t
 
 static void benchmark_meta_init(
     benchmark_meta * const meta,
+    const benchmark_kind kind,
     const uint32_t * const bin_counts,
     const uint32_t * const bin_key_counts,
     const char * bin_sampler,
@@ -498,6 +537,7 @@ static void benchmark_meta_init(
     memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
 
     *meta = (benchmark_meta){
+        .kind = kind,
         .git_commit = BENCH_GIT_COMMIT,
         .os_string = copy_string(benchmark_os_string()),
         .cpu_string = copy_string(benchmark_cpu_string()),
@@ -681,6 +721,7 @@ static void write_benchmark_meta(
 )
 {
     fprintf(mf, "{\n");
+        write_json_string_field(mf, false, 2, "kind", meta->kind_name);
         write_json_string_field(mf, false, 2, "git_commit", meta->git_commit);
         write_json_string_field(mf, false, 2, "os_string", meta->os_string);
         write_json_string_field(mf, false, 2, "cpu_string", meta->cpu_string);
@@ -765,7 +806,7 @@ static bool mkdir_p(const char *path) {
     return true;
 }
 
-static void write_benchmark_results(
+static void write_benchmark_results_wbg(
     const char * const root_dir,
     const benchmark_meta * const meta,
     const size_t results_len,
@@ -801,12 +842,12 @@ static void write_benchmark_results(
         "wall_start_ns,wall_end_ns,wall_upload_start_ns,wall_upload_end_ns,wall_sort_start_ns,wall_sort_end_ns\n");
     for (uint32_t i = 0; i < meta->n_runs; i++)
     {
-        const uint64_t bin_start_ns = results[i].timestamps[0];
-        const uint64_t bin_end_ns = results[i].timestamps[1];
-        const uint64_t sort_start_ns = results[i].timestamps[2];
-        const uint64_t sort_end_ns = results[i].timestamps[3];
-        const uint64_t merge_start_ns = results[i].timestamps[4];
-        const uint64_t merge_end_ns = results[i].timestamps[5];
+        const uint64_t bin_start_ns = results[i].data.wbg.timestamps[0];
+        const uint64_t bin_end_ns = results[i].data.wbg.timestamps[1];
+        const uint64_t sort_start_ns = results[i].data.wbg.timestamps[2];
+        const uint64_t sort_end_ns = results[i].data.wbg.timestamps[3];
+        const uint64_t merge_start_ns = results[i].data.wbg.timestamps[4];
+        const uint64_t merge_end_ns = results[i].data.wbg.timestamps[5];
 
         const uint64_t bin_ns = bin_end_ns - bin_start_ns;
         const uint64_t sort_ns = sort_end_ns - sort_start_ns;
@@ -820,12 +861,12 @@ static void write_benchmark_results(
         const uint64_t sort_us = sort_ns / 1000;
         const uint64_t merge_us = merge_ns / 1000;
 
-        const uint64_t wall_start_ns = results[i].wall_start_ns;
-        const uint64_t wall_end_ns = results[i].wall_end_ns;
-        const uint64_t wall_upload_start_ns = results[i].upload_start_ns;
-        const uint64_t wall_upload_end_ns = results[i].upload_end_ns;
-        const uint64_t wall_sort_start_ns = results[i].sort_start_ns;
-        const uint64_t wall_sort_end_ns = results[i].sort_end_ns;
+        const uint64_t wall_start_ns = results[i].data.wbg.wall_start_ns;
+        const uint64_t wall_end_ns = results[i].data.wbg.wall_end_ns;
+        const uint64_t wall_upload_start_ns = results[i].data.wbg.upload_start_ns;
+        const uint64_t wall_upload_end_ns = results[i].data.wbg.upload_end_ns;
+        const uint64_t wall_sort_start_ns = results[i].data.wbg.sort_start_ns;
+        const uint64_t wall_sort_end_ns = results[i].data.wbg.sort_end_ns;
 
         const uint64_t wall_ns = wall_end_ns - wall_start_ns;
         const uint64_t wall_upload_ns = wall_upload_end_ns - wall_upload_start_ns;
@@ -857,22 +898,8 @@ static void write_benchmark_results(
     fclose(rf);
 }
 
-int main(int argc, char ** argv)
+int benchmark_wbg_main(const benchmark_config * const config)
 {
-    char * endptr;
-
-    const char * const results_dir = argv[1];
-    const char * const sampler_name = argv[2];
-    const char * const key_sampler_name = argv[3];
-    const uint64_t seed = strtoull(argv[4], &endptr, 10);
-    const size_t key_budget = strtoull(argv[5], &endptr, 10);
-    const size_t n_runs = strtoull(argv[6], &endptr, 10);
-    const size_t n_warmup_runs = strtoull(argv[7], &endptr, 10);
-    const uint32_t max_key = strtol(argv[8], &endptr, 10);
-    const uint32_t subgroup_test = strtol(argv[9], &endptr, 10);
-    
-    const bool subgroups_enabled = subgroup_test == 1;
-
     hwgutil_wgpu_context context;
     wbg_pipeline pipeline;
     wbg_buffers buffers;
@@ -882,7 +909,7 @@ int main(int argc, char ** argv)
 
     size_t features_len;
     WGPUFeatureName features[2];
-    if (subgroups_enabled)
+    if (config->subgroups_enabled)
     {
         features_len = 2;
         features[0] = WGPUFeatureName_Subgroups;
@@ -900,7 +927,7 @@ int main(int argc, char ** argv)
         features_len, features
     )) abort();
 
-    if (subgroups_enabled)
+    if (config->subgroups_enabled)
     {
         if (!wgpuAdapterHasFeature(context.adapter, WGPUFeatureName_Subgroups))
         {
@@ -912,7 +939,7 @@ int main(int argc, char ** argv)
         &pipeline,
         &(wbg_options){
             .sort_kernels_root_dir = "shaders/sort_kernels",
-            .subgroups_enabled = subgroups_enabled,
+            .subgroups_enabled = config->subgroups_enabled,
         },
         context.instance,
         context.adapter,
@@ -939,20 +966,20 @@ int main(int argc, char ** argv)
     void * const buffer = malloc(BUFFER_LEN);
 
     hwstats_sampler * const bin_sampler = create_sampler(
-        sampler_name,
-        seed
+        config->sampler_name,
+        config->seed
     );
 
     hwstats_sampler * const key_sampler = create_sampler(
-        key_sampler_name,
-        seed
+        config->key_sampler_name,
+        config->seed
     );
 
     benchmark_data data;
     benchmark_data_init(
         &data,
-        key_budget,
-        max_key,
+        config->key_budget,
+        config->max_key,
         bin_sampler,
         key_sampler
     );
@@ -960,39 +987,79 @@ int main(int argc, char ** argv)
     benchmark_meta meta;
     benchmark_meta_init(
         &meta,
+        benchmark_wbg,
         data.bin_counts,
         data.bin_key_counts,
-        sampler_name,
-        key_sampler_name,
-        seed,
-        max_key,
+        config->sampler_name,
+        config->key_sampler_name,
+        config->seed,
+        config->max_key,
         data.segments_len,
         data.keys_len,
-        n_warmup_runs,
-        n_runs,
+        config->n_warmup_runs,
+        config->n_runs,
         true,
         &pipeline,
         &context
     );
 
-    benchmark_result * const results = (benchmark_result *)malloc(n_runs * sizeof(benchmark_result));
+    benchmark_result * const results = (benchmark_result *)malloc(config->n_runs * sizeof(benchmark_result));
 
-    benchmark(
+    benchmark_run_wbg(
         &pipeline,
         &buffers,
         &bindings,
-        n_runs,
-        n_warmup_runs,
+        config->n_runs,
+        config->n_warmup_runs,
         &data,
         results
     );
 
-    write_benchmark_results(
-        results_dir,
+    write_benchmark_results_wbg(
+        config->results_dir,
         &meta,
-        n_runs,
+        config->n_runs,
         results
     );
 
     return 0;
+}
+
+int main(int argc, char ** argv)
+{
+    char * endptr;
+
+    const char * const kind_name = argv[1];
+    const char * const results_dir = argv[2];
+    const char * const sampler_name = argv[3];
+    const char * const key_sampler_name = argv[4];
+    const uint64_t seed = strtoull(argv[5], &endptr, 10);
+    const size_t key_budget = strtoull(argv[6], &endptr, 10);
+    const size_t n_runs = strtoull(argv[7], &endptr, 10);
+    const size_t n_warmup_runs = strtoull(argv[8], &endptr, 10);
+    const uint32_t max_key = strtol(argv[9], &endptr, 10);
+    const uint32_t subgroup_test = strtol(argv[10], &endptr, 10);
+    const bool subgroups_enabled = subgroup_test == 1;
+
+    const benchmark_config config = (benchmark_config){
+        .kind_name = kind_name,
+        .results_dir = results_dir,
+        .sampler_name = sampler_name,
+        .key_sampler_name = key_sampler_name,
+        .seed = seed,
+        .key_budget = key_budget,
+        .n_runs = n_runs,
+        .n_warmup_runs = n_warmup_runs,
+        .max_key = max_key,
+        .subgroups_enabled = subgroups_enabled
+    };
+
+    if (strcmp("wbg", kind_name) == 0)
+    {
+        return benchmark_wbg_main(&config);
+    }
+    else
+    {
+        fprintf(stderr, "Unknown benchmark kind %s\n", kind_name);
+    }
 }
