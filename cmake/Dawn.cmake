@@ -15,8 +15,10 @@ if (NOT DEFINED SCRIBLZ_DAWN_CONFIG)
     # pass -DSCRIBLZ_DAWN_CONFIG=... to override.
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(SCRIBLZ_DAWN_CONFIG "Debug")
+        set(_dawn_release_type "debug")
     else()
         set(SCRIBLZ_DAWN_CONFIG "Release")
+        set(_dawn_release_type "release")
     endif()
 endif()
 set(_dawn_config "${SCRIBLZ_DAWN_CONFIG}")
@@ -79,6 +81,7 @@ target_compile_definitions(dawn INTERFACE
     HWGUTIL_WEBGPU_BACKEND_DAWN
     "BENCH_BACKEND_NAME=\"dawn\""
     "BENCH_BACKEND_VERSION=\"${SCRIBLZ_DAWN_VERSION} (${SCRIBLZ_DAWN_COMMIT})\""
+    "BENCH_BACKEND_RELEASE_TYPE=\"${_dawn_release_type}\""
 )
 
 add_library(dawn_headers INTERFACE)

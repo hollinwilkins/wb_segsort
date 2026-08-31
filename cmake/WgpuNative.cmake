@@ -106,4 +106,5 @@ target_compile_definitions(
     INTERFACE HWGUTIL_WEBGPU_BACKEND_WGPU
     "BENCH_BACKEND_NAME=\"wgpu_native\""
     "BENCH_BACKEND_VERSION=\"${SCRIBLZ_WGPU_NATIVE_VERSION}\""
+    "BENCH_BACKEND_RELEASE_TYPE=\"${_wgpu_native_type}\""
 )

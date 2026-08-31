@@ -393,6 +393,8 @@ static void benchmark_meta_init(
         .bins = bins,
         .wgpu_backend_name = BENCH_BACKEND_NAME,
         .wgpu_backend_version = BENCH_BACKEND_VERSION,
+        .wgpu_backend_release_type = BENCH_BACKEND_RELEASE_TYPE,
+        .cpu_release_type = BENCH_CPU_RELEASE_TYPE,
         .bin_sampler = copy_string(bin_sampler, allocator),
         .key_sampler = copy_string(key_sampler, allocator),
         .subgroups_enabled = subgroups_enabled,
