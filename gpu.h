@@ -21,9 +21,9 @@
 #include "shaders/segsort_tile_n2048_m256.wgsl.h"
 
 #define WB_MAX_WORKGROUP_DIMENSION 65535u
-#define MSG_MERGE_TILE_SIZE 2048u
-#define MSG_MERGE_WG 256u
-#define MSG_MERGE_TILE_MAX_DEPTH 20u
+#define WBG_MERGE_TILE_SIZE 2048u
+#define WBG_MERGE_WG 256u
+#define WBG_MERGE_TILE_MAX_DEPTH 20u
 
 typedef struct wbg_gpu_config
 {
@@ -102,7 +102,7 @@ typedef struct wbg_kernels
     // WB Sort kernels
     WGPUComputePipeline merge_build_tiles;
     WGPUComputePipeline merge_schedule;
-    WGPUComputePipeline merge_segmerge[MSG_MERGE_TILE_MAX_DEPTH];
+    WGPUComputePipeline merge_segmerge[WBG_MERGE_TILE_MAX_DEPTH];
     WGPUComputePipeline wb_sort;
 } wbg_kernels;
 
@@ -141,9 +141,10 @@ typedef struct wbg_sort_timing
 typedef struct wbg_options
 {
     const char * sort_kernels_root_dir;
-    wbg_dispatch_size bin_hist_dispatch_size;
+    wbg_dispatch_size dispatch_size;
     size_t wpt_threshold;
     size_t target_wg_size;
+    bool subgroups_enabled;
     bool is_initialized;
 } wbg_options;
 
@@ -256,8 +257,8 @@ WB_EXPORT void wbg_sort(
     const wbg_bindings * bindings,
     const wbg_buffers * buffers,
     WGPUCommandEncoder encoder,
-    size_t segments_len, uint32_t * segments,
-    size_t keys_len, uint32_t * keys,
+    size_t segments_len, const uint32_t * segments,
+    size_t keys_len, const uint32_t * keys,
     wbg_sort_timing * timing
 );
 
@@ -399,21 +400,21 @@ static void wbg__segsort_schedule_kernels_init(
                 .data = "TILE_SIZE",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_TILE_SIZE,
+            .value = (float)WBG_MERGE_TILE_SIZE,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "WG",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_WG,
+            .value = (float)WBG_MERGE_WG,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "MAX_PASSES",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_TILE_MAX_DEPTH,
+            .value = (float)WBG_MERGE_TILE_MAX_DEPTH,
         },
     };
 
@@ -437,21 +438,21 @@ static void wbg__segsort_schedule_kernels_init(
                 .data = "TILE_SIZE",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_TILE_SIZE,
+            .value = (float)WBG_MERGE_TILE_SIZE,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "WG",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_WG,
+            .value = (float)WBG_MERGE_WG,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "MAX_PASSES",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_TILE_MAX_DEPTH,
+            .value = (float)WBG_MERGE_TILE_MAX_DEPTH,
         },
     };
 
@@ -572,14 +573,14 @@ static void wbg__segsort_merge_kernels_init(
                 .data = "TILE_SIZE",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_TILE_SIZE,
+            .value = (float)WBG_MERGE_TILE_SIZE,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
                 .data = "WG",
                 .length = WGPU_STRLEN
             },
-            .value = (float)MSG_MERGE_WG,
+            .value = (float)WBG_MERGE_WG,
         },
         (WGPUConstantEntry){
             .key = (WGPUStringView){
@@ -589,8 +590,8 @@ static void wbg__segsort_merge_kernels_init(
         },
     };
 
-    uint64_t input_tile_size = MSG_MERGE_TILE_SIZE;
-    for (uint32_t i = 0; i < MSG_MERGE_TILE_MAX_DEPTH; i++)
+    uint64_t input_tile_size = WBG_MERGE_TILE_SIZE;
+    for (uint32_t i = 0; i < WBG_MERGE_TILE_MAX_DEPTH; i++)
     {
         merge_constants[2].value = (double)input_tile_size;
         merge_desc.compute.constants = merge_constants;
@@ -916,9 +917,9 @@ static void wbg__options_init(wbg_options * const options)
 {
     if (options->is_initialized) return;
 
-    options->bin_hist_dispatch_size = wbg__dispatch_size_is_zero(&options->bin_hist_dispatch_size) ?
+    options->dispatch_size = wbg__dispatch_size_is_zero(&options->dispatch_size) ?
         (wbg_dispatch_size)MSG_DISPATCH_SIZE_DEFAULT :
-        options->bin_hist_dispatch_size;
+        options->dispatch_size;
 
     options->wpt_threshold = options->wpt_threshold == 0 ? MSG_OPTIONS_DEFAULT_WPT_THRESHOLD : options->wpt_threshold;
     options->target_wg_size = options->target_wg_size == 0 ? MSG_OPTIONS_DEFAULT_TARGET_WG_SIZE : options->target_wg_size;
@@ -1154,6 +1155,14 @@ WB_EXPORT void wbg_pipeline_init(
     if (wgpuAdapterGetInfo(adapter, &info) != WGPUStatus_Success) abort();
 
     const WGPUBool has_subgroups = wgpuAdapterHasFeature(adapter, WGPUFeatureName_Subgroups);
+    if (options2.subgroups_enabled)
+    {
+        if (!has_subgroups)
+        {
+            fprintf(stderr, "subgroups are not available");
+            abort();
+        }
+    }
 
     *pipeline = (wbg_pipeline){
         .options = options2,
@@ -1170,7 +1179,7 @@ WB_EXPORT void wbg_pipeline_init(
     wbg__kernels_init(
         &pipeline->kernels,
         pipeline->device,
-        &options2.bin_hist_dispatch_size
+        &options2.dispatch_size
     );
 
     wbg__sort_layouts_init(
@@ -1264,7 +1273,7 @@ static void wbg_buffers_options_init(wbg_buffers_options * const options)
 
     options->max_segments = options->max_segments == 0 ? MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS : options->max_segments;
     options->max_items = options->max_items == 0 ? MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS : options->max_items;
-    options->max_merge_tiles = 2u * (options->max_items / MSG_MERGE_TILE_SIZE);
+    options->max_merge_tiles = 2u * (options->max_items / WBG_MERGE_TILE_SIZE);
 
     options->is_initialized = true;
 }
@@ -1389,7 +1398,7 @@ WB_EXPORT void wbg_buffers_init(
         .data = "WB Sort: Merge Dispatch Merge",
         .length = WGPU_STRLEN,
     };
-    merge_dispatch_merge_desc.size = MSG_MERGE_TILE_MAX_DEPTH * sizeof(wbg_dispatch_size);
+    merge_dispatch_merge_desc.size = WBG_MERGE_TILE_MAX_DEPTH * sizeof(wbg_dispatch_size);
     merge_dispatch_merge_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_Indirect | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
     WGPUBufferDescriptor merge_keys_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
@@ -1741,7 +1750,7 @@ WB_EXPORT void wbg_run_bin_histogram(
     WGPUComputePassEncoder const encoder
 )
 {
-    const wbg_dispatch_size bin_hist_dispatch_size = wbg_dispatch_size_for_len(&pipeline->options.bin_hist_dispatch_size, config->segments_len);
+    const wbg_dispatch_size bin_hist_dispatch_size = wbg_dispatch_size_for_len(&pipeline->options.dispatch_size, config->segments_len);
 
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.bin_histogram);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
@@ -1767,7 +1776,7 @@ WB_EXPORT void wbg_bin_run_group(
     WGPUComputePassEncoder const encoder
 )
 {
-    const wbg_dispatch_size bin_hist_dispatch_size = wbg_dispatch_size_for_len(&pipeline->options.bin_hist_dispatch_size, config->segments_len);
+    const wbg_dispatch_size bin_hist_dispatch_size = wbg_dispatch_size_for_len(&pipeline->options.dispatch_size, config->segments_len);
 
     wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.group);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
@@ -1821,7 +1830,7 @@ WB_EXPORT void wbg_merge(
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->wb_sort, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroupsIndirect(encoder, buffers->merge_dispatch_tiles, 0);
 
-    for (uint32_t k = 0; k < MSG_MERGE_TILE_MAX_DEPTH; k++)
+    for (uint32_t k = 0; k < WBG_MERGE_TILE_MAX_DEPTH; k++)
     {
         WGPUBindGroup bg = (k % 2u == 0u) ? bindings->merge_merge : bindings->merge_merge_swap;
         wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_segmerge[k]);
@@ -1842,8 +1851,8 @@ WB_EXPORT void wbg_sort(
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
     WGPUCommandEncoder const encoder,
-    const size_t segments_len, uint32_t * const segments,
-    const size_t keys_len, uint32_t * const keys,
+    const size_t segments_len, const uint32_t * const segments,
+    const size_t keys_len, const uint32_t * const keys,
     wbg_sort_timing * const timing
 )
 {

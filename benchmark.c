@@ -1,8 +1,6 @@
+#include <stdbool.h>
 #include <sys/utsname.h>
-
-#if defined(__APPLE__)
-#   include <sys/sysctl.h>
-#endif
+#include <sys/sysctl.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -27,7 +25,6 @@
 
 #include "hw_stats.h"
 #include "hw_gutil.h"
-#include "hw_mems.h"
 #include "cpu.h"
 #include "gpu.h"
 
@@ -38,7 +35,9 @@
 
 typedef struct benchmark_meta
 {
+    const char * git_commit;
     const char * os_string;
+    const char * cpu_string;
     const char * gpu_vendor;
     const char * gpu_architecture;
     const char * gpu_device;
@@ -50,40 +49,47 @@ typedef struct benchmark_meta
     uint32_t subgroup_min_size;
     uint32_t subgroup_max_size;
     const wbg_gpu_bin * bins;
+    uint32_t bin_counts[13];
     const char * wgpu_backend_name;
     const char * wgpu_backend_version;
     const char * wgpu_backend_release_type;
     const char * cpu_release_type;
     const char * bin_sampler;
     const char * key_sampler;
+    uint64_t max_key;
     bool subgroups_enabled;
+    uint32_t merge_wg;
+    uint32_t merge_tile_size;
+    uint32_t merge_input_tile_size;
+    uint32_t merge_max_passes;
+    uint64_t seed;
+    size_t key_bit_size;
     size_t n_segments;
+    size_t n_keys;
+    size_t n_warmup_runs;
     size_t n_runs;
 } benchmark_meta;
 
 typedef struct benchmark_result
 {
-    uint32_t bin_counts[13];
     uint64_t timestamps[6];
+    uint64_t wall_time;
 } benchmark_result;
 
-static hwstats_sampler * create_uniform_sampler(const uint64_t seed, const mems_allocator * const allocator)
+typedef struct benchmark_data
 {
-    hwstats_x256pp * const x256pp = (hwstats_x256pp *)mems_allocator_alloc(
-        allocator,
-        MEMS_ALIGNOF(hwstats_x256pp),
-        sizeof(hwstats_x256pp)
-    );
-    hwstats_randomizer * const r = (hwstats_randomizer *)mems_allocator_alloc(
-        allocator,
-        MEMS_ALIGNOF(hwstats_randomizer),
-        sizeof(hwstats_randomizer)
-    );
-    hwstats_sampler * const sampler = (hwstats_sampler *)mems_allocator_alloc(
-        allocator,
-        MEMS_ALIGNOF(hwstats_sampler),
-        sizeof(hwstats_sampler)
-    );
+    uint32_t bin_counts[13];
+    size_t segments_len;
+    const uint32_t * segments;
+    size_t keys_len;
+    const uint32_t * keys;
+} benchmark_data;
+
+static hwstats_sampler * create_uniform_sampler(const uint64_t seed)
+{
+    hwstats_x256pp * const x256pp = (hwstats_x256pp *)malloc(sizeof(hwstats_x256pp));
+    hwstats_randomizer * const r = (hwstats_randomizer *)malloc(sizeof(hwstats_randomizer));
+    hwstats_sampler * const sampler = (hwstats_sampler *)malloc(sizeof(hwstats_sampler));
 
     hwstats_x256pp_init(x256pp, seed);
     hwstats_x256pp_rand_init(x256pp, r);
@@ -94,11 +100,10 @@ static hwstats_sampler * create_uniform_sampler(const uint64_t seed, const mems_
 
 static hwstats_sampler * create_sampler(
     const char * const name,
-    const uint64_t seed,
-    const mems_allocator * const allocator
+    const uint64_t seed
 )
 {
-    if (strcmp("uniform", name) == 0) return create_uniform_sampler(seed, allocator);
+    if (strcmp("uniform", name) == 0) return create_uniform_sampler(seed);
     return NULL;
 }
 
@@ -115,7 +120,6 @@ static void report_results(
 {
     for (size_t i = 0; i < len; i++)
     {
-
     }
 }
 
@@ -125,12 +129,9 @@ static void benchmark_sample(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
     const wbg_bindings * const bindings,
-    hwstats_sampler * const bin_sampler,
-    hwstats_sampler * const key_sampler,
+    const benchmark_data * const data,
     wbg_sort_timing * const timing,
     WGPUBuffer const query_buffer,
-    const size_t segments_len, uint32_t * const segments,
-    const size_t keys_len, uint32_t * const keys,
     benchmark_result * const result
 )
 {
@@ -146,8 +147,8 @@ static void benchmark_sample(
         bindings,
         buffers,
         encoder,
-        segments_len, segments,
-        keys_len, keys,
+        data->segments_len, data->segments,
+        data->keys_len, data->keys,
         timing
     );
 
@@ -187,16 +188,10 @@ static void benchmark(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
     const wbg_bindings * const bindings,
-    hwstats_sampler * const bin_sampler,
-    hwstats_sampler * const key_sampler,
-    const size_t n_segments,
     const size_t n_runs,
-    const mems_allocator * const allocator
+    const benchmark_data * const data
 )
 {
-    uint32_t * const bin_counts = (uint32_t *)mems_allocator_alloc(allocator, MEMS_ALIGNOF(uint32_t), 13);
-    memset(bin_counts, 0, 13 * sizeof(uint32_t));
-
     WGPUQuerySetDescriptor query_desc = WGPU_QUERY_SET_DESCRIPTOR_INIT;
     query_desc.label = (WGPUStringView){
         .data = "WB Sort: Timestamp Queries",
@@ -220,34 +215,7 @@ static void benchmark(
 
     WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(pipeline->device, &query_buffer_desc);
 
-    uint32_t * const segments = (uint32_t *)malloc(n_segments * sizeof(uint32_t));
-
-    uint32_t len = 0;
-    for (uint32_t i = 0; i < n_segments; i++)
-    {
-        const uint32_t bin = sample_range(bin_sampler, 0, 12);
-        bin_counts[bin]++;
-
-        const uint32_t lo = bin == 0 ? 0 : 1u << (bin - 1u);
-        const uint32_t hi = 1u << bin;
-        const uint32_t segment_len = sample_range(key_sampler, lo, hi);
-
-        len += segment_len;
-        segments[i] = len;
-    }
-
-    uint32_t * const keys = (uint32_t *)malloc(len * sizeof(uint32_t));
-
-    for (uint32_t i = 0; i < len; i++)
-    {
-        keys[i] = rand() % 100;
-    }
-
-    benchmark_result * const results = (benchmark_result *)mems_allocator_alloc(
-        allocator,
-        MEMS_ALIGNOF(benchmark_result),
-        sizeof(benchmark_result)
-    );
+    benchmark_result * const results = (benchmark_result *)malloc(n_runs * sizeof(benchmark_result));
 
     for (size_t i = 0; i < n_runs; i++)
     {
@@ -257,12 +225,9 @@ static void benchmark(
             pipeline,
             buffers,
             bindings,
-            bin_sampler,
-            key_sampler,
+            data,
             &timing,
             query_buffer,
-            n_segments, segments,
-            len, keys,
             results + i
         );
     }
@@ -271,16 +236,11 @@ static void benchmark(
 }
 
 static const char * copy_string(
-    const char * const str,
-    const mems_allocator * const allocator
+    const char * const str
 )
 {
     const size_t len = strlen(str);
-    char * const copy_str = (char *)mems_allocator_alloc(
-        allocator,
-        MEMS_ALIGNOF(char),
-        len + 1
-    );
+    char * const copy_str = (char *)malloc(len + 1);
     memcpy(copy_str, str, len);
     copy_str[len] = 0;
 
@@ -288,16 +248,11 @@ static const char * copy_string(
 }
 
 static const char * copy_string_view(
-    WGPUStringView view,
-    const mems_allocator * const allocator
+    WGPUStringView view
 )
 {
     const size_t len = view.length == WGPU_STRLEN ? strlen(view.data) : view.length;
-    char * const copy_str = (char *)mems_allocator_alloc(
-        allocator,
-        MEMS_ALIGNOF(char),
-        len + 1
-    );
+    char * const copy_str = (char *)malloc(len + 1);
     memcpy(copy_str, view.data, len);
     copy_str[len] = 0;
 
@@ -333,6 +288,43 @@ static const char * benchmark_os_string() {
     return OS_STRING;
 }
 
+static char CPU_STRING[1024];
+static const char * benchmark_cpu_string() {
+#if defined(__APPLE__)
+    size_t len = sizeof(CPU_STRING);
+    if (sysctlbyname("machdep.cpu.brand_string", CPU_STRING, &len, NULL, 0) != 0)
+    {
+        snprintf(CPU_STRING, sizeof(CPU_STRING), "unknown");
+    }
+#elif defined(__linux__)
+    CPU_STRING[0] = '\0';
+
+    FILE * f = fopen("/proc/cpuinfo", "r");
+    if (f)
+    {
+        char line[256];
+        while (fgets(line, sizeof(line), f))
+        {
+            char * c = strchr(line, ':');
+            if (c && strncmp(line, "model name", 10) == 0)
+            {
+                c += 2;                       // skip ": "
+                c[strcspn(c, "\n")] = '\0';   // trim newline
+                snprintf(CPU_STRING, sizeof(CPU_STRING), "%s", c);
+                break;
+            }
+        }
+        fclose(f);
+    }
+
+    if (CPU_STRING[0] == '\0') snprintf(CPU_STRING, sizeof(CPU_STRING), "unknown");
+#else
+    snprintf(CPU_STRING, sizeof(CPU_STRING), "unknown");
+#endif
+
+    return CPU_STRING;
+}
+
 static const char * benchmark_meta_gpu_backend_type_name(const WGPUBackendType t)
 {
     switch (t)
@@ -361,15 +353,18 @@ static const char * benchmark_meta_gpu_adapter_type_name(const WGPUAdapterType t
 
 static void benchmark_meta_init(
     benchmark_meta * const meta,
+    const uint32_t * const bin_counts,
     const char * bin_sampler,
     const char * key_sampler,
-    uint64_t seed,
-    size_t n_segments,
-    size_t n_runs,
-    bool subgroups_enabled,
+    const uint64_t seed,
+    const uint64_t max_key,
+    const size_t n_segments,
+    const size_t n_keys,
+    const size_t n_warmup_runs,
+    const size_t n_runs,
+    const bool subgroups_enabled,
     const wbg_pipeline * const pipeline,
-    const hwgutil_wgpu_context * const context,
-    const mems_allocator * const allocator
+    const hwgutil_wgpu_context * const context
 )
 {
     WGPUAdapterInfo adapter_info;
@@ -379,13 +374,15 @@ static void benchmark_meta_init(
     memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
 
     *meta = (benchmark_meta){
-        .os_string = copy_string(benchmark_os_string(), allocator),
-        .gpu_vendor = copy_string_view(adapter_info.vendor, allocator),
-        .gpu_architecture = copy_string_view(adapter_info.architecture, allocator),
-        .gpu_device = copy_string_view(adapter_info.device, allocator),
-        .gpu_description = copy_string_view(adapter_info.description, allocator),
-        .gpu_backend_type = copy_string(benchmark_meta_gpu_backend_type_name(adapter_info.backendType), allocator),
-        .gpu_adapter_type = copy_string(benchmark_meta_gpu_adapter_type_name(adapter_info.adapterType), allocator),
+        .git_commit = BENCH_GIT_COMMIT,
+        .os_string = copy_string(benchmark_os_string()),
+        .cpu_string = copy_string(benchmark_cpu_string()),
+        .gpu_vendor = copy_string_view(adapter_info.vendor),
+        .gpu_architecture = copy_string_view(adapter_info.architecture),
+        .gpu_device = copy_string_view(adapter_info.device),
+        .gpu_description = copy_string_view(adapter_info.description),
+        .gpu_backend_type = copy_string(benchmark_meta_gpu_backend_type_name(adapter_info.backendType)),
+        .gpu_adapter_type = copy_string(benchmark_meta_gpu_adapter_type_name(adapter_info.adapterType)),
         .gpu_vendor_id = adapter_info.vendorID,
         .gpu_device_id = adapter_info.deviceID,
         .subgroup_min_size = adapter_info.subgroupMinSize,
@@ -395,11 +392,70 @@ static void benchmark_meta_init(
         .wgpu_backend_version = BENCH_BACKEND_VERSION,
         .wgpu_backend_release_type = BENCH_BACKEND_RELEASE_TYPE,
         .cpu_release_type = BENCH_CPU_RELEASE_TYPE,
-        .bin_sampler = copy_string(bin_sampler, allocator),
-        .key_sampler = copy_string(key_sampler, allocator),
+        .bin_sampler = copy_string(bin_sampler),
+        .key_sampler = copy_string(key_sampler),
         .subgroups_enabled = subgroups_enabled,
+        .max_key = max_key,
+        .merge_wg = WBG_MERGE_WG,
+        .merge_tile_size = WBG_MERGE_TILE_SIZE,
+        .merge_input_tile_size = WBG_MERGE_TILE_SIZE,
+        .merge_max_passes = WBG_MERGE_TILE_MAX_DEPTH,
+        .seed = seed,
+        .key_bit_size = 32,
         .n_segments = n_segments,
+        .n_keys = n_keys,
+        .n_warmup_runs = n_warmup_runs,
         .n_runs = n_runs,
+    };
+
+    memcpy(meta->bin_counts, bin_counts, sizeof(meta->bin_counts));
+}
+
+static void benchmark_data_init(
+    benchmark_data * const data,
+    const size_t n_segments,
+    const uint64_t max_key,
+    hwstats_sampler * const bin_sampler,
+    hwstats_sampler * const key_sampler,
+    const mems_allocator * const allocator
+)
+{
+    uint32_t * const segments = (uint32_t *)mems_allocator_alloc(allocator, MEMS_ALIGNOF(uint32_t), n_segments * sizeof(uint32_t));
+    uint32_t bin_counts[13];
+
+    uint32_t len = 0;
+    for (uint32_t i = 0; i < n_segments; i++)
+    {
+        const uint32_t bin = sample_range(bin_sampler, 0, 12);
+        bin_counts[bin]++;
+
+        // 0 -> [0,0]
+        // 1 -> [1,1]
+        // 2 -> [2,3]
+        // 3 -> [4,7]
+        // 4 -> [8,15]
+        const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 1u));
+        const uint32_t hi = bin == 12 ?
+            (uint32_t)max_key :
+            (bin <= 1 ? bin : (1u << bin) - 1u);
+        const uint32_t segment_len = sample_range(key_sampler, lo, hi);
+
+        len += segment_len;
+        segments[i] = len;
+    }
+
+    uint32_t * const keys = (uint32_t *)mems_allocator_alloc(allocator, MEMS_ALIGNOF(uint32_t), len * sizeof(uint32_t));
+
+    for (uint32_t i = 0; i < len; i++)
+    {
+        keys[i] = rand() % 100;
+    }
+
+    *data = (benchmark_data){
+        .keys_len = len,
+        .keys = keys,
+        .segments_len = n_segments,
+        .segments = segments,
     };
 }
 
@@ -411,6 +467,11 @@ int main(int argc, char ** argv)
     const uint64_t seed = strtoull(argv[2], &endptr, 10);
     const size_t n_segments = strtoull(argv[3], &endptr, 10);
     const size_t n_runs = strtoull(argv[4], &endptr, 10);
+    const size_t n_warmup_runs = strtoull(argv[5], &endptr, 10);
+    const uint64_t max_key = strtoull(argv[6], &endptr, 10);
+    const uint32_t subgroup_test = strtol(argv[6], &endptr, 10);
+    
+    const bool subgroups_enabled = subgroup_test == 1;
 
     hwgutil_wgpu_context context;
     wbg_pipeline pipeline;
@@ -419,16 +480,39 @@ int main(int argc, char ** argv)
 
     printf("Initializing WebGPU context...\n");
 
+    size_t features_len;
+    WGPUFeatureName features[2];
+    if (subgroups_enabled)
+    {
+        features_len = 2;
+        features[0] = WGPUFeatureName_Subgroups;
+        features[1] = WGPUFeatureName_TimestampQuery;
+    }
+    else
+    {
+        features_len = 1;
+        features[0] = WGPUFeatureName_TimestampQuery;
+    }
+
     if (!hwgutil_wgpu_context_init(
         &context,
         1, (WGPUInstanceFeatureName[]){ WGPUInstanceFeatureName_TimedWaitAny },
-        2, (WGPUFeatureName[]){ WGPUFeatureName_Subgroups, WGPUFeatureName_TimestampQuery }
+        features_len, features
     )) abort();
+
+    if (subgroups_enabled)
+    {
+        if (!wgpuAdapterHasFeature(context.adapter, WGPUFeatureName_Subgroups))
+        {
+            fprintf(stderr, "subgroups are not available with this adapter");
+        }
+    }
 
     wbg_pipeline_init(
         &pipeline,
         &(wbg_options){
-            .sort_kernels_root_dir = "shaders/sort_kernels"
+            .sort_kernels_root_dir = "shaders/sort_kernels",
+            .subgroups_enabled = subgroups_enabled,
         },
         context.instance,
         context.adapter,
@@ -454,33 +538,46 @@ int main(int argc, char ** argv)
     static const size_t BUFFER_LEN = 1024 * 1024 * 32;
     void * const buffer = malloc(BUFFER_LEN);
 
-    mems_bump bump;
-    mems_bump_init(
-        &bump,
-        BUFFER_LEN,
-        buffer
-    );
-
-    mems_allocator allocator;
-    mems_bump_allocator_init(&bump, &allocator);
-
     hwstats_sampler * const bin_sampler = create_sampler(
         sampler_name,
-        seed,
-        &allocator
+        seed
     );
 
-    hwstats_sampler * const key_sampler = create_uniform_sampler(seed, &allocator);
+    hwstats_sampler * const key_sampler = create_uniform_sampler(seed);
+
+    benchmark_data data;
+    benchmark_data_init(
+        &data,
+        n_segments,
+        max_key,
+        bin_sampler,
+        key_sampler,
+        &mems_system_allocator
+    );
+
+    benchmark_meta meta;
+    benchmark_meta_init(
+        &meta,
+        data.bin_counts,
+        sampler_name,
+        "uniform",
+        seed,
+        max_key,
+        n_segments,
+        data.keys_len,
+        n_warmup_runs,
+        n_runs,
+        true,
+        &pipeline,
+        &context
+    );
 
     benchmark(
         &pipeline,
         &buffers,
         &bindings,
-        bin_sampler,
-        key_sampler,
-        n_segments,
         n_runs,
-        &allocator
+        &data
     );
 
     return 0;
