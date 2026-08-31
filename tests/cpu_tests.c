@@ -17,22 +17,23 @@ void tearDown(void)
 
 void test_sort0()
 {
-    wbc_sort_alloc(0, NULL);
+    wbc_sort_alloc(0, NULL, NULL);
 }
 
 void test_sort1()
 {
     uint32_t arr[1] = { 42 };
+    uint32_t value_indices[1];
     TEST_ASSERT_EQUAL(42, arr[0]);
-    wbc_sort_alloc(1, arr);
-
+    wbc_sort_alloc(1, arr, value_indices);
     TEST_ASSERT_EQUAL(42, arr[0]);
 }
 
 void test_sort2()
 {
     uint32_t arr[2] = { 42, 13 };
-    wbc_sort_alloc(2, arr);
+    uint32_t value_indices[2];
+    wbc_sort_alloc(2, arr, value_indices);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 13, 42 }),
@@ -44,7 +45,8 @@ void test_sort2()
 void test_sort3()
 {
     uint32_t arr[3] = { 7, 42, 13 };
-    wbc_sort_alloc(3, arr);
+    uint32_t value_indices[3];
+    wbc_sort_alloc(3, arr, value_indices);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 7, 13, 42 }),
@@ -56,7 +58,8 @@ void test_sort3()
 void test_sort4()
 {
     uint32_t arr[4] = { 42, 13, 7, 2 };
-    wbc_sort_alloc(4, arr);
+    uint32_t value_indices[4];
+    wbc_sort_alloc(4, arr, value_indices);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 2, 7, 13, 42 }),
@@ -80,6 +83,7 @@ void test_sort1024()
     srand(897312);
 
     uint32_t * const arr = (uint32_t *)malloc(1024 * sizeof(uint32_t));
+    uint32_t * const value_indices = (uint32_t *)malloc(1024 * sizeof(uint32_t));
     uint32_t * const expected = (uint32_t *)malloc(1024 * sizeof(uint32_t));
 
     for (int i = 0; i < 1024; i++)
@@ -90,7 +94,7 @@ void test_sort1024()
 
     qsort(expected, 1024, sizeof(uint32_t), qsort_compare_uint32);
 
-    wbc_sort_alloc(1024, arr);
+    wbc_sort_alloc(1024, arr, value_indices);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         expected,
@@ -107,6 +111,7 @@ void test_sort4033()
     srand(2213412);
 
     uint32_t * const arr = (uint32_t *)malloc(4033 * sizeof(uint32_t));
+    uint32_t * const value_indices = (uint32_t *)malloc(4033 * sizeof(uint32_t));
     uint32_t * const expected = (uint32_t *)malloc(4033 * sizeof(uint32_t));
 
     for (int i = 0; i < 4033; i++)
@@ -117,7 +122,7 @@ void test_sort4033()
 
     qsort(expected, 4033, sizeof(uint32_t), qsort_compare_uint32);
 
-    wbc_sort_alloc(4033, arr);
+    wbc_sort_alloc(4033, arr, value_indices);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         expected,
@@ -133,7 +138,8 @@ void test_segsort8()
 {
     uint32_t segs[2] = { 4, 8 };
     uint32_t arr[8] = { 42, 13, 7, 2, 73, 22, 97, 10 };
-    wbc_segsort_alloc(8, arr, 2, segs);
+    uint32_t value_indices[8];
+    wbc_segsort_alloc(8, arr, value_indices, 2, segs);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){ 2, 7, 13, 42, 10, 22, 73, 97 }),
@@ -152,7 +158,8 @@ void test_segsort23()
         1, 2, 3, 4, 5, 6, 7, 8,
         2, 1
     };
-    wbc_segsort_alloc(23, arr, 5, segs);
+    uint32_t value_indices[23];
+    wbc_segsort_alloc(23, arr, value_indices, 5, segs);
 
     TEST_ASSERT_EQUAL_UINT32_ARRAY(
         ((uint32_t[]){

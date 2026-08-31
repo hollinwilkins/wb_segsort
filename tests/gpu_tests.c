@@ -62,7 +62,9 @@ void test__sort_kernel(
 
     uint32_t * expected_keys = (uint32_t *)malloc(len * sizeof(uint32_t));
     memcpy(expected_keys, keys, len * sizeof(uint32_t));
-    wbc_segsort_alloc(len, expected_keys, segments_len, segments);
+
+    uint32_t * value_indices = (uint32_t *)malloc(len * sizeof(uint32_t));
+    wbc_segsort_alloc(len, expected_keys, value_indices, segments_len, segments);
 
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline.device, &(WGPUCommandEncoderDescriptor){
         .label = (WGPUStringView){

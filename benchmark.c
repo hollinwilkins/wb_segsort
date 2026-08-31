@@ -193,9 +193,8 @@ static uint32_t sample_range(hwstats_sampler * const sampler, const uint32_t min
 
 static void benchmark_run_wbc_sample(
     const benchmark_data * const data,
-    const size_t len,
-    uint32_t * const keys,
     uint32_t * const value_indices,
+    const size_t swap_len,
     void * const swap,
     benchmark_result * const result
 )
@@ -204,10 +203,28 @@ static void benchmark_run_wbc_sample(
         .kind = benchmark_wbc,
     };
 
+    uint32_t * const keys = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
+    memcpy(keys, data->keys, data->keys_len * sizeof(uint32_t));
+
     const uint64_t start_ns = now_ns();
     result->data.wbc.wall_start_ns = start_ns;
 
-    wbc_segsort();
+    size_t required_size;
+    if (!wbc_segsort(
+        data->keys_len,
+        keys,
+        value_indices,
+        data->segments_len,
+        data->segments,
+        swap_len,
+        swap,
+        &required_size
+    )) PANIC("could not run CPU sort");
+
+    const uint64_t end_ns = now_ns();
+
+    result->data.wbc.wall_start_ns = start_ns;
+    result->data.wbc.wall_end_ns = end_ns;
 }
 
 #define QUERY_COUNT 8
@@ -305,12 +322,14 @@ static void benchmark_validate(
 )
 {
     uint32_t * const expected_keys = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
+    uint32_t * const value_indices = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
 
     memcpy(expected_keys, data->keys, data->keys_len * sizeof(uint32_t));
 
     wbc_segsort_alloc(
         data->keys_len,
         expected_keys,
+        value_indices,
         data->segments_len,
         data->segments
     );
@@ -345,31 +364,41 @@ static void benchmark_run_wbc(
     benchmark_result * const results
 )
 {
+    size_t required_swap_size;
+
+    if (wbc_segsort(
+        data->keys_len,
+        NULL,
+        NULL,
+        0,
+        NULL,
+        0,
+        NULL,
+        &required_swap_size
+    )) PANIC("could not evaluate swap size");
+
+    void * const swap = malloc(required_swap_size);
+    uint32_t * const value_indices = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
+
     benchmark_result warmup_result;
     for (size_t i = 0; i < n_warmup_runs; i++)
     {
-        benchmark_run_wbg_sample(
-            pipeline,
-            buffers,
-            bindings,
+        benchmark_run_wbc_sample(
             data,
-            &timing,
-            query_buffer,
+            value_indices,
+            required_swap_size,
+            swap,
             &warmup_result
         );
     }
 
     for (size_t i = 0; i < n_runs; i++)
     {
-        timing.index = 0;
-
-        benchmark_run_wbg_sample(
-            pipeline,
-            buffers,
-            bindings,
+        benchmark_run_wbc_sample(
             data,
-            &timing,
-            query_buffer,
+            value_indices,
+            required_swap_size,
+            swap,
             results + i
         );
     }
@@ -854,12 +883,12 @@ static void write_benchmark_meta(
         fprintf(mf, "  \"bins\": [");
         for (int i = 0; i < 13; i++)
         {
-            wbg_gpu_bin bin = meta->bins[i];
             if (i != 0) fprintf(mf, ", ");
             fprintf(mf, "{\n");
 
             if (meta->bins != NULL)
             {
+                wbg_gpu_bin bin = meta->bins[i];
                 if (i == 0)
                 {
                     write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
@@ -911,6 +940,51 @@ static bool mkdir_p(const char *path) {
     }
     if (mkdir(buf, 0755) != 0 && errno != EEXIST) return false;
     return true;
+}
+
+static void write_benchmark_results_wbc(
+    const char * const root_dir,
+    const benchmark_meta * const meta,
+    const size_t results_len,
+    const benchmark_result * const results
+)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    const uint64_t timestamp = (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
+
+    static char BENCHMARK_DIR[1024];
+    snprintf(BENCHMARK_DIR, sizeof(BENCHMARK_DIR), "%s/benchmark_%llu", root_dir, timestamp);
+
+    if (!mkdir_p(BENCHMARK_DIR))
+    {
+        fprintf(stderr, "could not create benchmark dir: %s\n", BENCHMARK_DIR);
+        abort();
+    }
+
+    static char BENCHMARK_FILE[1024];
+    snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/meta.json", BENCHMARK_DIR);
+
+    FILE * mf = fopen(BENCHMARK_FILE, "w");
+    write_benchmark_meta(mf, meta);
+    fclose(mf);
+
+    snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/timing.csv", BENCHMARK_DIR);
+    FILE * rf = fopen(BENCHMARK_FILE, "w");
+    fprintf(rf, "wall_ms,wall_us,wall_ns\n,");
+    for (uint32_t i = 0; i < meta->n_runs; i++)
+    {
+        const uint64_t wall_start_ns = results[i].data.wbc.wall_start_ns;
+        const uint64_t wall_end_ns = results[i].data.wbc.wall_end_ns;
+
+        const uint64_t wall_ns = wall_end_ns - wall_start_ns;
+        const uint64_t wall_ms = wall_ns / 1000000;
+        const uint64_t wall_us = wall_ns / 1000;
+
+        fprintf(rf, "%llu,%llu,%llu\n",
+            wall_ms, wall_us, wall_ns);
+    }
+    fclose(rf);
 }
 
 static void write_benchmark_results_wbg(
