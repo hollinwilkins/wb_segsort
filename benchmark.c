@@ -419,24 +419,37 @@ static void benchmark_meta_init(
     memcpy(meta->bin_key_counts, bin_key_counts, sizeof(meta->bin_key_counts));
 }
 
+static uint32_t benchmark_segment_bucket(const uint32_t segment_len)
+{
+    const uint32_t v = (segment_len == 0u ? 1u : segment_len) - 1u;
+    if (v == 0u) return 0u;
+    const uint32_t b = 32u - (uint32_t)__builtin_clz(v);
+    return b < 12u ? b : 12u;
+}
+
 static void benchmark_data_init(
     benchmark_data * const data,
-    const size_t n_segments,
+    const size_t key_budget,
     const uint32_t max_key,
     hwstats_sampler * const bin_sampler,
-    hwstats_sampler * const key_sampler,
-    const mems_allocator * const allocator
+    hwstats_sampler * const key_sampler
 )
 {
-    uint32_t * const segments = (uint32_t *)mems_allocator_alloc(allocator, MEMS_ALIGNOF(uint32_t), n_segments * sizeof(uint32_t));
+    size_t segments_len = 0;
+    uint32_t * const segments = (uint32_t *)malloc(key_budget * 16 * sizeof(uint32_t));
+
     uint32_t bin_counts[13] = {0};
     uint32_t bin_key_counts[13] = {0};
 
-    uint32_t len = 0;
-    for (uint32_t i = 0; i < n_segments; i++)
+    uint32_t keys_len = 0;
+    while (keys_len < key_budget)
     {
-        const uint32_t bin = sample_range(bin_sampler, 0, 12);
-        bin_counts[bin]++;
+        if (segments_len == key_budget)
+        {
+            fprintf(stderr, "segments overflow, probably an invalid bin sampler\n");
+            abort();
+        }
+        uint32_t bin = sample_range(bin_sampler, 0, 12);
 
         // 0 -> [0,0]
         // 1 -> [1,1]
@@ -447,24 +460,31 @@ static void benchmark_data_init(
         const uint32_t hi = bin == 12 ?
             max_key :
             (bin <= 1 ? bin : (1u << bin) - 1u);
-        const uint32_t segment_len = sample_range(bin_sampler, lo, hi);
+        uint32_t segment_len = sample_range(bin_sampler, lo, hi);
 
+        if (keys_len + segment_len > key_budget)
+        {
+            segment_len = key_budget - keys_len;
+            bin = benchmark_segment_bucket(segment_len);
+        }
+
+        bin_counts[bin]++;
         bin_key_counts[bin] += segment_len;
-        len += segment_len;
-        segments[i] = len;
+        keys_len += segment_len;
+        segments[segments_len++] = keys_len;
     }
 
-    uint32_t * const keys = (uint32_t *)mems_allocator_alloc(allocator, MEMS_ALIGNOF(uint32_t), len * sizeof(uint32_t));
+    uint32_t * const keys = (uint32_t *)malloc(keys_len * sizeof(uint32_t));
 
-    for (uint32_t i = 0; i < len; i++)
+    for (uint32_t i = 0; i < keys_len; i++)
     {
         keys[i] = sample_range(key_sampler, 0, max_key);
     }
 
     *data = (benchmark_data){
-        .keys_len = len,
+        .keys_len = keys_len,
         .keys = keys,
-        .segments_len = n_segments,
+        .segments_len = segments_len,
         .segments = segments,
     };
 
@@ -637,7 +657,7 @@ int main(int argc, char ** argv)
     const char * const sampler_name = argv[1];
     const char * const key_sampler_name = argv[2];
     const uint64_t seed = strtoull(argv[3], &endptr, 10);
-    const size_t n_segments = strtoull(argv[4], &endptr, 10);
+    const size_t key_budget = strtoull(argv[4], &endptr, 10);
     const size_t n_runs = strtoull(argv[5], &endptr, 10);
     const size_t n_warmup_runs = strtoull(argv[6], &endptr, 10);
     const uint32_t max_key = strtol(argv[7], &endptr, 10);
@@ -723,11 +743,10 @@ int main(int argc, char ** argv)
     benchmark_data data;
     benchmark_data_init(
         &data,
-        n_segments,
+        key_budget,
         max_key,
         bin_sampler,
-        key_sampler,
-        &mems_system_allocator
+        key_sampler
     );
 
     benchmark_meta meta;
@@ -739,7 +758,7 @@ int main(int argc, char ** argv)
         key_sampler_name,
         seed,
         max_key,
-        n_segments,
+        data.segments_len,
         data.keys_len,
         n_warmup_runs,
         n_runs,
