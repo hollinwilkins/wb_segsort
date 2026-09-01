@@ -190,7 +190,19 @@ static hwstats_sampler * create_bin_sampler(const uint32_t bin)
     hwstats_const * const c = (hwstats_const *)malloc(sizeof(hwstats_const));
     hwstats_sampler * const sampler = (hwstats_sampler *)malloc(sizeof(hwstats_sampler));
 
-    const double value = (1.0 / (double)bin) * 1.5;
+    const double value = (1.0 / 11.0 * (double)(bin - 1)) + (1e-4);
+    *c = (hwstats_const){ .value = value };
+
+    hwstats_const_sampler_init(sampler, c);
+
+    return sampler;
+}
+
+static hwstats_sampler * create_const_sampler(const double value)
+{
+    hwstats_const * const c = (hwstats_const *)malloc(sizeof(hwstats_const));
+    hwstats_sampler * const sampler = (hwstats_sampler *)malloc(sizeof(hwstats_sampler));
+
     *c = (hwstats_const){ .value = value };
 
     hwstats_const_sampler_init(sampler, c);
@@ -204,7 +216,7 @@ static hwstats_sampler * create_sampler(
 )
 {
     if (strcmp("uniform", name) == 0) return create_uniform_sampler(seed);
-    if (strncmp("bin", name, strlen("bin")))
+    else if (strncmp("bin", name, strlen("bin")) == 0)
     {
         uint32_t value;
         if (sscanf(name, "bin(%" SCNu32 ")", &value) != 1)
@@ -213,6 +225,16 @@ static hwstats_sampler * create_sampler(
             abort();
         }
         return create_bin_sampler(value);
+    }
+    else if (strncmp("const", name, strlen("const")) == 0)
+    {
+        double value;
+        if (sscanf(name, "const(%lf)", &value) != 1)
+        {
+            fprintf(stderr, "invalid const sampler\n");
+            abort();
+        }
+        return create_const_sampler(value);
     }
     return NULL;
 }
@@ -1291,10 +1313,10 @@ int benchmark_wbg_main(const benchmark_config * const config)
     }
 
     wbg_memory memory;
-    if (strcmp("register", config->store_name) == 0) memory = wbg_memory_register;
-    else if (strcmp("workgroup", config->store_name) == 0) memory = wbg_memory_workgroup;
-    else if (strcmp("adaptive", config->store_name) == 0) memory = wbg_memory_adaptive;
-    else PANIC("invalid memory kind %s", config->store_name);
+    if (strcmp("register", config->memory_name) == 0) memory = wbg_memory_register;
+    else if (strcmp("workgroup", config->memory_name) == 0) memory = wbg_memory_workgroup;
+    else if (strcmp("adaptive", config->memory_name) == 0) memory = wbg_memory_adaptive;
+    else PANIC("invalid memory kind %s", config->memory_name);
 
     wbg_store store;
     if (strcmp("block", config->store_name) == 0) store = wbg_store_block;

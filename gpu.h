@@ -45,9 +45,10 @@ typedef enum wbg_bin_flag_enum
 typedef uint32_t wbg_store;
 typedef enum wbg_store_enum
 {
-    wbg_store_adaptive = 0,
-    wbg_store_block = 1,
-    wbg_store_striped = 2,
+    // TODO: once this works, adaptive should be default
+    wbg_store_block = 0,
+    wbg_store_striped = 1,
+    wbg_store_adaptive = 2,
 } wbg_store_enum;
 
 typedef uint32_t wbg_memory;
@@ -1306,7 +1307,6 @@ WB_EXPORT void wbg_pipeline_init(
                     if (N * 8u > pipeline->max_smem_size) M = 0; break;
                 default: abort();
             }
-
         }
 
         const uint32_t wpt = N / M;

@@ -20,11 +20,10 @@ cmake --build "${BUILD_DIR}" --target wb_benchmark
 
 SEED=42
 MAX_KEY=4096
-BIN_SAMPLER="uniform"
-KEY_SAMPLER="uniform"
+KEY_SAMPLER="const(1.0)"
 
-ROUNDS=20
-RUNS_PER_ROUND=10
+ROUNDS=1
+RUNS_PER_ROUND=200
 N_WARMUP=5
 
 STORE="block"
@@ -32,31 +31,37 @@ STORE="block"
 KEY_BUDGETS=(1000 10000 100000 1000000 10000000)
 
 CONDITIONS=(
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(1):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(2):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(3):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(4):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(5):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(6):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(7):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(8):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(9):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(10):0"
-    "gpu_subgroups:bin(1):1" "gpu_smem:bin(11):0"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(1):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(2):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(3):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(4):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(5):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(6):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(7):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(8):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(9):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(10):0:workgroup"
+    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(11):0:workgroup"
 )
 NC=${#CONDITIONS[@]}
 
 RESULTS_ROOT="output/experiment2"
 
 run_condition() {
-    local label="$1" kind="$2" subgroup="$3" budget="$4"
+    local label="$1" bin_sampler="$2" subgroup="$3" memory="$4" budget="$5"
     local results_dir="${RESULTS_ROOT}/keys_${budget}/${label}"
-    "${BIN}" \
-        "${kind}" "${results_dir}" \
-        "${BIN_SAMPLER}" "${KEY_SAMPLER}" \
+    echo "${BIN}" \
+        wbg "${results_dir}" \
+        "${bin_sampler}" "${KEY_SAMPLER}" \
         "${SEED}" "${budget}" \
         "${RUNS_PER_ROUND}" "${N_WARMUP}" \
-        "${MAX_KEY}" "${subgroup}" "${STORE}"
+        "${MAX_KEY}" "${subgroup}" "${memory}" "${STORE}"
+    "${BIN}" \
+        wbg "${results_dir}" \
+        "${bin_sampler}" "${KEY_SAMPLER}" \
+        "${SEED}" "${budget}" \
+        "${RUNS_PER_ROUND}" "${N_WARMUP}" \
+        "${MAX_KEY}" "${subgroup}" "${memory}" "${STORE}"
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
@@ -67,10 +72,12 @@ for budget in "${KEY_BUDGETS[@]}"; do
             cond="${CONDITIONS[$idx]}"
             label="${cond%%:*}"
             rest="${cond#*:}"
-            kind="${rest%%:*}"
-            subgroup="${rest##*:}"
+            bin_sampler="${rest%%:*}"
+            tmp="${rest#*:}"
+            subgroup="${tmp%%:*}"
+            memory="${rest##*:}"
             echo ">> round $((round + 1))/${ROUNDS}  ${label}  (budget=${budget})"
-            run_condition "${label}" "${kind}" "${subgroup}" "${budget}"
+            run_condition "${label}" "${bin_sampler}" "${subgroup}" "${memory}" "${budget}"
         done
     done
 done
