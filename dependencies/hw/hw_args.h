@@ -269,15 +269,15 @@ HWARGS_EXPORT hwargs_bool hwargs_parse(
 
     hwargs_size buffer_offset = 0;
 
-    char ** flags = (char **)((hwargs_ptr)buffer + buffer_offset);
+    parsed->flags = (const char **)((hwargs_ptr)buffer + buffer_offset);
 
     buffer_offset += flags_len * sizeof(const char *);
 
-    char ** positionals = (char **)((hwargs_ptr)buffer + buffer_offset);
+    parsed->positionals = (const char **)((hwargs_ptr)buffer + buffer_offset);
 
     buffer_offset += positionals_len * sizeof(const char *);
 
-    hwargs_param * params = (hwargs_param *)((hwargs_ptr)buffer + buffer_offset);
+    parsed->params = (hwargs_param *)((hwargs_ptr)buffer + buffer_offset);
 
     buffer_offset += params_len * sizeof(hwargs_param);
 

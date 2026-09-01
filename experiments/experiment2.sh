@@ -22,7 +22,7 @@ SEED=42
 KEY_SAMPLER="const(1.0)"
 
 ROUNDS=1
-RUNS_PER_ROUND=200
+RUNS_PER_ROUND=50
 N_WARMUP=5
 
 STORE="block"
@@ -55,13 +55,15 @@ run_condition() {
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
-        --memory "${memory}" --store "${STORE}"
+        --memory "${memory}" --store "${STORE}" \
+        -tune-sort
     "${BIN}" \
         --kind wbg --output "${results_dir}" \
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
-        --memory "${memory}" --store "${STORE}"
+        --memory "${memory}" --store "${STORE}" \
+        -tune-sort
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
