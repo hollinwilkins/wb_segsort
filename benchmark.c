@@ -57,6 +57,7 @@ typedef struct benchmark_meta
     uint32_t gpu_device_id;
     uint32_t subgroup_min_size;
     uint32_t subgroup_max_size;
+    const char * store;
     const wbg_gpu_bin * bins;
     uint32_t bin_counts[13];
     uint32_t bin_key_counts[13];
@@ -135,6 +136,7 @@ typedef struct benchmark_config
     size_t n_warmup_runs;
     uint32_t max_key;
     bool subgroups_enabled;
+    const char * store_name;
 } benchmark_config;
 
 static uint64_t now_ns(void) {
@@ -657,10 +659,19 @@ static void benchmark_meta_init(
     }
 
     wbg_gpu_bin * bins = NULL;
+    const char * store = NULL;
     if (pipeline != NULL)
     {
         bins = (wbg_gpu_bin *)malloc(sizeof(pipeline->bins));
         memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
+
+        switch (pipeline->options.store)
+        {
+            case wbg_store_block: store = "block";
+            case wbg_store_striped: store = "striped";
+            case wbg_store_adaptive: store = "adaptive";
+            default: PANIC("invalid store kind");
+        }
     }
 
     *meta = (benchmark_meta){
@@ -678,6 +689,7 @@ static void benchmark_meta_init(
         .gpu_device_id = gpu_device_id,
         .subgroup_min_size = subgroup_min_size,
         .subgroup_max_size = subgroup_max_size,
+        .store = store,
         .bins = bins,
         .wgpu_backend_name = BENCH_BACKEND_NAME,
         .wgpu_backend_version = BENCH_BACKEND_VERSION,
@@ -874,6 +886,7 @@ static void write_benchmark_meta(
         write_json_string_field(mf, false, 2, "wgpu_backend_version", meta->wgpu_backend_version);
         write_json_string_field(mf, false, 2, "wgpu_backend_release_type", meta->wgpu_backend_release_type);
         write_json_string_field(mf, false, 2, "cpu_release_type", meta->cpu_release_type);
+        write_json_string_field(mf, false, 2, "store", meta->store);
         write_json_string_field(mf, false, 2, "bin_sampler", meta->bin_sampler);
         write_json_string_field(mf, false, 2, "key_sampler", meta->key_sampler);
         write_json_uint32_field(mf, false, 2, "max_key", meta->max_key);
@@ -980,7 +993,7 @@ static void write_benchmark_results_wbc(
 
     snprintf(BENCHMARK_FILE, sizeof(BENCHMARK_FILE), "%s/timing.csv", BENCHMARK_DIR);
     FILE * rf = fopen(BENCHMARK_FILE, "w");
-    fprintf(rf, "wall_ms,wall_upload_ms,walL_sort_ms,wall_us,wall_upload_us,wall_sort_us,wall_ns,wall_upload_ns,wall_sort_ns\n,");
+    fprintf(rf, "wall_ms,wall_upload_ms,walL_sort_ms,wall_us,wall_upload_us,wall_sort_us,wall_ns,wall_upload_ns,wall_sort_ns\n");
     for (uint32_t i = 0; i < meta->n_runs; i++)
     {
         const uint64_t wall_start_ns = results[i].data.wbc.wall_start_ns;
@@ -1138,7 +1151,7 @@ int benchmark_wbc_main(const benchmark_config * const config)
         data.keys_len,
         config->n_warmup_runs,
         config->n_runs,
-        true,
+        config->subgroups_enabled,
         NULL,
         NULL
     );
@@ -1199,11 +1212,18 @@ int benchmark_wbg_main(const benchmark_config * const config)
         }
     }
 
+    wbg_store store;
+    if (strcmp("block", config->store_name) == 0) store = wbg_store_block;
+    else if (strcmp("striped", config->store_name) == 0) store = wbg_store_striped;
+    else if (strcmp("adaptive", config->store_name) == 0) store = wbg_store_adaptive;
+    else PANIC("invalid store kind %s", config->store_name);
+
     wbg_pipeline_init(
         &pipeline,
         &(wbg_options){
             .sort_kernels_root_dir = "shaders/sort_kernels",
             .subgroups_enabled = config->subgroups_enabled,
+            .store = store,
         },
         context.instance,
         context.adapter,
@@ -1300,6 +1320,7 @@ int main(int argc, char ** argv)
     const size_t n_warmup_runs = strtoull(argv[8], &endptr, 10);
     const uint32_t max_key = strtol(argv[9], &endptr, 10);
     const uint32_t subgroup_test = strtol(argv[10], &endptr, 10);
+    const char * const store_name = argv[11];
     const bool subgroups_enabled = subgroup_test == 1;
 
     const benchmark_config config = (benchmark_config){
@@ -1312,7 +1333,8 @@ int main(int argc, char ** argv)
         .n_runs = n_runs,
         .n_warmup_runs = n_warmup_runs,
         .max_key = max_key,
-        .subgroups_enabled = subgroups_enabled
+        .subgroups_enabled = subgroups_enabled,
+        .store_name = store_name,
     };
 
     if (strcmp("wbg", kind_name) == 0)

@@ -6,9 +6,10 @@ from dataclasses import dataclass
 class KernelGenerator:
     _tmp_index: int
 
-    def __init__(self, memory: str):
+    def __init__(self, memory: str, store: str):
         self._tmp_index = 0
         self._memory = memory
+        self._store = store
 
     def tmp(self) -> str:
         tmp_index = self._tmp_index
@@ -129,9 +130,79 @@ class KernelGenerator:
 
         return "\n".join(stages)
 
+    def store_back(self, base: str, length: str, active: str | None,
+                   N: int, M: int) -> str:
+        if self._store == "block":
+            return self._block_store(base, length, active)
+        if self._memory == "workgroup":
+            return self._striped_store_smem(base, length, active)
+        return self._striped_store_subgroup(base, length, active, N, M)
+
+    def _block_store(self, base: str, length: str, active: str | None) -> str:
+        guard = f"{active} && pos < {length}" if active else f"pos < {length}"
+        return (
+            "    // block store\n"
+            "    for (var r = 0u; r < WPT; r = r + 1u) {\n"
+            "        let pos = local_tid * WPT + r;\n"
+            f"        if {guard} {{\n"
+            f"            global_keys[{base} + pos] = keys[r];\n"
+            f"            global_value_indices[{base} + pos] = values[r];\n"
+            "        }\n"
+            "    }"
+        )
+
+    def _striped_store_smem(self, base: str, length: str, active: str | None) -> str:
+        guard = f"{active} && j < {length}" if active else f"j < {length}"
+        return (
+            "    // striped (coalesced) store via shared memory\n"
+            "    for (var r = 0u; r < WPT; r = r + 1u) {\n"
+            "        smem_keys[local_tid * WPT + r] = keys[r];\n"
+            "        smem_vals[local_tid * WPT + r] = values[r];\n"
+            "    }\n"
+            "    workgroupBarrier();\n"
+            "    for (var c = 0u; c < WPT; c = c + 1u) {\n"
+            "        let j = c * M + local_tid;\n"
+            f"        if {guard} {{\n"
+            f"            global_keys[{base} + j] = smem_keys[j];\n"
+            f"            global_value_indices[{base} + j] = smem_vals[j];\n"
+            "        }\n"
+            "    }"
+        )
+
+    def _striped_store_subgroup(self, base: str, length: str, active: str | None,
+                                N: int, M: int) -> str:
+        wpt = N // M
+        w = wpt.bit_length() - 1
+        guard = f"{active} && j < {length}" if active else f"j < {length}"
+
+        lines = ["    // striped (coalesced) store via subgroup shuffle transpose",
+                 "    {",
+                 "        let grp_base = sid - local_tid;   // first lane of this segment",
+                 "        let want = local_tid & (WPT - 1u);",
+                 "        var out_keys: array<u32, WPT>;",
+                 "        var out_values: array<u32, WPT>;"]
+        for r in range(wpt):
+            lines.append(f"        {{ let src = grp_base + (({r}u * M + local_tid) >> {w}u);")
+            for s in range(wpt):
+                lines.append(
+                    f"          {{ let k = subgroupShuffle(keys[{s}], src);"
+                    f" let v = subgroupShuffle(values[{s}], src);"
+                    f" if want == {s}u {{ out_keys[{r}] = k; out_values[{r}] = v; }} }}")
+            lines.append("        }")
+        lines.append("        for (var r = 0u; r < WPT; r = r + 1u) {")
+        lines.append("            let j = r * M + local_tid;")
+        lines.append(f"            if {guard} {{")
+        lines.append(f"                global_keys[{base} + j] = out_keys[r];")
+        lines.append(f"                global_value_indices[{base} + j] = out_values[r];")
+        lines.append("            }")
+        lines.append("        }")
+        lines.append("    }")
+        return "\n".join(lines)
+
     def sort_kernel_reg(self, name: str, N: int, M: int) -> str:
         wpt = N // M
         stages = "\n".join("    " + ln for ln in self.reg_sort(N, M).split("\n"))
+        store = self.store_back("seg_start", "seg_size", "is_active", N, M)
         return f"""
 enable subgroups;
 
@@ -184,20 +255,14 @@ fn {name}(
 
 {stages}
 
-    // blocked store
-    for (var r = 0u; r < WPT; r = r + 1u) {{
-        let pos = local_tid * WPT + r;
-        if is_active && pos < seg_size {{
-            global_keys[seg_start + pos] = keys[r];
-            global_value_indices[seg_start + pos] = values[r];
-        }}
-    }}
+{store}
 }}
 """
 
     def sort_kernel_workgroup(self, name: str, N: int, M: int):
         wpt = N // M
         stages = "\n".join("    " + ln for ln in self.reg_sort(N, M).split("\n"))
+        store = self.store_back("seg_start", "seg_size", "is_active", N, M)
         return f"""
 override WG: u32 = {M}u;
 
@@ -251,14 +316,7 @@ fn {name}(
 
 {stages}
 
-    // blocked store
-    for (var r = 0u; r < WPT; r = r + 1u) {{
-        let pos = local_tid * WPT + r;
-        if is_active && pos < seg_size {{
-            global_keys[seg_start + pos] = keys[r];
-            global_value_indices[seg_start + pos] = values[r];
-        }}
-    }}
+{store}
 }}
 """
 
@@ -273,6 +331,7 @@ fn {name}(
 
         wpt = N // M
         stages = "\n".join("    " + ln for ln in self.reg_sort(N, M).split("\n"))
+        store = self.store_back("tile_lo", "tile_len", None, N, M)
         return f"""
 const WG: u32 = {M}u;
 const N: u32 = {N}u;
@@ -323,14 +382,7 @@ fn {name}(
 
 {stages}
 
-    // blocked store
-    for (var r = 0u; r < WPT; r = r + 1u) {{
-        let pos = local_tid * WPT + r;
-        if pos < tile_len {{
-            global_keys[tile_lo + pos] = keys[r];
-            global_value_indices[tile_lo + pos] = values[r];
-        }}
-    }}
+{store}
 }}
 """
     
@@ -373,10 +425,12 @@ class KernelArgs:
     M: int
     wpt: int
     is_register: bool
+    is_block: bool
 
     def name(self):
+        store = "block" if self.is_block else "striped"
         mem = "reg" if self.is_register else "wg"
-        return f"segsort_{mem}_n{self.N}_m{self.M}"
+        return f"segsort_{mem}_n{self.N}_m{self.M}_{store}"
 
 def main():
     args = sys.argv[1:]
@@ -386,33 +440,35 @@ def main():
 
     kernels = set()
 
-    # reg kernels: per subgroup size, only where register sort is viable
-    for sg_size in SUBGROUP_SIZES:
-        for N in SEGMENT_SIZES:
-            M = min(sg_size, N)
-            if N // M <= WPT_THRESHOLD:
-                kernels.add(KernelArgs(N, M, N // M, True))
+    for is_block in [False, True]:
+        # reg kernels: per subgroup size, only where register sort is viable
+        for sg_size in SUBGROUP_SIZES:
+            for N in SEGMENT_SIZES:
+                M = min(sg_size, N)
+                if N // M <= WPT_THRESHOLD:
+                    kernels.add(KernelArgs(N, M, N // M, True, is_block))
 
-    # wg kernels: one per N, threshold-driven M (matches runtime wg selection)
-    for N in SEGMENT_SIZES:
-        M = wg_m(N)
-        kernels.add(KernelArgs(N, M, N // M, False))
+        # wg kernels: one per N, threshold-driven M (matches runtime wg selection)
+        for N in SEGMENT_SIZES:
+            M = wg_m(N)
+            kernels.add(KernelArgs(N, M, N // M, False, is_block))
 
     for kernel in kernels:
         print(f"Kernel: {kernel}")
 
-        kernel_name = kernel.name()
+        store = "block" if kernel.is_block else "striped"
         memory = "subgroup" if kernel.is_register else "workgroup"
-        generator = KernelGenerator(memory)
-        source = generator.sort_kernel(kernel_name, kernel.N, kernel.M)
+        generator = KernelGenerator(memory, store)
+        source = generator.sort_kernel(kernel.name(), kernel.N, kernel.M)
 
-        with open(f"{output_dir}/{kernel_name}.wgsl", "w") as f:
+        with open(f"{output_dir}/{kernel.name()}.wgsl", "w") as f:
             f.write(source)
 
-    tile_gen = KernelGenerator("workgroup")
-    tile_src = tile_gen.tile_sort_kernel("segsort_tile_n2048_m256", 2048, 256)
-    with open(f"{output_dir}/segsort_tile_n2048_m256.wgsl", "w") as f:
-        f.write(tile_src)
+    for store in ("block", "striped"):
+        tile_gen = KernelGenerator("workgroup", store)
+        tile_src = tile_gen.tile_sort_kernel("segsort_tile_n2048_m256", 2048, 256)
+        with open(f"{output_dir}/segsort_tile_n2048_m256_{store}.wgsl", "w") as f:
+            f.write(tile_src)
 
 
 if __name__ == "__main__":

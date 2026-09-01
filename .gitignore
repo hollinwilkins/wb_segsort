@@ -13,3 +13,4 @@ build-*/
 *.swp
 *.old
 .cache/
+__pycache__/

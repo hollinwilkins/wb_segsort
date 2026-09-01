@@ -10,7 +10,6 @@
 
 #include <webgpu/webgpu.h>
 
-#include "build-debug/_deps/dawn_dist-src/include/webgpu/webgpu.h"
 #include "common.h"
 
 #include "hw_ds.h"
@@ -19,7 +18,6 @@
 #include "shaders/wb_bin.wgsl.h"
 #include "shaders/wbm_schedule.wgsl.h"
 #include "shaders/wbm_merge.wgsl.h"
-#include "shaders/segsort_tile_n2048_m256.wgsl.h"
 
 #define WB_MAX_WORKGROUP_DIMENSION 65535u
 #define WBG_MERGE_TILE_SIZE 2048u
@@ -39,7 +37,18 @@ typedef enum wbg_bin_flag_enum
 
     // is variable sized (WB Sort)
     wbg_bin_flag_is_variable = 1u << 1u,
+
+    // is striped store mode
+    wbg_bin_flag_is_striped = 1u << 2u,
 } wbg_bin_flag_enum;
+
+typedef uint32_t wbg_store;
+typedef enum wbg_store_enum
+{
+    wbg_store_block = 0,
+    wbg_store_striped = 1,
+    wbg_store_adaptive = 2,
+} wbg_store_enum;
 
 typedef struct wbg_gpu_bin
 {
@@ -145,6 +154,7 @@ typedef struct wbg_options
     wbg_dispatch_size dispatch_size;
     size_t wpt_threshold;
     size_t target_wg_size;
+    wbg_store store;
     bool subgroups_enabled;
     bool is_initialized;
 } wbg_options;
@@ -278,6 +288,38 @@ WB_EXPORT void wbg_sort(
 #ifndef WB_SORT_GPU_IMPLEMENTED
 #define WB_SORT_GPU_IMPLEMENTED
 
+static char * wbg__read_file(
+    const char * path,
+    const mems_allocator * allocator,
+    size_t * buffer_len
+);
+
+static wbg_store wbg__store_concrete(
+    const wbg_store store,
+    const bool is_register,
+    const uint32_t N,
+    const uint32_t M
+)
+{
+    switch (store)
+    {
+        case wbg_store_block: return wbg_store_block;
+        case wbg_store_striped: return wbg_store_striped;
+        case wbg_store_adaptive:
+        {
+            const uint32_t wpt = N / M;
+            if (wpt == 1) return wbg_store_block;
+            else if (!is_register && wpt >= 2) return wbg_store_striped;
+            else return wbg_store_block;
+        }
+        default: abort();
+    }
+}
+
+static const char * wbg__store_name_for_flags(const uint32_t flags)
+{
+    return (flags & wbg_bin_flag_is_striped) != 0 ? "striped" : "block";
+}
 
 static wbg_dispatch_size wbg_dispatch_size_for_len(const wbg_dispatch_size * const size, const size_t len)
 {
@@ -615,7 +657,8 @@ static void wbg__segsort_merge_kernels_init(
     wgpuBindGroupLayoutRelease(layout0);
 }
 
-static void wbg__wb_sort_kernel_init(
+static void wbg__merge_sort_kernel_init(
+    const wbg_pipeline * const pipeline,
     WGPUDevice const device,
     WGPUComputePipeline * const wb_sort_kernel
 )
@@ -671,13 +714,29 @@ static void wbg__wb_sort_kernel_init(
 
     WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
 
+    const wbg_gpu_bin bin = pipeline->bins[12];
+
+    static char KERNEL_NAME[2048];
+    snprintf(KERNEL_NAME, 2048, "segsort_tile_n%u_m%u_%s",
+        2048u, 256u, wbg__store_name_for_flags(bin.flags)
+    );
+
+    static char KERNEL_FILE_PATH[2048];
+    snprintf(KERNEL_FILE_PATH, 2048, "%s/%s.wgsl",
+        pipeline->options.sort_kernels_root_dir,
+        KERNEL_NAME
+    );
+
+    size_t source_len;
+    const char * const source = wbg__read_file(KERNEL_FILE_PATH, &mems_system_allocator, &source_len);
+
     WGPUShaderSourceWGSL shader_source_wgsl = (WGPUShaderSourceWGSL){
         .chain = (WGPUChainedStruct){
             .sType = WGPUSType_ShaderSourceWGSL
         },
         .code = (WGPUStringView){
-            .data = (const char *)segsort_tile_n2048_m256_wgsl,
-            .length = segsort_tile_n2048_m256_wgsl_len,
+            .data = (const char *)source,
+            .length = source_len,
         },
     };
     WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
@@ -712,7 +771,7 @@ static void wbg__wb_sort_kernel_init(
 }
 
 static void wbg__kernels_init(
-    wbg_kernels * const kernels,
+    wbg_pipeline * const pipeline,
     WGPUDevice const device,
     const wbg_dispatch_size * const dispatch_size
 )
@@ -890,7 +949,7 @@ static void wbg__kernels_init(
     wgpuPipelineLayoutRelease(pipeline_layout);
     wgpuBindGroupLayoutRelease(layout0);
 
-    *kernels = (wbg_kernels){
+    pipeline->kernels = (wbg_kernels){
         .bin_histogram = bin_histogram_kernel,
         .schedule = scheduler_kernel,
         .group = group_kernel,
@@ -898,18 +957,19 @@ static void wbg__kernels_init(
 
     wbg__segsort_schedule_kernels_init(
         device,
-        &kernels->merge_build_tiles,
-        &kernels->merge_schedule
+        &pipeline->kernels.merge_build_tiles,
+        &pipeline->kernels.merge_schedule
     );
 
     wbg__segsort_merge_kernels_init(
         device,
-        kernels->merge_segmerge
+        pipeline->kernels.merge_segmerge
     );
 
-    wbg__wb_sort_kernel_init(
+    wbg__merge_sort_kernel_init(
+        pipeline,
         device,
-        &kernels->wb_sort
+        &pipeline->kernels.wb_sort
     );
 }
 
@@ -1067,26 +1127,17 @@ static char * wbg__read_file(
     return buffer;
 }
 
-static WGPUComputePipeline wbg__pipeline_create_sort_kernel(
+static WGPUComputePipeline wbg__pipeline_create_sort_kernel_by_name(
     wbg_pipeline * const pipeline,
-    const wbg_gpu_bin * const bin,
+    const char * const name,
+    const uint32_t wg,
     const mems_allocator * const allocator
 )
 {
-    const bool is_register = (bin->flags & wbg_bin_flag_is_register) != 0;
-
-    const char * const memory = is_register ? "reg" : "wg";
-
-    static char KERNEL_NAME[2048];
-    snprintf(KERNEL_NAME, 2048, "segsort_%s_n%u_m%u",
-        memory,
-        bin->n, bin->m
-    );
-
     static char KERNEL_FILE_PATH[2048];
     snprintf(KERNEL_FILE_PATH, 2048, "%s/%s.wgsl",
         pipeline->options.sort_kernels_root_dir,
-        KERNEL_NAME
+        name
     );
 
     size_t source_len;
@@ -1103,7 +1154,7 @@ static WGPUComputePipeline wbg__pipeline_create_sort_kernel(
     };
     WGPUShaderModuleDescriptor shader_module_desc = (WGPUShaderModuleDescriptor){
         .label = (WGPUStringView){
-            .data = KERNEL_NAME,
+            .data = name,
             .length = WGPU_STRLEN,
         },
         .nextInChain = (WGPUChainedStruct *)(&shader_source_wgsl),
@@ -1122,7 +1173,7 @@ static WGPUComputePipeline wbg__pipeline_create_sort_kernel(
     };
     sort_kernel_desc.layout = pipeline->sort_layouts.pipeline_layout;
     sort_kernel_desc.compute.entryPoint = (WGPUStringView){
-        .data = KERNEL_NAME,
+        .data = name,
         .length = WGPU_STRLEN,
     };
     sort_kernel_desc.compute.module = shader_module;
@@ -1133,11 +1184,31 @@ static WGPUComputePipeline wbg__pipeline_create_sort_kernel(
                 .data = "WG",
                 .length = WGPU_STRLEN
             },
-            .value = (float)bin->wg,
+            .value = (float)wg,
         },
     };
 
     return wgpuDeviceCreateComputePipeline(pipeline->device, &sort_kernel_desc);
+}
+
+static WGPUComputePipeline wbg__pipeline_create_sort_kernel(
+    wbg_pipeline * const pipeline,
+    const wbg_gpu_bin * const bin,
+    const mems_allocator * const allocator
+)
+{
+    const bool is_register = (bin->flags & wbg_bin_flag_is_register) != 0;
+
+    const char * const memory = is_register ? "reg" : "wg";
+    const char * store_name = wbg__store_name_for_flags(bin->flags);
+
+    static char KERNEL_NAME[2048];
+    snprintf(KERNEL_NAME, 2048, "segsort_%s_n%u_m%u_%s",
+        memory,
+        bin->n, bin->m, store_name
+    );
+
+    return wbg__pipeline_create_sort_kernel_by_name(pipeline, KERNEL_NAME, bin->wg, allocator);
 }
 
 WB_EXPORT void wbg_pipeline_init(
@@ -1185,12 +1256,6 @@ WB_EXPORT void wbg_pipeline_init(
         .subgroup_size = info.subgroupMinSize,
         .has_subgroups = options2.subgroups_enabled,
     };
-
-    wbg__kernels_init(
-        &pipeline->kernels,
-        pipeline->device,
-        &options2.dispatch_size
-    );
 
     wbg__sort_layouts_init(
         &pipeline->sort_layouts,
@@ -1244,10 +1309,19 @@ WB_EXPORT void wbg_pipeline_init(
         }
 
         const bool is_variable = M == 0;
+        const wbg_store store = wbg__store_concrete(
+            pipeline->options.store,
+            is_register,
+            N,
+            M
+        );
+
+
 
         wbg_bin_flag flags = 0;
         flags |= (uint32_t)is_register * wbg_bin_flag_is_register;
         flags |= (uint32_t)is_variable * wbg_bin_flag_is_variable;
+        flags |= (uint32_t)(store == wbg_store_striped) * wbg_bin_flag_is_striped;
 
         pipeline->bins[i] = (wbg_gpu_bin){
             .n = N,
@@ -1256,8 +1330,15 @@ WB_EXPORT void wbg_pipeline_init(
             .flags = flags,
         };
     }
+
+    const wbg_store merge_store = wbg__store_concrete(
+        pipeline->options.store,
+        false,
+        2048u,
+        256u
+    );
     pipeline->bins[12] = (wbg_gpu_bin){
-        .flags = (uint32_t)wbg_bin_flag_is_variable,
+        .flags = (uint32_t)wbg_bin_flag_is_variable | ((merge_store == wbg_store_striped) != 0) * wbg_bin_flag_is_striped,
     };
 
     for (int i = 1; i < 12; i++)
@@ -1270,6 +1351,12 @@ WB_EXPORT void wbg_pipeline_init(
             allocator
         );
     }
+
+    wbg__kernels_init(
+        pipeline,
+        pipeline->device,
+        &options2.dispatch_size
+    );
 }
 
 #define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS (1024 * 1024)

@@ -27,6 +27,8 @@ ROUNDS=20
 RUNS_PER_ROUND=10
 N_WARMUP=5
 
+STORE="block"
+
 KEY_BUDGETS=(1000 10000 100000 1000000 10000000)
 
 CONDITIONS=("cpu:wbc:0" "gpu_subgroups:wbg:1" "gpu_smem:wbg:0")
@@ -42,7 +44,7 @@ run_condition() {
         "${BIN_SAMPLER}" "${KEY_SAMPLER}" \
         "${SEED}" "${budget}" \
         "${RUNS_PER_ROUND}" "${N_WARMUP}" \
-        "${MAX_KEY}" "${subgroup}"
+        "${MAX_KEY}" "${subgroup}" "${STORE}"
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do

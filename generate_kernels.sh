@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python kernel_generator.py shaders/sort_kernels
+uv run python kernel_generator.py shaders/sort_kernels
