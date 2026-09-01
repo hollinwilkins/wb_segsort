@@ -463,6 +463,85 @@ static void benchmark_run_wbc(
     }
 }
 
+// static uint32_t benchmark_wbg_sort_iterations(
+//     const wbg_pipeline * const pipeline,
+//     const wbg_buffers * const buffers,
+//     const wbg_bindings * const bindings,
+//     const benchmark_data * const data,
+//     wbg_sort_timing * const timing,
+//     WGPUBuffer const query_buffer
+// )
+// {
+//     wbg_gpu_config config = {0};
+
+//     const uint64_t start_ns = now_ns();
+//     wbg_prepare(
+//         pipeline->queue,
+//         buffers,
+//         data->segments_len, data->segments,
+//         data->keys_len, data->keys,
+//         &config
+//     );
+//     benchmark_wait_idle(pipeline->instance, pipeline->queue);
+//     const uint64_t end_upload_ns = now_ns();
+
+//     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
+//         .label = (WGPUStringView){
+//             .data = "Merge Sort: Command Encoder",
+//             .length = WGPU_STRLEN,
+//         }
+//     });
+
+//     wbg_run_sort(
+//         pipeline,
+//         bindings,
+//         buffers,
+//         &config,
+//         encoder,
+//         timing
+//     );
+
+//     wgpuCommandEncoderResolveQuerySet(
+//         encoder,
+//         timing->query,
+//         0,
+//         QUERY_COUNT,
+//         query_buffer,
+//         0
+//     );
+
+//     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
+//         .label = (WGPUStringView){
+//             .data = "WB Sort: Command Buffer",
+//             .length = WGPU_STRLEN,
+//         }
+//     });
+
+//     const uint64_t start_sort_ns = now_ns();
+//     wgpuQueueSubmit(pipeline->queue, 1, &commands);
+//     benchmark_wait_idle(pipeline->instance, pipeline->queue);
+//     const uint64_t end_sort_ns = now_ns();
+//     result->data.wbg.sort_start_ns = start_sort_ns;
+//     result->data.wbg.sort_end_ns = end_sort_ns;
+//     result->data.wbg.wall_start_ns = start_ns;
+//     result->data.wbg.wall_end_ns = end_sort_ns;
+
+//     wgpuCommandBufferRelease(commands);
+//     wgpuCommandEncoderRelease(encoder);
+
+//     uint64_t * timestamps;
+//     hwgutil_wgpu_read_buffer_alloc(
+//         pipeline->instance,
+//         pipeline->device,
+//         pipeline->queue,
+//         query_buffer,
+//         &mems_system_allocator,
+//         (void **)&timestamps
+//     );
+
+//     memcpy(result->data.wbg.timestamps, timestamps, sizeof(result->data.wbg.timestamps));
+// }
+
 static void benchmark_run_wbg(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
@@ -529,6 +608,15 @@ static void benchmark_run_wbg(
             &warmup_result
         );
     }
+
+    // const uint32_t sort_iterations = benchmark_wbg_sort_iterations(
+    //     pipeline,
+    //     buffers,
+    //     bindings,
+    //     data,
+    //     &timing,
+    //     query_buffer
+    // );
 
     for (size_t i = 0; i < n_runs; i++)
     {
