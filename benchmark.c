@@ -92,9 +92,6 @@ typedef struct benchmark_meta
     size_t bin_iterations;
     size_t sort_iterations;
     size_t merge_iterations;
-    uint64_t tuned_bin_ns;
-    uint64_t tuned_sort_ns;
-    uint64_t tuned_merge_ns;
 } benchmark_meta;
 
 typedef struct benchmark_result_wbc
@@ -152,9 +149,10 @@ typedef struct benchmark_config
     size_t n_warmup_runs;
     const char * memory_name;
     const char * store_name;
-    bool tune_bin;
-    bool tune_sort;
-    bool tune_merge;
+    bool tune;
+    size_t bin_iterations;
+    size_t sort_iterations;
+    size_t merge_iterations;
 } benchmark_config;
 
 static uint64_t now_ns(void) {
@@ -1016,9 +1014,6 @@ static void write_benchmark_meta(
         write_json_uint32_field(mf, false, 2, "bin_iterations", meta->bin_iterations);
         write_json_uint32_field(mf, false, 2, "sort_iterations", meta->sort_iterations);
         write_json_uint32_field(mf, false, 2, "merge_iterations", meta->merge_iterations);
-        write_json_uint64_field(mf, false, 2, "tuned_bin_ns", meta->tuned_bin_ns);
-        write_json_uint64_field(mf, false, 2, "tuned_sort_ns", meta->tuned_sort_ns);
-        write_json_uint64_field(mf, false, 2, "tuned_merge_ns", meta->tuned_merge_ns);
 
         fprintf(mf, "  \"bins\": [");
         for (int i = 0; i < 13; i++)
@@ -1692,25 +1687,36 @@ int benchmark_wbg_main(const benchmark_config * const config)
 
     WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(pipeline.device, &query_buffer_desc);
 
-    size_t bin_iterations, sort_iterations, merge_iterations;
-    uint64_t tuned_bin_ns, tuned_sort_ns, tuned_merge_ns;
-    benchmark_wbg_tune_iterations(
-        &pipeline,
-        &buffers,
-        &bindings,
-        &data,
-        &timing,
-        query_buffer,
-        config->tune_bin,
-        config->tune_sort,
-        config->tune_merge,
-        &bin_iterations,
-        &sort_iterations,
-        &merge_iterations,
-        &tuned_bin_ns,
-        &tuned_sort_ns,
-        &tuned_merge_ns
-    );
+    if (config->tune)
+    {
+        size_t bin_iterations, sort_iterations, merge_iterations;
+        uint64_t tuned_bin_ns, tuned_sort_ns, tuned_merge_ns;
+        benchmark_wbg_tune_iterations(
+            &pipeline,
+            &buffers,
+            &bindings,
+            &data,
+            &timing,
+            query_buffer,
+            true,
+            true,
+            true,
+            &bin_iterations,
+            &sort_iterations,
+            &merge_iterations,
+            &tuned_bin_ns,
+            &tuned_sort_ns,
+            &tuned_merge_ns
+        );
+
+        printf("Tuning params: --bin-iterations %zu --sort-iterations %zu --merge-iterations %zu\n",
+            bin_iterations, sort_iterations, merge_iterations);
+
+        printf("Tuned to: BinIterations(%llu), SortIterations(%llu), MergeIterations(%llu)\n",
+            tuned_bin_ns, tuned_sort_ns, tuned_merge_ns);
+
+        exit(0);
+    }
 
     benchmark_meta meta;
     benchmark_meta_init(
@@ -1728,12 +1734,9 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &pipeline,
         &context
     );
-    meta.bin_iterations = bin_iterations;
-    meta.sort_iterations = sort_iterations;
-    meta.merge_iterations = merge_iterations;
-    meta.tuned_bin_ns = tuned_bin_ns;
-    meta.tuned_sort_ns = tuned_sort_ns;
-    meta.tuned_merge_ns = tuned_merge_ns;
+    meta.bin_iterations = config->bin_iterations;
+    meta.sort_iterations = config->sort_iterations;
+    meta.merge_iterations = config->merge_iterations;
 
     benchmark_result * const results = (benchmark_result *)malloc(config->n_runs * sizeof(benchmark_result));
 
@@ -1746,9 +1749,9 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &data,
         &timing,
         query_buffer,
-        bin_iterations,
-        sort_iterations,
-        merge_iterations,
+        config->bin_iterations,
+        config->sort_iterations,
+        config->merge_iterations,
         results
     );
 
@@ -1786,6 +1789,9 @@ int main(int argc, const char ** argv)
     const hwargs_param * const warmup_runs_param = hwargs_get_param(&args, "warmup-runs");
     const hwargs_param * const memory_param = hwargs_get_param(&args, "memory");
     const hwargs_param * const store_param = hwargs_get_param(&args, "store");
+    const hwargs_param * const bin_iterations_param = hwargs_get_param(&args, "bin-iterations");
+    const hwargs_param * const sort_iterations_param = hwargs_get_param(&args, "sort-iterations");
+    const hwargs_param * const merge_iterations_param = hwargs_get_param(&args, "merge-iterations");
 
     ENSURE_MSG(kind_param != NULL, "must provide --kind (wbc (CPU), wbg (WebGPU Segsort))");
     ENSURE_MSG(output_param != NULL, "must provide --output <dir>");
@@ -1807,9 +1813,10 @@ int main(int argc, const char ** argv)
     const size_t n_warmup_runs = warmup_runs_param == NULL ? 10 : strtoull(warmup_runs_param->value, &endptr, 10);
     const char * const memory_name = memory_param == NULL ? "adaptive" : memory_param->value;
     const char * const store_name = store_param == NULL ? "adaptive" : store_param->value;
-    const bool tune_bin = hwargs_has_flag(&args, "tune-bin");
-    const bool tune_sort = hwargs_has_flag(&args, "tune-sort");
-    const bool tune_merge = hwargs_has_flag(&args, "tune-merge");
+    const bool tune = hwargs_has_flag(&args, "tune");
+    const size_t bin_iterations = bin_iterations_param == NULL ? 1 : strtol(bin_iterations_param->value, &endptr, 10);
+    const size_t sort_iterations = sort_iterations_param == NULL ? 1 : strtol(sort_iterations_param->value, &endptr, 10);
+    const size_t merge_iterations = merge_iterations_param == NULL ? 1 : strtol(merge_iterations_param->value, &endptr, 10);
 
     const benchmark_config config = (benchmark_config){
         .kind_name = kind_name,
@@ -1822,9 +1829,10 @@ int main(int argc, const char ** argv)
         .n_warmup_runs = n_warmup_runs,
         .memory_name = memory_name,
         .store_name = store_name,
-        .tune_bin = tune_bin,
-        .tune_sort = tune_sort,
-        .tune_merge = tune_merge,
+        .tune = tune,
+        .bin_iterations = bin_iterations,
+        .sort_iterations = sort_iterations,
+        .merge_iterations = merge_iterations,
     };
 
     if (strcmp("wbg", kind_name) == 0)

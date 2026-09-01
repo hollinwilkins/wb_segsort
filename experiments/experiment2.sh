@@ -47,23 +47,48 @@ NC=${#CONDITIONS[@]}
 
 RESULTS_ROOT="output/experiment2"
 
+# Predetermined sort_iterations per cell, produced by experiment2_tune.sh.
+# Columns: label \t sampler \t memory \t budget \t sort_iterations
+SORT_ITER_FILE="${RESULTS_ROOT}/sort_iterations.tsv"
+
+if [ ! -f "${SORT_ITER_FILE}" ]; then
+    echo "!! missing ${SORT_ITER_FILE}" >&2
+    echo "!! run ./experiments/experiment2_tune.sh first to calibrate sort_iterations" >&2
+    exit 1
+fi
+
+# Look up sort_iterations by (sampler, memory, budget); exit non-zero if absent.
+lookup_sort_iters() {
+    local sampler="$1" memory="$2" budget="$3"
+    awk -F'\t' -v s="${sampler}" -v m="${memory}" -v b="${budget}" \
+        '$2==s && $3==m && $4==b { print $5; found=1 } END { exit !found }' \
+        "${SORT_ITER_FILE}"
+}
+
 run_condition() {
     local label="$1" bin_sampler="$2" memory="$3" budget="$4"
     local results_dir="${RESULTS_ROOT}/keys_${budget}/${label}"
+
+    local sort_iters
+    if ! sort_iters=$(lookup_sort_iters "${bin_sampler}" "${memory}" "${budget}"); then
+        echo "!! no sort_iterations for ${bin_sampler}:${memory}:${budget} in ${SORT_ITER_FILE}" >&2
+        exit 1
+    fi
+
     echo "${BIN}" \
         --kind wbg --output "${results_dir}" \
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
         --memory "${memory}" --store "${STORE}" \
-        -tune-sort
+        --sort-iterations "${sort_iters}"
     "${BIN}" \
         --kind wbg --output "${results_dir}" \
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
         --memory "${memory}" --store "${STORE}" \
-        -tune-sort
+        --sort-iterations "${sort_iters}"
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
