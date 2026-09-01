@@ -226,13 +226,15 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
     WGPUDevice * device,
     WGPUQueue * queue,
     size_t instance_features_len, WGPUInstanceFeatureName * instance_features,
-    size_t device_features_len, WGPUFeatureName * device_features
+    size_t device_features_len, WGPUFeatureName * device_features,
+    const WGPULimits * required_limits
 );
 
 HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(
     hwgutil_wgpu_context * context,
     size_t instance_features_len, WGPUInstanceFeatureName * instance_features,
-    size_t device_features_len, WGPUFeatureName * device_features
+    size_t device_features_len, WGPUFeatureName * device_features,
+    const WGPULimits * required_limits
 );
 HWGUTIL_EXPORT void hwgutil_wgpu_context_add_ref(hwgutil_wgpu_context * context);
 HWGUTIL_EXPORT void hwgutil_wgpu_context_release(hwgutil_wgpu_context * context);
@@ -487,7 +489,8 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
     WGPUDevice * const device,
     WGPUQueue * const queue,
     const size_t instance_features_len, WGPUInstanceFeatureName * const instance_features,
-    const size_t device_features_len, WGPUFeatureName * const device_features
+    const size_t device_features_len, WGPUFeatureName * const device_features,
+    const WGPULimits * const required_limits
 )
 {
     WGPUInstanceDescriptor instance_descriptor = WGPU_INSTANCE_DESCRIPTOR_INIT;
@@ -529,6 +532,7 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
     device_descriptor.uncapturedErrorCallbackInfo.callback = hwgutil__on_unhandled_error;
     device_descriptor.requiredFeatureCount = device_features_len;
     device_descriptor.requiredFeatures = device_features;
+    device_descriptor.requiredLimits = required_limits;
 
 #ifdef HWGUTIL_WEBGPU_BACKEND_DAWN
 
@@ -573,7 +577,8 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_init(
 HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(
     hwgutil_wgpu_context * const context,
     const size_t instance_features_len, WGPUInstanceFeatureName * const instance_features,
-    const size_t device_features_len, WGPUFeatureName * const device_features
+    const size_t device_features_len, WGPUFeatureName * const device_features,
+    const WGPULimits * const required_limits
 )
 {
     return hwgutil_wgpu_init(
@@ -582,7 +587,8 @@ HWGUTIL_EXPORT hwgutil_bool hwgutil_wgpu_context_init(
         &context->device,
         &context->queue,
         instance_features_len, instance_features,
-        device_features_len, device_features
+        device_features_len, device_features,
+        required_limits
     );
 }
 

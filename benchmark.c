@@ -319,7 +319,7 @@ static void benchmark_run_wbg_sample(
 
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
         .label = (WGPUStringView){
-            .data = "Merge Sort: Command Encoder",
+            .data = "WB Sort: Command Encoder",
             .length = WGPU_STRLEN,
         }
     });
@@ -1529,6 +1529,7 @@ static void benchmark_wbg_tune_iterations(
                     pipeline,
                     bindings,
                     buffers,
+                    &config,
                     merge_pass
                 );
             }
@@ -1583,10 +1584,15 @@ int benchmark_wbg_main(const benchmark_config * const config)
 
     printf("Initializing WebGPU context...\n");
 
+    WGPULimits required_limits = WGPU_LIMITS_INIT;
+    required_limits.maxStorageBufferBindingSize = 1024llu * 1024 * 1024 * 2;
+    required_limits.maxBufferSize = 1024llu * 1024 * 1024 * 2;
+
     if (!hwgutil_wgpu_context_init(
         &context,
         1, (WGPUInstanceFeatureName[]){ WGPUInstanceFeatureName_TimedWaitAny },
-        2, (WGPUFeatureName[]){ WGPUFeatureName_TimestampQuery, WGPUFeatureName_Subgroups }
+        2, (WGPUFeatureName[]){ WGPUFeatureName_TimestampQuery, WGPUFeatureName_Subgroups },
+        &required_limits
     )) abort();
 
     wbg_memory memory;
@@ -1633,7 +1639,10 @@ int benchmark_wbg_main(const benchmark_config * const config)
     wbg_buffers_init(
         &pipeline,
         &buffers,
-        NULL,
+        &(wbg_buffers_options){
+            .max_items = config->key_budget + WBG_MERGE_TILE_SIZE,
+            .max_segments = config->key_budget,
+        },
         context.device,
         context.queue
     );

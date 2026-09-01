@@ -28,10 +28,13 @@ struct DispatchSize {
 @group(0) @binding(6) var<storage, read_write> dispatch_merge: array<DispatchSize>;
 
 @compute @workgroup_size(WG, 1, 1)
-fn main_build_tiles(@builtin(global_invocation_id) gid: vec3<u32>) {
+fn main_build_tiles(
+    @builtin(global_invocation_id) gid: vec3<u32>,
+    @builtin(num_workgroups) nwg: vec3<u32>,
+) {
+    let GID = gid.x + gid.y * (nwg.x * WG);
     let base = bin_offsets[11];
     let count = bin_offsets[12] - base;
-    let GID = gid.x;
 
     if (GID < count) {
         let seg_id = bin_indices[base + GID];

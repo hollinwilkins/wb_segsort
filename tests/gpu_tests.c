@@ -129,7 +129,8 @@ int main(void)
     if (!hwgutil_wgpu_context_init(
         &context,
         1, (WGPUInstanceFeatureName[]){ WGPUInstanceFeatureName_TimedWaitAny },
-        1, (WGPUFeatureName[]){ WGPUFeatureName_Subgroups }
+        1, (WGPUFeatureName[]){ WGPUFeatureName_Subgroups },
+        NULL
     )) abort();
 
     wbg_pipeline_init(

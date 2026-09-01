@@ -122,7 +122,7 @@ typedef struct wbg_kernels
     WGPUComputePipeline merge_build_tiles;
     WGPUComputePipeline merge_schedule;
     WGPUComputePipeline merge_segmerge[WBG_MERGE_TILE_MAX_DEPTH];
-    WGPUComputePipeline wb_sort;
+    WGPUComputePipeline merge_sort;
 } wbg_kernels;
 
 typedef struct wbg_bindings
@@ -132,7 +132,7 @@ typedef struct wbg_bindings
     WGPUBindGroup merge_schedule;
     WGPUBindGroup merge_merge;
     WGPUBindGroup merge_merge_swap;
-    WGPUBindGroup wb_sort;
+    WGPUBindGroup merge_sort;
 } wbg_bindings;
 
 typedef struct wbg_dispatch_size
@@ -275,6 +275,7 @@ WB_EXPORT void wbg_merge(
     const wbg_pipeline * pipeline,
     const wbg_bindings * bindings,
     const wbg_buffers * buffers,
+    const wbg_gpu_config * config,
     WGPUComputePassEncoder encoder
 );
 
@@ -353,9 +354,9 @@ static wbg_dispatch_size wbg_dispatch_size_for_len(const wbg_dispatch_size * con
     const uint32_t workgroup_items = size->x * size->y;
     uint32_t x = (len + workgroup_items - 1) / workgroup_items;
     uint32_t y = 1;
-    if (size->x > WB_MAX_WORKGROUP_DIMENSION)
+    if (x > WB_MAX_WORKGROUP_DIMENSION)
     {
-        y = (len + WB_MAX_WORKGROUP_DIMENSION - 1u) / WB_MAX_WORKGROUP_DIMENSION;
+        y = (x + WB_MAX_WORKGROUP_DIMENSION - 1u) / WB_MAX_WORKGROUP_DIMENSION;
         x = WB_MAX_WORKGROUP_DIMENSION;
     }
 
@@ -1011,7 +1012,7 @@ static void wbg__kernels_init(
     wbg__merge_sort_kernel_init(
         pipeline,
         device,
-        &pipeline->kernels.wb_sort
+        &pipeline->kernels.merge_sort
     );
 }
 
@@ -1737,7 +1738,7 @@ WB_EXPORT void wbg_bindings_init(
 
     WGPUBindGroup merge_schedule_binding = wgpuDeviceCreateBindGroup(pipeline->device, &merge_schedule_binding_desc);
 
-    WGPUBindGroupLayout wb_sort_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->kernels.wb_sort, 0);
+    WGPUBindGroupLayout wb_sort_layout0 = wgpuComputePipelineGetBindGroupLayout(pipeline->kernels.merge_sort, 0);
 
     WGPUBindGroupDescriptor wb_sort_binding_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
     wb_sort_binding_desc.label = (WGPUStringView){
@@ -1777,7 +1778,7 @@ WB_EXPORT void wbg_bindings_init(
         .bin = bin_binding,
         .sort = sort_binding,
         .merge_schedule = merge_schedule_binding,
-        .wb_sort = wb_sort_binding,
+        .merge_sort = wb_sort_binding,
     };
 
     wgpuBindGroupLayoutRelease(merge_schedule_layout0);
@@ -1982,27 +1983,28 @@ WB_EXPORT void wbg_segsort(
             (uint64_t)i * sizeof(wbg_dispatch_size)
         );
     }
-
-    const uint32_t merge_groups = (uint32_t)((config->segments_len + 256u - 1u) / 256u);
-
-    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_build_tiles);
-    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
-    wgpuComputePassEncoderDispatchWorkgroups(encoder, merge_groups, 1, 1);
-
-    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_schedule);
-    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
-    wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
 }
 
 WB_EXPORT void wbg_merge(
     const wbg_pipeline * const pipeline,
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
+    const wbg_gpu_config * const config,
     WGPUComputePassEncoder const encoder
 )
 {
-    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.wb_sort);
-    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->wb_sort, 0, NULL);
+    const wbg_dispatch_size merge_dispatch = wbg_dispatch_size_for_len(&pipeline->options.dispatch_size, config->segments_len);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_build_tiles);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, merge_dispatch.x, merge_dispatch.y, merge_dispatch.z);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_schedule);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_schedule, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
+
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.merge_sort);
+    wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->merge_sort, 0, NULL);
     wgpuComputePassEncoderDispatchWorkgroupsIndirect(encoder, buffers->merge_dispatch_tiles, 0);
 
     for (uint32_t k = 0; k < WBG_MERGE_TILE_MAX_DEPTH; k++)
@@ -2118,6 +2120,7 @@ WB_EXPORT void wbg_run_sort_iterations(
             pipeline,
             bindings,
             buffers,
+            config,
             merge_pass
         );
     }
