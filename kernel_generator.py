@@ -445,8 +445,7 @@ def main():
         for sg_size in SUBGROUP_SIZES:
             for N in SEGMENT_SIZES:
                 M = min(sg_size, N)
-                if N // M <= WPT_THRESHOLD:
-                    kernels.add(KernelArgs(N, M, N // M, True, is_block))
+                kernels.add(KernelArgs(N, M, N // M, True, is_block))
 
         # wg kernels: one per N, threshold-driven M (matches runtime wg selection)
         for N in SEGMENT_SIZES:

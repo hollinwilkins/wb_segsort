@@ -58,6 +58,7 @@ typedef struct benchmark_meta
     uint32_t gpu_device_id;
     uint32_t subgroup_min_size;
     uint32_t subgroup_max_size;
+    const char * memory;
     const char * store;
     const wbg_gpu_bin * bins;
     uint32_t bin_counts[13];
@@ -137,6 +138,7 @@ typedef struct benchmark_config
     size_t n_warmup_runs;
     uint32_t max_key;
     bool subgroups_enabled;
+    const char * memory_name;
     const char * store_name;
 } benchmark_config;
 
@@ -683,11 +685,20 @@ static void benchmark_meta_init(
     }
 
     wbg_gpu_bin * bins = NULL;
+    const char * memory = NULL;
     const char * store = NULL;
     if (pipeline != NULL)
     {
         bins = (wbg_gpu_bin *)malloc(sizeof(pipeline->bins));
         memcpy(bins, pipeline->bins, sizeof(pipeline->bins));
+
+        switch (pipeline->options.memory)
+        {
+            case wbg_memory_register: memory = "register"; break;
+            case wbg_memory_workgroup: memory = "workgroup"; break;
+            case wbg_memory_adaptive: memory = "adaptive"; break;
+            default: PANIC("invalid memory kind");
+        }
 
         switch (pipeline->options.store)
         {
@@ -713,6 +724,7 @@ static void benchmark_meta_init(
         .gpu_device_id = gpu_device_id,
         .subgroup_min_size = subgroup_min_size,
         .subgroup_max_size = subgroup_max_size,
+        .memory = memory,
         .store = store,
         .bins = bins,
         .wgpu_backend_name = BENCH_BACKEND_NAME,
@@ -799,12 +811,7 @@ static void benchmark_data_init(
             if (keys_len + segment_len > quota)
             {
                 segment_len = quota - keys_len;
-                const uint32_t new_bin = benchmark_segment_bucket(segment_len);
-                if (bin != new_bin)
-                {
-                    keys_len = quota;
-                    continue;
-                }
+                bin = benchmark_segment_bucket(segment_len);
             }
 
             bin_counts[bin]++;
@@ -955,6 +962,7 @@ static void write_benchmark_meta(
         write_json_string_field(mf, false, 2, "wgpu_backend_version", meta->wgpu_backend_version);
         write_json_string_field(mf, false, 2, "wgpu_backend_release_type", meta->wgpu_backend_release_type);
         write_json_string_field(mf, false, 2, "cpu_release_type", meta->cpu_release_type);
+        write_json_string_field(mf, false, 2, "memory", meta->memory);
         write_json_string_field(mf, false, 2, "store", meta->store);
         write_json_string_field(mf, false, 2, "bin_sampler", meta->bin_sampler);
         write_json_string_field(mf, false, 2, "key_sampler", meta->key_sampler);
@@ -1282,6 +1290,12 @@ int benchmark_wbg_main(const benchmark_config * const config)
         }
     }
 
+    wbg_memory memory;
+    if (strcmp("register", config->store_name) == 0) memory = wbg_memory_register;
+    else if (strcmp("workgroup", config->store_name) == 0) memory = wbg_memory_workgroup;
+    else if (strcmp("adaptive", config->store_name) == 0) memory = wbg_memory_adaptive;
+    else PANIC("invalid memory kind %s", config->store_name);
+
     wbg_store store;
     if (strcmp("block", config->store_name) == 0) store = wbg_store_block;
     else if (strcmp("striped", config->store_name) == 0) store = wbg_store_striped;
@@ -1293,6 +1307,7 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &(wbg_options){
             .sort_kernels_root_dir = "shaders/sort_kernels",
             .subgroups_enabled = config->subgroups_enabled,
+            .memory = memory,
             .store = store,
         },
         context.instance,
@@ -1391,7 +1406,8 @@ int main(int argc, char ** argv)
     const size_t n_warmup_runs = strtoull(argv[8], &endptr, 10);
     const uint32_t max_key = strtol(argv[9], &endptr, 10);
     const uint32_t subgroup_test = strtol(argv[10], &endptr, 10);
-    const char * const store_name = argv[11];
+    const char * const memory_name = argv[11];
+    const char * const store_name = argv[12];
     const bool subgroups_enabled = subgroup_test == 1;
 
     const benchmark_config config = (benchmark_config){
@@ -1405,6 +1421,7 @@ int main(int argc, char ** argv)
         .n_warmup_runs = n_warmup_runs,
         .max_key = max_key,
         .subgroups_enabled = subgroups_enabled,
+        .memory_name = memory_name,
         .store_name = store_name,
     };
 

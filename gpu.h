@@ -45,10 +45,17 @@ typedef enum wbg_bin_flag_enum
 typedef uint32_t wbg_store;
 typedef enum wbg_store_enum
 {
-    wbg_store_block = 0,
-    wbg_store_striped = 1,
-    wbg_store_adaptive = 2,
+    wbg_store_adaptive = 0,
+    wbg_store_block = 1,
+    wbg_store_striped = 2,
 } wbg_store_enum;
+
+typedef uint32_t wbg_memory;
+typedef enum wbg_memory_enum {
+    wbg_memory_adaptive = 0,
+    wbg_memory_register = 1,
+    wbg_memory_workgroup = 2,
+} wbg_memory_enum;
 
 typedef struct wbg_gpu_bin
 {
@@ -155,6 +162,7 @@ typedef struct wbg_options
     size_t wpt_threshold;
     size_t target_wg_size;
     wbg_store store;
+    wbg_memory memory;
     bool subgroups_enabled;
     bool is_initialized;
 } wbg_options;
@@ -1275,7 +1283,14 @@ WB_EXPORT void wbg_pipeline_init(
             M = WB_MIN(N, pipeline->subgroup_size);
             const uint32_t wpt = N / M;
 
-            if (wpt > pipeline->options.wpt_threshold) M = 0;
+            switch (options2.memory)
+            {
+                case wbg_memory_register: break;
+                case wbg_memory_workgroup: M = 0; break;
+                case wbg_memory_adaptive:
+                    if (wpt > pipeline->options.wpt_threshold) M = 0; break;
+                default: abort();
+            }
         }
 
         if (M == 0)
@@ -1283,7 +1298,15 @@ WB_EXPORT void wbg_pipeline_init(
             is_register = false;
             M = WB_MIN(N, wbg__round_pow2(((N + pipeline->options.wpt_threshold - 1) / pipeline->options.wpt_threshold)));
 
-            if (N * 8u > pipeline->max_smem_size) M = 0;
+            switch (options2.memory)
+            {
+                case wbg_memory_register: abort();
+                case wbg_memory_workgroup: break;
+                case wbg_memory_adaptive:
+                    if (N * 8u > pipeline->max_smem_size) M = 0; break;
+                default: abort();
+            }
+
         }
 
         const uint32_t wpt = N / M;
