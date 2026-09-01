@@ -10,7 +10,6 @@
 
 #include <webgpu/webgpu.h>
 
-#include "build-debug/_deps/dawn_dist-src/include/webgpu/webgpu.h"
 #include "common.h"
 
 #include "hw_ds.h"
