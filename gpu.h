@@ -10,6 +10,7 @@
 
 #include <webgpu/webgpu.h>
 
+#include "build-debug/_deps/dawn_dist-src/include/webgpu/webgpu.h"
 #include "common.h"
 
 #include "hw_ds.h"
@@ -113,6 +114,7 @@ typedef struct wbg_buffers
 
 typedef struct wbg_kernels
 {
+    WGPUComputePipeline bin_clear;
     WGPUComputePipeline bin_histogram;
     WGPUComputePipeline schedule;
     WGPUComputePipeline group;
@@ -267,8 +269,7 @@ WB_EXPORT void wbg_segsort(
     const wbg_bindings * bindings,
     const wbg_buffers * buffers,
     const wbg_gpu_config * config,
-    WGPUComputePassEncoder encoder,
-    const mems_allocator * allocator
+    WGPUComputePassEncoder encoder
 );
 
 WB_EXPORT void wbg_merge(
@@ -283,6 +284,18 @@ WB_EXPORT void wbg_run_sort(
     const wbg_bindings * bindings,
     const wbg_buffers * buffers,
     const wbg_gpu_config * config,
+    WGPUCommandEncoder encoder,
+    wbg_sort_timing * timing
+);
+
+WB_EXPORT void wbg_run_sort_iterations(
+    const wbg_pipeline * pipeline,
+    const wbg_bindings * bindings,
+    const wbg_buffers * buffers,
+    const wbg_gpu_config * config,
+    size_t bin_iterations,
+    size_t sort_iterations,
+    size_t merge_iterations,
     WGPUCommandEncoder encoder,
     wbg_sort_timing * timing
 );
@@ -884,6 +897,20 @@ static void wbg__kernels_init(
         &shader_module_desc
     );
 
+    WGPUComputePipelineDescriptor bin_clear_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    bin_clear_desc.label = (WGPUStringView){
+        .data = "WB Sort: Bin Clear Histogram Pipeline",
+        .length = WGPU_STRLEN,
+    };
+    bin_clear_desc.layout = pipeline_layout;
+    bin_clear_desc.compute.entryPoint = (WGPUStringView){
+        .data = "main_clear",
+        .length = WGPU_STRLEN,
+    };
+    bin_clear_desc.compute.module = shader_module;
+
+    WGPUComputePipeline bin_clear_kernel = wgpuDeviceCreateComputePipeline(device, &bin_clear_desc);
+
     WGPUComputePipelineDescriptor bin_histogram_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
     bin_histogram_desc.label = (WGPUStringView){
         .data = "WB Sort: Bin Histogram Pipeline",
@@ -965,6 +992,7 @@ static void wbg__kernels_init(
     wgpuBindGroupLayoutRelease(layout0);
 
     pipeline->kernels = (wbg_kernels){
+        .bin_clear = bin_clear_kernel,
         .bin_histogram = bin_histogram_kernel,
         .schedule = scheduler_kernel,
         .group = group_kernel,
@@ -1859,9 +1887,6 @@ WB_EXPORT void wbg_prepare(
     wbg__write_buffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
     wbg__write_buffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
     wbg__write_buffer(queue, buffers->merge_meta, 0, &(wbg_gpu_tile_meta){0}, sizeof(wbg_gpu_tile_meta));
-
-    static const uint32_t zero_hist[13] = {0};
-    wbg__write_buffer(queue, buffers->bin_histogram, 0, zero_hist, sizeof(zero_hist));
 }
 
 WB_EXPORT void wbg_run_bin_histogram(
@@ -1873,8 +1898,10 @@ WB_EXPORT void wbg_run_bin_histogram(
 {
     const wbg_dispatch_size bin_hist_dispatch_size = wbg_dispatch_size_for_len(&pipeline->options.dispatch_size, config->segments_len);
 
-    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.bin_histogram);
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->bin, 0, NULL);
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.bin_clear);
+    wgpuComputePassEncoderDispatchWorkgroups(encoder, 1, 1, 1);
+    wgpuComputePassEncoderSetPipeline(encoder, pipeline->kernels.bin_histogram);
     wgpuComputePassEncoderDispatchWorkgroups(encoder, bin_hist_dispatch_size.x, bin_hist_dispatch_size.y, bin_hist_dispatch_size.z);
 }
 
@@ -1938,8 +1965,7 @@ WB_EXPORT void wbg_segsort(
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
     const wbg_gpu_config * const config,
-    WGPUComputePassEncoder const encoder,
-    const mems_allocator * const allocator
+    WGPUComputePassEncoder const encoder
 )
 {
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->sort, 0, NULL);
@@ -1996,11 +2022,14 @@ static wbg_sort_timing * wbg__sort_timing_add_index(wbg_sort_timing * const timi
     return timing;
 }
 
-WB_EXPORT void wbg_run_sort(
+WB_EXPORT void wbg_run_sort_iterations(
     const wbg_pipeline * const pipeline,
     const wbg_bindings * const bindings,
     const wbg_buffers * const buffers,
     const wbg_gpu_config * const config,
+    const size_t bin_iterations,
+    const size_t sort_iterations,
+    const size_t merge_iterations,
     WGPUCommandEncoder const encoder,
     wbg_sort_timing * const timing
 )
@@ -2023,12 +2052,15 @@ WB_EXPORT void wbg_run_sort(
 
     WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &bin_pass_desc);
 
-    wbg_bin(
-        pipeline,
-        bindings,
-        config,
-        bin_pass
-    );
+    for (size_t i = 0; i < bin_iterations; i++)
+    {
+        wbg_bin(
+            pipeline,
+            bindings,
+            config,
+            bin_pass
+        );
+    }
 
     wgpuComputePassEncoderEnd(bin_pass);
 
@@ -2050,14 +2082,16 @@ WB_EXPORT void wbg_run_sort(
 
     WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &sort_pass_desc);
 
-    wbg_segsort(
-        pipeline,
-        bindings,
-        buffers,
-        config,
-        sort_pass,
-        &mems_system_allocator
-    );
+    for (size_t i = 0; i < sort_iterations; i++)
+    {
+        wbg_segsort(
+            pipeline,
+            bindings,
+            buffers,
+            config,
+            sort_pass
+        );
+    }
 
     wgpuComputePassEncoderEnd(sort_pass);
 
@@ -2079,18 +2113,43 @@ WB_EXPORT void wbg_run_sort(
 
     WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &merge_pass_desc);
 
-    wbg_merge(
-        pipeline,
-        bindings,
-        buffers,
-        merge_pass
-    );
+    for (size_t i = 0; i < merge_iterations; i++)
+    {
+        wbg_merge(
+            pipeline,
+            bindings,
+            buffers,
+            merge_pass
+        );
+    }
 
     wgpuComputePassEncoderEnd(merge_pass);
 
     wgpuComputePassEncoderRelease(bin_pass);
     wgpuComputePassEncoderRelease(sort_pass);
     wgpuComputePassEncoderRelease(merge_pass);
+}
+
+WB_EXPORT void wbg_run_sort(
+    const wbg_pipeline * const pipeline,
+    const wbg_bindings * const bindings,
+    const wbg_buffers * const buffers,
+    const wbg_gpu_config * const config,
+    WGPUCommandEncoder const encoder,
+    wbg_sort_timing * const timing
+)
+{
+    wbg_run_sort_iterations(
+        pipeline,
+        bindings,
+        buffers,
+        config,
+        1,
+        1,
+        1,
+        encoder,
+        timing
+    );
 }
 
 WB_EXPORT void wbg_sort(

@@ -41,6 +41,16 @@ fn segment_bucket(index: u32) -> u32 {
     return min(32u - countLeadingZeros(bucket_segment_len), 12u);
 }
 
+@compute @workgroup_size(16, 1, 1)
+fn main_clear(
+    @builtin(local_invocation_index) TID: u32
+)
+{
+    if TID < 13 {
+        atomicStore(&bin_histogram[TID], 0u);
+    }
+}
+
 @compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y, 1)
 fn main_histogram(
     @builtin(workgroup_id) workgroup_id: vec3<u32>,

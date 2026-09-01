@@ -89,6 +89,12 @@ typedef struct benchmark_meta
     size_t n_keys;
     size_t n_warmup_runs;
     size_t n_runs;
+    size_t bin_iterations;
+    size_t sort_iterations;
+    size_t merge_iterations;
+    uint64_t tuned_bin_ns;
+    uint64_t tuned_sort_ns;
+    uint64_t tuned_merge_ns;
 } benchmark_meta;
 
 typedef struct benchmark_result_wbc
@@ -146,6 +152,9 @@ typedef struct benchmark_config
     size_t n_warmup_runs;
     const char * memory_name;
     const char * store_name;
+    bool tune_bin;
+    bool tune_sort;
+    bool tune_merge;
 } benchmark_config;
 
 static uint64_t now_ns(void) {
@@ -298,6 +307,9 @@ static void benchmark_run_wbg_sample(
     const benchmark_data * const data,
     wbg_sort_timing * const timing,
     WGPUBuffer const query_buffer,
+    const size_t bin_iterations,
+    const size_t sort_iterations,
+    const size_t merge_iterations,
     benchmark_result * const result
 )
 {
@@ -306,6 +318,13 @@ static void benchmark_run_wbg_sample(
     };
 
     wbg_gpu_config config = {0};
+
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
+        .label = (WGPUStringView){
+            .data = "Merge Sort: Command Encoder",
+            .length = WGPU_STRLEN,
+        }
+    });
 
     const uint64_t start_ns = now_ns();
     wbg_prepare(
@@ -320,18 +339,14 @@ static void benchmark_run_wbg_sample(
     result->data.wbg.upload_start_ns = start_ns;
     result->data.wbg.upload_end_ns = end_upload_ns;
 
-    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
-        .label = (WGPUStringView){
-            .data = "Merge Sort: Command Encoder",
-            .length = WGPU_STRLEN,
-        }
-    });
-
-    wbg_run_sort(
+    wbg_run_sort_iterations(
         pipeline,
         bindings,
         buffers,
         &config,
+        bin_iterations,
+        sort_iterations,
+        merge_iterations,
         encoder,
         timing
     );
@@ -469,85 +484,6 @@ static void benchmark_run_wbc(
     }
 }
 
-// static uint32_t benchmark_wbg_sort_iterations(
-//     const wbg_pipeline * const pipeline,
-//     const wbg_buffers * const buffers,
-//     const wbg_bindings * const bindings,
-//     const benchmark_data * const data,
-//     wbg_sort_timing * const timing,
-//     WGPUBuffer const query_buffer
-// )
-// {
-//     wbg_gpu_config config = {0};
-
-//     const uint64_t start_ns = now_ns();
-//     wbg_prepare(
-//         pipeline->queue,
-//         buffers,
-//         data->segments_len, data->segments,
-//         data->keys_len, data->keys,
-//         &config
-//     );
-//     benchmark_wait_idle(pipeline->instance, pipeline->queue);
-//     const uint64_t end_upload_ns = now_ns();
-
-//     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
-//         .label = (WGPUStringView){
-//             .data = "Merge Sort: Command Encoder",
-//             .length = WGPU_STRLEN,
-//         }
-//     });
-
-//     wbg_run_sort(
-//         pipeline,
-//         bindings,
-//         buffers,
-//         &config,
-//         encoder,
-//         timing
-//     );
-
-//     wgpuCommandEncoderResolveQuerySet(
-//         encoder,
-//         timing->query,
-//         0,
-//         QUERY_COUNT,
-//         query_buffer,
-//         0
-//     );
-
-//     WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
-//         .label = (WGPUStringView){
-//             .data = "WB Sort: Command Buffer",
-//             .length = WGPU_STRLEN,
-//         }
-//     });
-
-//     const uint64_t start_sort_ns = now_ns();
-//     wgpuQueueSubmit(pipeline->queue, 1, &commands);
-//     benchmark_wait_idle(pipeline->instance, pipeline->queue);
-//     const uint64_t end_sort_ns = now_ns();
-//     result->data.wbg.sort_start_ns = start_sort_ns;
-//     result->data.wbg.sort_end_ns = end_sort_ns;
-//     result->data.wbg.wall_start_ns = start_ns;
-//     result->data.wbg.wall_end_ns = end_sort_ns;
-
-//     wgpuCommandBufferRelease(commands);
-//     wgpuCommandEncoderRelease(encoder);
-
-//     uint64_t * timestamps;
-//     hwgutil_wgpu_read_buffer_alloc(
-//         pipeline->instance,
-//         pipeline->device,
-//         pipeline->queue,
-//         query_buffer,
-//         &mems_system_allocator,
-//         (void **)&timestamps
-//     );
-
-//     memcpy(result->data.wbg.timestamps, timestamps, sizeof(result->data.wbg.timestamps));
-// }
-
 static void benchmark_run_wbg(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
@@ -555,35 +491,17 @@ static void benchmark_run_wbg(
     const size_t n_runs,
     const size_t n_warmup_runs,
     const benchmark_data * const data,
+    wbg_sort_timing * const timing,
+    WGPUBuffer const query_buffer,
+    const size_t bin_iterations,
+    const size_t sort_iterations,
+    const size_t merge_iterations,
     benchmark_result * const results
 )
 {
-    WGPUQuerySetDescriptor query_desc = WGPU_QUERY_SET_DESCRIPTOR_INIT;
-    query_desc.label = (WGPUStringView){
-        .data = "WB Sort: Timestamp Queries",
-        .length = WGPU_STRLEN,
-    };
-    query_desc.type = WGPUQueryType_Timestamp;
-    query_desc.count = QUERY_COUNT;
-
-    WGPUQuerySet query = wgpuDeviceCreateQuerySet(pipeline->device, &query_desc);
-    wbg_sort_timing timing = (wbg_sort_timing){
-        .query = query,
-    };
-
-    WGPUBufferDescriptor query_buffer_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
-    query_buffer_desc.label = (WGPUStringView){
-        .data = "WB Sort: Timestamp Queries",
-        .length = WGPU_STRLEN,
-    };
-    query_buffer_desc.usage = WGPUBufferUsage_QueryResolve | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
-    query_buffer_desc.size = QUERY_COUNT * sizeof(uint64_t);
-
-    WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(pipeline->device, &query_buffer_desc);
-
     // validation run
     {
-        timing.index = 0;
+        timing->index = 0;
 
         benchmark_result validate_result;
         benchmark_run_wbg_sample(
@@ -591,8 +509,11 @@ static void benchmark_run_wbg(
             buffers,
             bindings,
             data,
-            &timing,
+            timing,
             query_buffer,
+            1,
+            1,
+            1,
             &validate_result
         );
 
@@ -602,39 +523,36 @@ static void benchmark_run_wbg(
     benchmark_result warmup_result;
     for (size_t i = 0; i < n_warmup_runs; i++)
     {
-        timing.index = 0;
+        timing->index = 0;
 
         benchmark_run_wbg_sample(
             pipeline,
             buffers,
             bindings,
             data,
-            &timing,
+            timing,
             query_buffer,
+            1,
+            1,
+            1,
             &warmup_result
         );
     }
 
-    // const uint32_t sort_iterations = benchmark_wbg_sort_iterations(
-    //     pipeline,
-    //     buffers,
-    //     bindings,
-    //     data,
-    //     &timing,
-    //     query_buffer
-    // );
-
     for (size_t i = 0; i < n_runs; i++)
     {
-        timing.index = 0;
+        timing->index = 0;
 
         benchmark_run_wbg_sample(
             pipeline,
             buffers,
             bindings,
             data,
-            &timing,
+            timing,
             query_buffer,
+            bin_iterations,
+            sort_iterations,
+            merge_iterations,
             results + i
         );
     }
@@ -1095,6 +1013,12 @@ static void write_benchmark_meta(
         write_json_size_field(mf, false, 2, "n_keys", meta->n_keys);
         write_json_size_field(mf, false, 2, "n_warmup_runs", meta->n_warmup_runs);
         write_json_size_field(mf, false, 2, "n_runs", meta->n_runs);
+        write_json_uint32_field(mf, false, 2, "bin_iterations", meta->bin_iterations);
+        write_json_uint32_field(mf, false, 2, "sort_iterations", meta->sort_iterations);
+        write_json_uint32_field(mf, false, 2, "merge_iterations", meta->merge_iterations);
+        write_json_uint64_field(mf, false, 2, "tuned_bin_ns", meta->tuned_bin_ns);
+        write_json_uint64_field(mf, false, 2, "tuned_sort_ns", meta->tuned_sort_ns);
+        write_json_uint64_field(mf, false, 2, "tuned_merge_ns", meta->tuned_merge_ns);
 
         fprintf(mf, "  \"bins\": [");
         for (int i = 0; i < 13; i++)
@@ -1372,6 +1296,289 @@ int benchmark_wbc_main(const benchmark_config * const config)
     return 0;
 }
 
+#define TUNE_THRESHOLD_NS (20000000) // 20ms
+
+static void benchmark_wbg_tune_iterations(
+    const wbg_pipeline * const pipeline,
+    const wbg_buffers * const buffers,
+    const wbg_bindings * const bindings,
+    const benchmark_data * const data,
+    wbg_sort_timing * const timing,
+    WGPUBuffer const query_buffer,
+    const bool tune_bin,
+    const bool tune_sort,
+    const bool tune_merge,
+    size_t * const bin_iterations,
+    size_t * const sort_iterations,
+    size_t * const merge_iterations,
+    uint64_t * const tuned_bin_ns,
+    uint64_t * const tuned_sort_ns,
+    uint64_t * const tuned_merge_ns
+)
+{
+    wbg_gpu_config config = {0};
+
+    wbg_prepare(
+        pipeline->queue,
+        buffers,
+        data->segments_len, data->segments,
+        data->keys_len, data->keys,
+        &config
+    );
+    benchmark_wait_idle(pipeline->instance, pipeline->queue);
+
+    uint64_t bin_threshold_ns = TUNE_THRESHOLD_NS;
+    *tuned_bin_ns = 0;
+    *bin_iterations = 1;
+
+    // run at least once to prepare for sort stage
+    while (*tuned_bin_ns < bin_threshold_ns)
+    {
+        timing->index = 0;
+
+        WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
+            .label = (WGPUStringView){
+                .data = "WB Sort: Command Encoder for Tuning",
+                .length = WGPU_STRLEN,
+            }
+        });
+
+        WGPUComputePassDescriptor bin_pass_desc = (WGPUComputePassDescriptor){
+            .label = (WGPUStringView){
+                .data = "WB Sort: Bin Pass Tuner",
+            },
+        };
+        WGPUPassTimestampWrites bin_ts = WGPU_PASS_TIMESTAMP_WRITES_INIT;
+        if (timing != NULL)
+        {
+            bin_ts = (WGPUPassTimestampWrites){
+                .querySet = timing->query,
+                .beginningOfPassWriteIndex = timing->index++,
+                .endOfPassWriteIndex = timing->index++,
+            };
+            bin_pass_desc.timestampWrites = &bin_ts;
+        }
+
+        WGPUComputePassEncoder bin_pass = wgpuCommandEncoderBeginComputePass(encoder, &bin_pass_desc);
+
+        for (size_t i = 0; i < *bin_iterations; i++)
+        {
+            wbg_bin(
+                pipeline,
+                bindings,
+                &config,
+                bin_pass
+            );
+        }
+
+        wgpuComputePassEncoderEnd(bin_pass);
+
+        wgpuCommandEncoderResolveQuerySet(
+            encoder,
+            timing->query,
+            0,
+            QUERY_COUNT,
+            query_buffer,
+            0
+        );
+
+        WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
+            .label = (WGPUStringView){
+                .data = "WB Sort: Command Buffer",
+                .length = WGPU_STRLEN,
+            }
+        });
+
+        wgpuQueueSubmit(pipeline->queue, 1, &commands);
+
+        wgpuCommandBufferRelease(commands);
+        wgpuComputePassEncoderRelease(bin_pass);
+        wgpuCommandEncoderRelease(encoder);
+
+        uint64_t * timestamps;
+        hwgutil_wgpu_read_buffer_alloc(
+            pipeline->instance,
+            pipeline->device,
+            pipeline->queue,
+            query_buffer,
+            &mems_system_allocator,
+            (void **)&timestamps
+        );
+
+
+        *tuned_bin_ns = timestamps[1] - timestamps[0];
+        if (!tune_bin) break;
+        if (*tuned_bin_ns < TUNE_THRESHOLD_NS) *bin_iterations *= 2;
+    }
+
+    *sort_iterations = 1;
+    if (tune_sort)
+    {
+        *tuned_sort_ns = 0;
+        while (*tuned_sort_ns < TUNE_THRESHOLD_NS)
+        {
+            timing->index = 0;
+
+            WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
+                .label = (WGPUStringView){
+                    .data = "WB Sort: Command Encoder for Tuning",
+                    .length = WGPU_STRLEN,
+                }
+            });
+
+            WGPUComputePassDescriptor sort_pass_desc = (WGPUComputePassDescriptor){
+                .label = (WGPUStringView){
+                    .data = "WB Sort: Sort Pass Tuner",
+                },
+            };
+            WGPUPassTimestampWrites sort_ts = WGPU_PASS_TIMESTAMP_WRITES_INIT;
+            if (timing != NULL)
+            {
+                sort_ts = (WGPUPassTimestampWrites){
+                    .querySet = timing->query,
+                    .beginningOfPassWriteIndex = timing->index++,
+                    .endOfPassWriteIndex = timing->index++,
+                };
+                sort_pass_desc.timestampWrites = &sort_ts;
+            }
+
+            WGPUComputePassEncoder sort_pass = wgpuCommandEncoderBeginComputePass(encoder, &sort_pass_desc);
+
+            for (size_t i = 0; i < *sort_iterations; i++)
+            {
+                wbg_segsort(
+                    pipeline,
+                    bindings,
+                    buffers,
+                    &config,
+                    sort_pass
+                );
+            }
+
+            wgpuComputePassEncoderEnd(sort_pass);
+
+            wgpuCommandEncoderResolveQuerySet(
+                encoder,
+                timing->query,
+                0,
+                QUERY_COUNT,
+                query_buffer,
+                0
+            );
+
+            WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
+                .label = (WGPUStringView){
+                    .data = "WB Sort: Command Buffer",
+                    .length = WGPU_STRLEN,
+                }
+            });
+
+            wgpuQueueSubmit(pipeline->queue, 1, &commands);
+
+            wgpuCommandBufferRelease(commands);
+            wgpuComputePassEncoderRelease(sort_pass);
+            wgpuCommandEncoderRelease(encoder);
+
+            uint64_t * timestamps;
+            hwgutil_wgpu_read_buffer_alloc(
+                pipeline->instance,
+                pipeline->device,
+                pipeline->queue,
+                query_buffer,
+                &mems_system_allocator,
+                (void **)&timestamps
+            );
+
+            *tuned_sort_ns = timestamps[1] - timestamps[0];
+
+            if (*tuned_sort_ns < TUNE_THRESHOLD_NS) *sort_iterations *= 2;
+        }
+    }
+
+    *merge_iterations = 1;
+    if (tune_merge)
+    {
+        *tuned_merge_ns = 0;
+        while (*tuned_merge_ns < TUNE_THRESHOLD_NS)
+        {
+            timing->index = 0;
+
+            WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline->device, &(WGPUCommandEncoderDescriptor){
+                .label = (WGPUStringView){
+                    .data = "WB Sort: Command Encoder for Tuning",
+                    .length = WGPU_STRLEN,
+                }
+            });
+
+            WGPUComputePassDescriptor merge_pass_desc = (WGPUComputePassDescriptor){
+                .label = (WGPUStringView){
+                    .data = "WB Sort: Merge Pass Tuner",
+                },
+            };
+            WGPUPassTimestampWrites merge_ts = WGPU_PASS_TIMESTAMP_WRITES_INIT;
+            if (timing != NULL)
+            {
+                merge_ts = (WGPUPassTimestampWrites){
+                    .querySet = timing->query,
+                    .beginningOfPassWriteIndex = timing->index++,
+                    .endOfPassWriteIndex = timing->index++,
+                };
+                merge_pass_desc.timestampWrites = &merge_ts;
+            }
+
+            WGPUComputePassEncoder merge_pass = wgpuCommandEncoderBeginComputePass(encoder, &merge_pass_desc);
+
+            for (size_t i = 0; i < *merge_iterations; i++)
+            {
+                wbg_merge(
+                    pipeline,
+                    bindings,
+                    buffers,
+                    merge_pass
+                );
+            }
+
+            wgpuComputePassEncoderEnd(merge_pass);
+
+            wgpuCommandEncoderResolveQuerySet(
+                encoder,
+                timing->query,
+                0,
+                QUERY_COUNT,
+                query_buffer,
+                0
+            );
+
+            WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, &(WGPUCommandBufferDescriptor){
+                .label = (WGPUStringView){
+                    .data = "WB Sort: Command Buffer",
+                    .length = WGPU_STRLEN,
+                }
+            });
+
+            wgpuQueueSubmit(pipeline->queue, 1, &commands);
+
+            wgpuCommandBufferRelease(commands);
+            wgpuComputePassEncoderRelease(merge_pass);
+            wgpuCommandEncoderRelease(encoder);
+
+            uint64_t * timestamps;
+            hwgutil_wgpu_read_buffer_alloc(
+                pipeline->instance,
+                pipeline->device,
+                pipeline->queue,
+                query_buffer,
+                &mems_system_allocator,
+                (void **)&timestamps
+            );
+
+            *tuned_merge_ns = timestamps[1] - timestamps[0];
+
+            if (*tuned_merge_ns < TUNE_THRESHOLD_NS) *merge_iterations *= 2;
+        }
+    }
+}
+
 int benchmark_wbg_main(const benchmark_config * const config)
 {
     hwgutil_wgpu_context context;
@@ -1461,6 +1668,50 @@ int benchmark_wbg_main(const benchmark_config * const config)
         key_sampler
     );
 
+    WGPUQuerySetDescriptor query_desc = WGPU_QUERY_SET_DESCRIPTOR_INIT;
+    query_desc.label = (WGPUStringView){
+        .data = "WB Sort: Timestamp Queries",
+        .length = WGPU_STRLEN,
+    };
+    query_desc.type = WGPUQueryType_Timestamp;
+    query_desc.count = QUERY_COUNT;
+
+    WGPUQuerySet query = wgpuDeviceCreateQuerySet(pipeline.device, &query_desc);
+
+    wbg_sort_timing timing = (wbg_sort_timing){
+        .query = query,
+    };
+
+    WGPUBufferDescriptor query_buffer_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    query_buffer_desc.label = (WGPUStringView){
+        .data = "WB Sort: Timestamp Queries",
+        .length = WGPU_STRLEN,
+    };
+    query_buffer_desc.usage = WGPUBufferUsage_QueryResolve | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+    query_buffer_desc.size = QUERY_COUNT * sizeof(uint64_t);
+
+    WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(pipeline.device, &query_buffer_desc);
+
+    size_t bin_iterations, sort_iterations, merge_iterations;
+    uint64_t tuned_bin_ns, tuned_sort_ns, tuned_merge_ns;
+    benchmark_wbg_tune_iterations(
+        &pipeline,
+        &buffers,
+        &bindings,
+        &data,
+        &timing,
+        query_buffer,
+        config->tune_bin,
+        config->tune_sort,
+        config->tune_merge,
+        &bin_iterations,
+        &sort_iterations,
+        &merge_iterations,
+        &tuned_bin_ns,
+        &tuned_sort_ns,
+        &tuned_merge_ns
+    );
+
     benchmark_meta meta;
     benchmark_meta_init(
         &meta,
@@ -1477,6 +1728,12 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &pipeline,
         &context
     );
+    meta.bin_iterations = bin_iterations;
+    meta.sort_iterations = sort_iterations;
+    meta.merge_iterations = merge_iterations;
+    meta.tuned_bin_ns = tuned_bin_ns;
+    meta.tuned_sort_ns = tuned_sort_ns;
+    meta.tuned_merge_ns = tuned_merge_ns;
 
     benchmark_result * const results = (benchmark_result *)malloc(config->n_runs * sizeof(benchmark_result));
 
@@ -1487,6 +1744,11 @@ int benchmark_wbg_main(const benchmark_config * const config)
         config->n_runs,
         config->n_warmup_runs,
         &data,
+        &timing,
+        query_buffer,
+        bin_iterations,
+        sort_iterations,
+        merge_iterations,
         results
     );
 
@@ -1545,6 +1807,9 @@ int main(int argc, const char ** argv)
     const size_t n_warmup_runs = warmup_runs_param == NULL ? 10 : strtoull(warmup_runs_param->value, &endptr, 10);
     const char * const memory_name = memory_param == NULL ? "adaptive" : memory_param->value;
     const char * const store_name = store_param == NULL ? "adaptive" : store_param->value;
+    const bool tune_bin = hwargs_has_flag(&args, "tune-bin");
+    const bool tune_sort = hwargs_has_flag(&args, "tune-sort");
+    const bool tune_merge = hwargs_has_flag(&args, "tune-merge");
 
     const benchmark_config config = (benchmark_config){
         .kind_name = kind_name,
@@ -1557,6 +1822,9 @@ int main(int argc, const char ** argv)
         .n_warmup_runs = n_warmup_runs,
         .memory_name = memory_name,
         .store_name = store_name,
+        .tune_bin = tune_bin,
+        .tune_sort = tune_sort,
+        .tune_merge = tune_merge,
     };
 
     if (strcmp("wbg", kind_name) == 0)
