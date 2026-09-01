@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 #
-# Experiment 1: GPU Subgroups vs Workgroup Memory
+# Experiment 2: GPU Subgroups vs Workgroup Memory
 # H0: the two sorts take the same amount of time for every bin
+#
+# Large / saturated budgets only (10M, 100M, 268M keys). At these sizes a single
+# sort is milliseconds -- thousands of times above the ~65 us timer quantum -- so
+# --sort-iterations 1 is already well-resolved. No tuning: batching would re-sort
+# already-sorted data, which reads warm cache and inflates throughput above the
+# memory-bandwidth ceiling.
 #
 
 set -euo pipefail
@@ -27,7 +33,7 @@ N_WARMUP=5
 
 STORE="block"
 
-KEY_BUDGETS=(1000 10000 100000 1000000 10000000)
+KEY_BUDGETS=(10000000 100000000 268435456)
 
 # label : sampler : memory
 CONDITIONS=(
@@ -47,33 +53,9 @@ NC=${#CONDITIONS[@]}
 
 RESULTS_ROOT="output/experiment2"
 
-# Predetermined sort_iterations per cell, produced by experiment2_tune.sh.
-# Columns: label \t sampler \t memory \t budget \t sort_iterations
-SORT_ITER_FILE="${RESULTS_ROOT}/sort_iterations.tsv"
-
-if [ ! -f "${SORT_ITER_FILE}" ]; then
-    echo "!! missing ${SORT_ITER_FILE}" >&2
-    echo "!! run ./experiments/experiment2_tune.sh first to calibrate sort_iterations" >&2
-    exit 1
-fi
-
-# Look up sort_iterations by (sampler, memory, budget); exit non-zero if absent.
-lookup_sort_iters() {
-    local sampler="$1" memory="$2" budget="$3"
-    awk -F'\t' -v s="${sampler}" -v m="${memory}" -v b="${budget}" \
-        '$2==s && $3==m && $4==b { print $5; found=1 } END { exit !found }' \
-        "${SORT_ITER_FILE}"
-}
-
 run_condition() {
     local label="$1" bin_sampler="$2" memory="$3" budget="$4"
     local results_dir="${RESULTS_ROOT}/keys_${budget}/${label}"
-
-    local sort_iters
-    if ! sort_iters=$(lookup_sort_iters "${bin_sampler}" "${memory}" "${budget}"); then
-        echo "!! no sort_iterations for ${bin_sampler}:${memory}:${budget} in ${SORT_ITER_FILE}" >&2
-        exit 1
-    fi
 
     echo "${BIN}" \
         --kind wbg --output "${results_dir}" \
@@ -81,14 +63,14 @@ run_condition() {
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
         --memory "${memory}" --store "${STORE}" \
-        --sort-iterations "${sort_iters}"
+        --sort-iterations 1
     "${BIN}" \
         --kind wbg --output "${results_dir}" \
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
         --memory "${memory}" --store "${STORE}" \
-        --sort-iterations "${sort_iters}"
+        --sort-iterations 1
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
