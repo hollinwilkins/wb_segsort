@@ -1010,6 +1010,11 @@ static void write_benchmark_meta(
             if (meta->bins != NULL)
             {
                 wbg_gpu_bin bin = meta->bins[i];
+
+                write_json_bool_field(mf, false, 4, "is_register", (bin.flags & wbg_bin_flag_is_register) != 0);
+                write_json_bool_field(mf, false, 4, "is_striped", (bin.flags & wbg_bin_flag_is_striped) != 0);
+                write_json_bool_field(mf, false, 4, "is_variable", (bin.flags & wbg_bin_flag_is_variable) != 0);
+
                 if (i == 0)
                 {
                     write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
