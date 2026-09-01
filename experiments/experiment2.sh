@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Experiment 1: CPU vs GPU (with subgroups) vs GPU (without subgroups).
-# H0: the three sort implementations take the same amount of time.
+# Experiment 1: GPU Subgroups vs Workgroup Memory
+# H0: the two sorts take the same amount of time for every bin
 #
 
 set -euo pipefail
@@ -32,16 +32,16 @@ KEY_BUDGETS=(1000 10000 100000 1000000 10000000)
 
 CONDITIONS=(
     "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(1):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(2):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(3):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(4):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(5):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(6):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(7):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(8):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(9):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(10):0:workgroup"
-    "gpu_subgroups:bin(1):1:register" "gpu_smem:bin(11):0:workgroup"
+    "gpu_subgroups:bin(2):1:register" "gpu_smem:bin(2):0:workgroup"
+    "gpu_subgroups:bin(3):1:register" "gpu_smem:bin(3):0:workgroup"
+    "gpu_subgroups:bin(4):1:register" "gpu_smem:bin(4):0:workgroup"
+    "gpu_subgroups:bin(5):1:register" "gpu_smem:bin(5):0:workgroup"
+    "gpu_subgroups:bin(6):1:register" "gpu_smem:bin(6):0:workgroup"
+    "gpu_subgroups:bin(7):1:register" "gpu_smem:bin(7):0:workgroup"
+    "gpu_subgroups:bin(8):1:register" "gpu_smem:bin(8):0:workgroup"
+    "gpu_subgroups:bin(9):1:register" "gpu_smem:bin(9):0:workgroup"
+    "gpu_subgroups:bin(10):1:register" "gpu_smem:bin(10):0:workgroup"
+    "gpu_subgroups:bin(11):1:register" "gpu_smem:bin(11):0:workgroup"
 )
 NC=${#CONDITIONS[@]}
 
