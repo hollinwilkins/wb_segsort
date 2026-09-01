@@ -667,9 +667,9 @@ static void benchmark_meta_init(
 
         switch (pipeline->options.store)
         {
-            case wbg_store_block: store = "block";
-            case wbg_store_striped: store = "striped";
-            case wbg_store_adaptive: store = "adaptive";
+            case wbg_store_block: store = "block"; break;
+            case wbg_store_striped: store = "striped"; break;
+            case wbg_store_adaptive: store = "adaptive"; break;
             default: PANIC("invalid store kind");
         }
     }
@@ -737,48 +737,80 @@ static void benchmark_data_init(
     uint32_t bin_counts[13] = {0};
     uint32_t bin_key_counts[13] = {0};
 
-    uint32_t keys_len = 0;
-    while (keys_len < key_budget)
-    {
-        if (segments_len == key_budget)
-        {
-            fprintf(stderr, "segments overflow, probably an invalid bin sampler\n");
-            abort();
-        }
-        uint32_t bin = sample_range(bin_sampler, 0, 12);
-
-        // 0 -> [0,0]
-        // 1 -> [1,1]
-        // 2 -> [2,3]
-        // 3 -> [4,7]
-        // 4 -> [8,15]
-        const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 1u));
-        const uint32_t hi = bin == 12 ?
-            max_key :
-            (bin <= 1 ? bin : (1u << bin) - 1u);
-        uint32_t segment_len = sample_range(bin_sampler, lo, hi);
-
-        if (keys_len + segment_len > key_budget)
-        {
-            segment_len = key_budget - keys_len;
-            bin = benchmark_segment_bucket(segment_len);
-        }
-
-        bin_counts[bin]++;
-        bin_key_counts[bin] += segment_len;
-        keys_len += segment_len;
-        segments[segments_len++] = keys_len;
+    uint32_t bin_key_quota[13] = {0};
+    for (size_t i = 0; i < key_budget; i++) {
+        uint32_t bin = sample_range(bin_sampler, 1, 12);
+        bin_key_quota[bin]++;
     }
 
-    uint32_t * const keys = (uint32_t *)malloc(keys_len * sizeof(uint32_t));
+    uint32_t global_keys_len = 0;
+    for (size_t i = 0; i < 13; i++)
+    {
+        uint32_t keys_len = 0;
+        uint32_t quota = bin_key_quota[i];
 
-    for (uint32_t i = 0; i < keys_len; i++)
+        while (keys_len < quota)
+        {
+            uint32_t bin = i;
+
+            // 0 -> [0,0]
+            // 1 -> [1,1]
+            // 2 -> [2,3]
+            // 3 -> [4,7]
+            // 4 -> [8,15]
+            const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 1u));
+            const uint32_t hi = bin == 12 ?
+                max_key :
+                (bin <= 1 ? bin : (1u << bin) - 1u);
+            uint32_t segment_len = sample_range(bin_sampler, lo, hi);
+
+            if (keys_len + segment_len > quota)
+            {
+                segment_len = quota - keys_len;
+                bin = benchmark_segment_bucket(segment_len);
+            }
+
+            bin_counts[bin]++;
+            bin_key_counts[bin] += segment_len;
+            keys_len += bin == 0 ? 1 : segment_len;
+            global_keys_len += segment_len;
+            segments[segments_len++] = segment_len;
+        }
+    }
+
+    // shuffle the segments
+    for (size_t i = segments_len - 1; i > 0; i--)
+    {
+        const uint32_t j = sample_range(bin_sampler, 0, i);
+        const uint32_t tmp = segments[i];
+        segments[i] = segments[j];
+        segments[j] = tmp;
+    }
+
+    // prefix sum the segments
+    uint32_t sum = 0;
+    for (size_t i = 0; i < segments_len; i++)
+    {
+        const uint32_t segment_len = segments[i];
+        sum += segment_len;
+        segments[i] = sum;
+    }
+
+    if (segments[segments_len - 1] != key_budget)
+    {
+        printf("Expected %zu, found %u\n", key_budget, segments[segments_len - 1]);
+        abort();
+    }
+
+    uint32_t * const keys = (uint32_t *)malloc(key_budget * sizeof(uint32_t));
+
+    for (uint32_t i = 0; i < key_budget; i++)
     {
         keys[i] = sample_range(key_sampler, 0, max_key);
     }
 
     *data = (benchmark_data){
-        .keys_len = keys_len,
+        .keys_len = global_keys_len,
         .keys = keys,
         .segments_len = segments_len,
         .segments = segments,

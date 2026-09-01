@@ -1359,8 +1359,8 @@ WB_EXPORT void wbg_pipeline_init(
     );
 }
 
-#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS (1024 * 1024)
-#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS (MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS * 32)
+#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_SEGMENTS (1024 * 1024 * 32)
+#define MSG_BUFFERS_OPTIONS_DEFAULT_MAX_ITEMS (1024 * 1024 * 32)
 
 static void wbg_buffers_options_init(wbg_buffers_options * const options)
 {
