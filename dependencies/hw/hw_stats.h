@@ -148,6 +148,11 @@ typedef struct hwstats_x256pp
     hwstats_u64 c[4];
 } hwstats_x256pp;
 
+typedef struct hwstats_const
+{
+    double value;
+} hwstats_const;
+
 typedef struct hwstats_normal
 {
     hwstats_randomizer * r;
@@ -186,6 +191,8 @@ HWSTATS_EXPORT void hwstats_x256pp_rand_init(
     hwstats_x256pp * state,
     hwstats_randomizer * r
 );
+
+HWSTATS_EXPORT void hwstats_const_sampler_init(hwstats_sampler * sampler, hwstats_const * c);
 
 HWSTATS_EXPORT void hwstats_uniform_sampler_init(hwstats_sampler * sampler, hwstats_randomizer * r);
 
@@ -293,6 +300,20 @@ HWSTATS_EXPORT void hwstats_x256pp_rand_init(
     *r = (hwstats_randomizer){
         .state = (void *)state,
         .rand = hwstats__x256pp_rand,
+    };
+}
+
+static double hwstats__const_sample(void * const state)
+{
+    hwstats_const * const c = (hwstats_const *)state;
+    return c->value;
+}
+
+HWSTATS_EXPORT void hwstats_const_sampler_init(hwstats_sampler * const sampler, hwstats_const * const c)
+{
+    *sampler = (hwstats_sampler){
+        .state = (void *)c,
+        .sample = hwstats__const_sample,
     };
 }
 

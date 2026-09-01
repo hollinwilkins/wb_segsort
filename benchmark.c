@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <webgpu/webgpu.h>
 
 #define HWDS_MEMS_ENABLED
@@ -182,12 +183,35 @@ static hwstats_sampler * create_uniform_sampler(const uint64_t seed)
     return sampler;
 }
 
+static hwstats_sampler * create_bin_sampler(const uint32_t bin)
+{
+    hwstats_const * const c = (hwstats_const *)malloc(sizeof(hwstats_const));
+    hwstats_sampler * const sampler = (hwstats_sampler *)malloc(sizeof(hwstats_sampler));
+
+    const double value = (1.0 / (double)bin) * 1.5;
+    *c = (hwstats_const){ .value = value };
+
+    hwstats_const_sampler_init(sampler, c);
+
+    return sampler;
+}
+
 static hwstats_sampler * create_sampler(
     const char * const name,
     const uint64_t seed
 )
 {
     if (strcmp("uniform", name) == 0) return create_uniform_sampler(seed);
+    if (strncmp("bin", name, strlen("bin")))
+    {
+        uint32_t value;
+        if (sscanf(name, "bin(%" SCNu32 ")", &value) != 1)
+        {
+            fprintf(stderr, "invalid bin sampler\n");
+            abort();
+        }
+        return create_bin_sampler(value);
+    }
     return NULL;
 }
 
@@ -725,6 +749,7 @@ static uint32_t benchmark_segment_bucket(const uint32_t segment_len)
 
 static void benchmark_data_init(
     benchmark_data * const data,
+    const uint64_t seed,
     const size_t key_budget,
     const uint32_t max_key,
     hwstats_sampler * const bin_sampler,
@@ -742,6 +767,13 @@ static void benchmark_data_init(
         uint32_t bin = sample_range(bin_sampler, 1, 12);
         bin_key_quota[bin]++;
     }
+
+    hwstats_randomizer r;
+    hwstats_x256pp x256pp;
+    hwstats_sampler uniform;
+    hwstats_x256pp_init(&x256pp, seed);
+    hwstats_x256pp_rand_init(&x256pp, &r);
+    hwstats_uniform_sampler_init(&uniform, &r);
 
     uint32_t global_keys_len = 0;
     for (size_t i = 0; i < 13; i++)
@@ -762,12 +794,17 @@ static void benchmark_data_init(
             const uint32_t hi = bin == 12 ?
                 max_key :
                 (bin <= 1 ? bin : (1u << bin) - 1u);
-            uint32_t segment_len = sample_range(bin_sampler, lo, hi);
+            uint32_t segment_len = sample_range(key_sampler, lo, hi);
 
             if (keys_len + segment_len > quota)
             {
                 segment_len = quota - keys_len;
-                bin = benchmark_segment_bucket(segment_len);
+                const uint32_t new_bin = benchmark_segment_bucket(segment_len);
+                if (bin != new_bin)
+                {
+                    keys_len = quota;
+                    continue;
+                }
             }
 
             bin_counts[bin]++;
@@ -781,7 +818,7 @@ static void benchmark_data_init(
     // shuffle the segments
     for (size_t i = segments_len - 1; i > 0; i--)
     {
-        const uint32_t j = sample_range(bin_sampler, 0, i);
+        const uint32_t j = sample_range(&uniform, 0, i);
         const uint32_t tmp = segments[i];
         segments[i] = segments[j];
         segments[j] = tmp;
@@ -806,7 +843,7 @@ static void benchmark_data_init(
 
     for (uint32_t i = 0; i < key_budget; i++)
     {
-        keys[i] = sample_range(key_sampler, 0, max_key);
+        keys[i] = sample_range(&uniform, 0, max_key);
     }
 
     *data = (benchmark_data){
@@ -1163,6 +1200,7 @@ int benchmark_wbc_main(const benchmark_config * const config)
     benchmark_data data;
     benchmark_data_init(
         &data,
+        config->seed,
         config->key_budget,
         config->max_key,
         bin_sampler,
@@ -1291,6 +1329,7 @@ int benchmark_wbg_main(const benchmark_config * const config)
     benchmark_data data;
     benchmark_data_init(
         &data,
+        config->seed,
         config->key_budget,
         config->max_key,
         bin_sampler,
