@@ -69,6 +69,7 @@ typedef struct benchmark_meta
     uint32_t subgroup_max_size;
     const char * memory;
     const char * store;
+    bool validate;
     bool has_subgroups_feature;
     const wbg_gpu_bin * bins;
     uint32_t bin_counts[13];
@@ -149,6 +150,7 @@ typedef struct benchmark_config
     size_t n_warmup_runs;
     const char * memory_name;
     const char * store_name;
+    bool validate;
     bool tune;
     size_t bin_iterations;
     size_t sort_iterations;
@@ -486,6 +488,7 @@ static void benchmark_run_wbg(
     const wbg_pipeline * const pipeline,
     const wbg_buffers * const buffers,
     const wbg_bindings * const bindings,
+    const bool validate,
     const size_t n_runs,
     const size_t n_warmup_runs,
     const benchmark_data * const data,
@@ -497,7 +500,7 @@ static void benchmark_run_wbg(
     benchmark_result * const results
 )
 {
-    // validation run
+    if (validate)
     {
         timing->index = 0;
 
@@ -997,6 +1000,7 @@ static void write_benchmark_meta(
         write_json_string_field(mf, false, 2, "cpu_release_type", meta->cpu_release_type);
         write_json_string_field(mf, false, 2, "memory", meta->memory);
         write_json_string_field(mf, false, 2, "store", meta->store);
+        write_json_bool_field(mf, false, 2, "validate", meta->validate);
         write_json_bool_field(mf, false, 2, "has_subgroups_feature", meta->has_subgroups_feature);
         write_json_string_field(mf, false, 2, "bin_sampler", meta->bin_sampler);
         write_json_string_field(mf, false, 2, "key_sampler", meta->key_sampler);
@@ -1743,6 +1747,7 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &pipeline,
         &context
     );
+    meta.validate = config->validate;
     meta.bin_iterations = config->bin_iterations;
     meta.sort_iterations = config->sort_iterations;
     meta.merge_iterations = config->merge_iterations;
@@ -1753,6 +1758,7 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &pipeline,
         &buffers,
         &bindings,
+        config->validate,
         config->n_runs,
         config->n_warmup_runs,
         &data,
@@ -1822,6 +1828,7 @@ int main(int argc, const char ** argv)
     const size_t n_warmup_runs = warmup_runs_param == NULL ? 10 : strtoull(warmup_runs_param->value, &endptr, 10);
     const char * const memory_name = memory_param == NULL ? "adaptive" : memory_param->value;
     const char * const store_name = store_param == NULL ? "adaptive" : store_param->value;
+    const bool validate = hwargs_has_flag(&args, "validate");
     const bool tune = hwargs_has_flag(&args, "tune");
     const size_t bin_iterations = bin_iterations_param == NULL ? 1 : strtol(bin_iterations_param->value, &endptr, 10);
     const size_t sort_iterations = sort_iterations_param == NULL ? 1 : strtol(sort_iterations_param->value, &endptr, 10);
@@ -1838,6 +1845,7 @@ int main(int argc, const char ** argv)
         .n_warmup_runs = n_warmup_runs,
         .memory_name = memory_name,
         .store_name = store_name,
+        .validate = validate,
         .tune = tune,
         .bin_iterations = bin_iterations,
         .sort_iterations = sort_iterations,
