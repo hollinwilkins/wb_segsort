@@ -164,7 +164,6 @@ typedef struct wbg_options
     size_t target_wg_size;
     wbg_store store;
     wbg_memory memory;
-    bool subgroups_enabled;
     bool is_initialized;
 } wbg_options;
 
@@ -195,7 +194,7 @@ typedef struct wbg_pipeline
     uint32_t max_invocations;
     uint32_t max_smem_size;
     uint32_t subgroup_size;
-    bool has_subgroups;
+    bool has_subgroups_feature;
     wbg_kernels kernels;
     wbg_sort_layouts sort_layouts;
 
@@ -1251,14 +1250,11 @@ WB_EXPORT void wbg_pipeline_init(
     WGPUAdapterInfo info = WGPU_ADAPTER_INFO_INIT;
     if (wgpuAdapterGetInfo(adapter, &info) != WGPUStatus_Success) abort();
 
-    const WGPUBool has_subgroups = wgpuAdapterHasFeature(adapter, WGPUFeatureName_Subgroups);
-    if (options2.subgroups_enabled)
+    const WGPUBool has_subgroups_feature = wgpuAdapterHasFeature(adapter, WGPUFeatureName_Subgroups);
+    if (options2.memory == wbg_memory_register && !has_subgroups_feature)
     {
-        if (has_subgroups != WGPU_TRUE)
-        {
-            fprintf(stderr, "subgroups are not available");
-            abort();
-        }
+        fprintf(stderr, "subgroups are not available, but requested register memory, aborting\n");
+        abort();
     }
 
     *pipeline = (wbg_pipeline){
@@ -1270,7 +1266,7 @@ WB_EXPORT void wbg_pipeline_init(
         .max_invocations = limits.maxComputeInvocationsPerWorkgroup,
         .max_smem_size = limits.maxComputeWorkgroupStorageSize,
         .subgroup_size = info.subgroupMinSize,
-        .has_subgroups = options2.subgroups_enabled,
+        .has_subgroups_feature = has_subgroups_feature,
     };
 
     wbg__sort_layouts_init(
@@ -1285,7 +1281,7 @@ WB_EXPORT void wbg_pipeline_init(
         uint32_t M = 0;
         bool is_register = false;
 
-        if (pipeline->has_subgroups)
+        if (pipeline->has_subgroups_feature)
         {
             is_register = true;
             M = WB_MIN(N, pipeline->subgroup_size);

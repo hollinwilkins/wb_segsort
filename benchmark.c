@@ -21,18 +21,27 @@
 #define HWSTATS_IMPLEMENTATION
 #define HWGUTIL_IMPLEMENTATION
 #define HWDS_IMPLEMENTATION
+#define HWARGS_IMPLEMENTATION
 #define MEMS_IMPLEMENTATION
 
 #include <webgpu/webgpu.h>
 
 #include "hw_stats.h"
 #include "hw_gutil.h"
+#include "hw_args.h"
 #include "cpu.h"
 #include "gpu.h"
 
 #define PANIC(...) { \
     fprintf(stderr, __VA_ARGS__); \
+    fprintf(stderr, "\n"); \
     abort(); \
+}
+
+#define ENSURE_MSG(cond, ...) { \
+    if (!(cond)) { \
+        PANIC(__VA_ARGS__); \
+    } \
 }
 
 typedef enum benchmark_kind
@@ -60,6 +69,7 @@ typedef struct benchmark_meta
     uint32_t subgroup_max_size;
     const char * memory;
     const char * store;
+    bool has_subgroups_feature;
     const wbg_gpu_bin * bins;
     uint32_t bin_counts[13];
     uint32_t bin_key_counts[13];
@@ -69,8 +79,6 @@ typedef struct benchmark_meta
     const char * cpu_release_type;
     const char * bin_sampler;
     const char * key_sampler;
-    uint32_t max_key;
-    bool subgroups_enabled;
     uint32_t merge_wg;
     uint32_t merge_tile_size;
     uint32_t merge_input_tile_size;
@@ -129,15 +137,13 @@ typedef struct benchmark_data
 typedef struct benchmark_config
 {
     const char * kind_name;
-    const char * results_dir;
+    const char * output_dir;
     const char * sampler_name;
     const char * key_sampler_name;
     uint64_t seed;
     size_t key_budget;
     size_t n_runs;
     size_t n_warmup_runs;
-    uint32_t max_key;
-    bool subgroups_enabled;
     const char * memory_name;
     const char * store_name;
 } benchmark_config;
@@ -758,12 +764,10 @@ static void benchmark_meta_init(
     const char * bin_sampler,
     const char * key_sampler,
     const uint64_t seed,
-    const uint64_t max_key,
     const size_t n_segments,
     const size_t n_keys,
     const size_t n_warmup_runs,
     const size_t n_runs,
-    const bool subgroups_enabled,
     const wbg_pipeline * const pipeline,
     const hwgutil_wgpu_context * const context
 )
@@ -797,6 +801,7 @@ static void benchmark_meta_init(
     wbg_gpu_bin * bins = NULL;
     const char * memory = NULL;
     const char * store = NULL;
+    bool has_subgroups_feature = false;
     if (pipeline != NULL)
     {
         bins = (wbg_gpu_bin *)malloc(sizeof(pipeline->bins));
@@ -817,6 +822,8 @@ static void benchmark_meta_init(
             case wbg_store_adaptive: store = "adaptive"; break;
             default: PANIC("invalid store kind");
         }
+
+        has_subgroups_feature = pipeline->has_subgroups_feature;
     }
 
     *meta = (benchmark_meta){
@@ -836,6 +843,7 @@ static void benchmark_meta_init(
         .subgroup_max_size = subgroup_max_size,
         .memory = memory,
         .store = store,
+        .has_subgroups_feature = has_subgroups_feature,
         .bins = bins,
         .wgpu_backend_name = BENCH_BACKEND_NAME,
         .wgpu_backend_version = BENCH_BACKEND_VERSION,
@@ -843,8 +851,6 @@ static void benchmark_meta_init(
         .cpu_release_type = BENCH_CPU_RELEASE_TYPE,
         .bin_sampler = copy_string(bin_sampler),
         .key_sampler = copy_string(key_sampler),
-        .subgroups_enabled = subgroups_enabled,
-        .max_key = max_key,
         .merge_wg = WBG_MERGE_WG,
         .merge_tile_size = WBG_MERGE_TILE_SIZE,
         .merge_input_tile_size = WBG_MERGE_TILE_SIZE,
@@ -869,11 +875,12 @@ static uint32_t benchmark_segment_bucket(const uint32_t segment_len)
     return b < 12u ? b : 12u;
 }
 
+#define MAX_SEGMENT_LEN 4096
+
 static void benchmark_data_init(
     benchmark_data * const data,
     const uint64_t seed,
     const size_t key_budget,
-    const uint32_t max_key,
     hwstats_sampler * const bin_sampler,
     hwstats_sampler * const key_sampler
 )
@@ -914,7 +921,7 @@ static void benchmark_data_init(
             // 4 -> [8,15]
             const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 1u));
             const uint32_t hi = bin == 12 ?
-                max_key :
+                MAX_SEGMENT_LEN :
                 (bin <= 1 ? bin : (1u << bin) - 1u);
             uint32_t segment_len = sample_range(key_sampler, lo, hi);
 
@@ -960,7 +967,7 @@ static void benchmark_data_init(
 
     for (uint32_t i = 0; i < key_budget; i++)
     {
-        keys[i] = sample_range(&uniform, 0, max_key);
+        keys[i] = sample_range(&uniform, 0, 1024 * 32);
     }
 
     *data = (benchmark_data){
@@ -1074,16 +1081,16 @@ static void write_benchmark_meta(
         write_json_string_field(mf, false, 2, "cpu_release_type", meta->cpu_release_type);
         write_json_string_field(mf, false, 2, "memory", meta->memory);
         write_json_string_field(mf, false, 2, "store", meta->store);
+        write_json_bool_field(mf, false, 2, "has_subgroups_feature", meta->has_subgroups_feature);
         write_json_string_field(mf, false, 2, "bin_sampler", meta->bin_sampler);
         write_json_string_field(mf, false, 2, "key_sampler", meta->key_sampler);
-        write_json_uint32_field(mf, false, 2, "max_key", meta->max_key);
-        write_json_bool_field(mf, false, 2, "subgroups_enabled", meta->subgroups_enabled);
         write_json_uint32_field(mf, false, 2, "merge_wg", meta->merge_wg);
         write_json_uint32_field(mf, false, 2, "merge_tile_size", meta->merge_tile_size);
         write_json_uint32_field(mf, false, 2, "merge_input_tile_size", meta->merge_input_tile_size);
         write_json_uint32_field(mf, false, 2, "merge_max_passes", meta->merge_max_passes);
         write_json_uint64_field(mf, false, 2, "seed", meta->seed);
         write_json_size_field(mf, false, 2, "key_bit_size", meta->key_bit_size);
+        write_json_uint32_field(mf, false, 2, "max_segment_len", MAX_SEGMENT_LEN);
         write_json_size_field(mf, false, 2, "n_segments", meta->n_segments);
         write_json_size_field(mf, false, 2, "n_keys", meta->n_keys);
         write_json_size_field(mf, false, 2, "n_warmup_runs", meta->n_warmup_runs);
@@ -1325,7 +1332,6 @@ int benchmark_wbc_main(const benchmark_config * const config)
         &data,
         config->seed,
         config->key_budget,
-        config->max_key,
         bin_sampler,
         key_sampler
     );
@@ -1339,12 +1345,10 @@ int benchmark_wbc_main(const benchmark_config * const config)
         config->sampler_name,
         config->key_sampler_name,
         config->seed,
-        config->max_key,
         data.segments_len,
         data.keys_len,
         config->n_warmup_runs,
         config->n_runs,
-        config->subgroups_enabled,
         NULL,
         NULL
     );
@@ -1359,7 +1363,7 @@ int benchmark_wbc_main(const benchmark_config * const config)
     );
 
     write_benchmark_results_wbc(
-        config->results_dir,
+        config->output_dir,
         &meta,
         config->n_runs,
         results
@@ -1377,33 +1381,11 @@ int benchmark_wbg_main(const benchmark_config * const config)
 
     printf("Initializing WebGPU context...\n");
 
-    size_t features_len;
-    WGPUFeatureName features[2];
-    if (config->subgroups_enabled)
-    {
-        features_len = 2;
-        features[0] = WGPUFeatureName_Subgroups;
-        features[1] = WGPUFeatureName_TimestampQuery;
-    }
-    else
-    {
-        features_len = 1;
-        features[0] = WGPUFeatureName_TimestampQuery;
-    }
-
     if (!hwgutil_wgpu_context_init(
         &context,
         1, (WGPUInstanceFeatureName[]){ WGPUInstanceFeatureName_TimedWaitAny },
-        features_len, features
+        2, (WGPUFeatureName[]){ WGPUFeatureName_TimestampQuery, WGPUFeatureName_Subgroups }
     )) abort();
-
-    if (config->subgroups_enabled)
-    {
-        if (!wgpuAdapterHasFeature(context.adapter, WGPUFeatureName_Subgroups))
-        {
-            fprintf(stderr, "subgroups are not available with this adapter");
-        }
-    }
 
     wbg_memory memory;
     if (strcmp("register", config->memory_name) == 0) memory = wbg_memory_register;
@@ -1417,11 +1399,25 @@ int benchmark_wbg_main(const benchmark_config * const config)
     else if (strcmp("adaptive", config->store_name) == 0) store = wbg_store_adaptive;
     else PANIC("invalid store kind %s", config->store_name);
 
+    if (memory == wbg_memory_register)
+    {
+        if (!wgpuAdapterHasFeature(context.adapter, WGPUFeatureName_Subgroups))
+        {
+            PANIC("subgroups are not available with this adapter, but requested register memory, aborting");
+        }
+    }
+    else if (memory == wbg_memory_adaptive)
+    {
+        if (!wgpuAdapterHasFeature(context.adapter, WGPUFeatureName_Subgroups))
+        {
+            fprintf(stderr, "subgroups are not available with this adapter, but requested adaptive memory\n");
+        }
+    }
+
     wbg_pipeline_init(
         &pipeline,
         &(wbg_options){
             .sort_kernels_root_dir = "shaders/sort_kernels",
-            .subgroups_enabled = config->subgroups_enabled,
             .memory = memory,
             .store = store,
         },
@@ -1461,7 +1457,6 @@ int benchmark_wbg_main(const benchmark_config * const config)
         &data,
         config->seed,
         config->key_budget,
-        config->max_key,
         bin_sampler,
         key_sampler
     );
@@ -1475,12 +1470,10 @@ int benchmark_wbg_main(const benchmark_config * const config)
         config->sampler_name,
         config->key_sampler_name,
         config->seed,
-        config->max_key,
         data.segments_len,
         data.keys_len,
         config->n_warmup_runs,
         config->n_runs,
-        true,
         &pipeline,
         &context
     );
@@ -1498,7 +1491,7 @@ int benchmark_wbg_main(const benchmark_config * const config)
     );
 
     write_benchmark_results_wbg(
-        config->results_dir,
+        config->output_dir,
         &meta,
         config->n_runs,
         results
@@ -1507,35 +1500,61 @@ int benchmark_wbg_main(const benchmark_config * const config)
     return 0;
 }
 
-int main(int argc, char ** argv)
-{
-    char * endptr;
+static char ARGS_BUFFER[1024 * 4];
 
-    const char * const kind_name = argv[1];
-    const char * const results_dir = argv[2];
-    const char * const sampler_name = argv[3];
-    const char * const key_sampler_name = argv[4];
-    const uint64_t seed = strtoull(argv[5], &endptr, 10);
-    const size_t key_budget = strtoull(argv[6], &endptr, 10);
-    const size_t n_runs = strtoull(argv[7], &endptr, 10);
-    const size_t n_warmup_runs = strtoull(argv[8], &endptr, 10);
-    const uint32_t max_key = strtol(argv[9], &endptr, 10);
-    const uint32_t subgroup_test = strtol(argv[10], &endptr, 10);
-    const char * const memory_name = argv[11];
-    const char * const store_name = argv[12];
-    const bool subgroups_enabled = subgroup_test == 1;
+int main(int argc, const char ** argv)
+{
+    hwargs_size required_args_size;
+    hwargs_parsed args;
+    if (!hwargs_parse(
+        &args,
+        argc, argv,
+        sizeof(ARGS_BUFFER),
+        ARGS_BUFFER,
+        &required_args_size
+    )) PANIC("could not parse arguments");
+
+    const hwargs_param * const kind_param = hwargs_get_param(&args, "kind");
+    const hwargs_param * const output_param = hwargs_get_param(&args, "output");
+    const hwargs_param * const sampler_name_param = hwargs_get_param(&args, "sampler");
+    const hwargs_param * const key_sampler_name_param = hwargs_get_param(&args, "key-sampler");
+    const hwargs_param * const seed_param = hwargs_get_param(&args, "seed");
+    const hwargs_param * const key_budget_param = hwargs_get_param(&args, "keys");
+    const hwargs_param * const runs_param = hwargs_get_param(&args, "runs");
+    const hwargs_param * const warmup_runs_param = hwargs_get_param(&args, "warmup-runs");
+    const hwargs_param * const memory_param = hwargs_get_param(&args, "memory");
+    const hwargs_param * const store_param = hwargs_get_param(&args, "store");
+
+    ENSURE_MSG(kind_param != NULL, "must provide --kind (wbc (CPU), wbg (WebGPU Segsort))");
+    ENSURE_MSG(output_param != NULL, "must provide --output <dir>");
+    ENSURE_MSG(sampler_name_param != NULL, "must provide --sampler <sampler> # examples: uniform, bin(4), const(0.3)");
+    ENSURE_MSG(key_sampler_name_param != NULL, "must provide --key-sampler <sampler> # examples: uniform, bin(4), const(0.3)");
+    ENSURE_MSG(seed_param != NULL, "must provide --seed <u64>");
+    ENSURE_MSG(key_budget_param != NULL, "must provide --keys <u32> # number of keys to sort, distributed with --sampler across buckets");
+    ENSURE_MSG(runs_param != NULL, "must provide --runs <u32>");
+    ENSURE_MSG(store_param != NULL, "must provide --store <block|striped|adaptive>");
+
+    char * endptr;
+    const char * const kind_name = kind_param->value;
+    const char * const output_dir = output_param->value;
+    const char * const sampler_name = sampler_name_param->value;
+    const char * const key_sampler_name = key_sampler_name_param->value;
+    const uint64_t seed = strtoull(seed_param->value, &endptr, 10);
+    const size_t key_budget = strtoull(key_budget_param->value, &endptr, 10);
+    const size_t n_runs = strtoull(runs_param->value, &endptr, 10);
+    const size_t n_warmup_runs = warmup_runs_param == NULL ? 10 : strtoull(warmup_runs_param->value, &endptr, 10);
+    const char * const memory_name = memory_param == NULL ? "adaptive" : memory_param->value;
+    const char * const store_name = store_param == NULL ? "adaptive" : store_param->value;
 
     const benchmark_config config = (benchmark_config){
         .kind_name = kind_name,
-        .results_dir = results_dir,
+        .output_dir = output_dir,
         .sampler_name = sampler_name,
         .key_sampler_name = key_sampler_name,
         .seed = seed,
         .key_budget = key_budget,
         .n_runs = n_runs,
         .n_warmup_runs = n_warmup_runs,
-        .max_key = max_key,
-        .subgroups_enabled = subgroups_enabled,
         .memory_name = memory_name,
         .store_name = store_name,
     };
