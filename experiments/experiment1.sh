@@ -19,7 +19,6 @@ echo ">> building wb_benchmark (Release)"
 cmake --build "${BUILD_DIR}" --target wb_benchmark
 
 SEED=42
-MAX_KEY=4096
 BIN_SAMPLER="uniform"
 KEY_SAMPLER="uniform"
 
@@ -31,20 +30,21 @@ STORE="block"
 
 KEY_BUDGETS=(1000 10000 100000 1000000 10000000)
 
-CONDITIONS=("cpu:wbc:0" "gpu_subgroups:wbg:1" "gpu_smem:wbg:0")
+# label : kind : memory   (memory is ignored by the wbc/CPU path)
+CONDITIONS=("cpu:wbc:workgroup" "gpu_subgroups:wbg:register" "gpu_smem:wbg:workgroup")
 NC=${#CONDITIONS[@]}
 
 RESULTS_ROOT="output/experiment1"
 
 run_condition() {
-    local label="$1" kind="$2" subgroup="$3" budget="$4"
+    local label="$1" kind="$2" memory="$3" budget="$4"
     local results_dir="${RESULTS_ROOT}/keys_${budget}/${label}"
     "${BIN}" \
-        "${kind}" "${results_dir}" \
-        "${BIN_SAMPLER}" "${KEY_SAMPLER}" \
-        "${SEED}" "${budget}" \
-        "${RUNS_PER_ROUND}" "${N_WARMUP}" \
-        "${MAX_KEY}" "${subgroup}" "${STORE}"
+        --kind "${kind}" --output "${results_dir}" \
+        --sampler "${BIN_SAMPLER}" --key-sampler "${KEY_SAMPLER}" \
+        --seed "${SEED}" --keys "${budget}" \
+        --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
+        --memory "${memory}" --store "${STORE}"
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
@@ -56,9 +56,9 @@ for budget in "${KEY_BUDGETS[@]}"; do
             label="${cond%%:*}"
             rest="${cond#*:}"
             kind="${rest%%:*}"
-            subgroup="${rest##*:}"
+            memory="${rest##*:}"
             echo ">> round $((round + 1))/${ROUNDS}  ${label}  (budget=${budget})"
-            run_condition "${label}" "${kind}" "${subgroup}" "${budget}"
+            run_condition "${label}" "${kind}" "${memory}" "${budget}"
         done
     done
 done
