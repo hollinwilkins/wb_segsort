@@ -438,14 +438,15 @@ fn segsort_reg_n256_m128_striped(
     // striped (coalesced) store via subgroup shuffle transpose
     {
         let grp_base = sid - local_tid;   // first lane of this segment
-        let want = local_tid & (WPT - 1u);
         var out_keys: array<u32, WPT>;
         var out_values: array<u32, WPT>;
         { let src = grp_base + ((0u * M + local_tid) >> 1u);
+          let want = ((0u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[0] = k; out_values[0] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[0] = k; out_values[0] = v; } }
         }
         { let src = grp_base + ((1u * M + local_tid) >> 1u);
+          let want = ((1u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[1] = k; out_values[1] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[1] = k; out_values[1] = v; } }
         }

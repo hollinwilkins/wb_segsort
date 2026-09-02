@@ -246,11 +246,15 @@ class KernelGenerator:
         lines = ["    // striped (coalesced) store via subgroup shuffle transpose",
                  "    {",
                  "        let grp_base = sid - local_tid;   // first lane of this segment",
-                 "        let want = local_tid & (WPT - 1u);",
                  "        var out_keys: array<u32, WPT>;",
                  "        var out_values: array<u32, WPT>;"]
+        # output position j = r*M + local_tid lives in source lane (j >> w) and
+        # source register (j & (WPT-1)). BOTH depend on r via the r*M term, so
+        # `want` (the register index) must be recomputed per r -- using
+        # local_tid alone is only correct when M % WPT == 0.
         for r in range(wpt):
             lines.append(f"        {{ let src = grp_base + (({r}u * M + local_tid) >> {w}u);")
+            lines.append(f"          let want = (({r}u * M + local_tid) & (WPT - 1u));")
             for s in range(wpt):
                 lines.append(
                     f"          {{ let k = subgroupShuffle(keys[{s}], src);"

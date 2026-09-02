@@ -792,10 +792,10 @@ fn segsort_reg_n128_m16_striped(
     // striped (coalesced) store via subgroup shuffle transpose
     {
         let grp_base = sid - local_tid;   // first lane of this segment
-        let want = local_tid & (WPT - 1u);
         var out_keys: array<u32, WPT>;
         var out_values: array<u32, WPT>;
         { let src = grp_base + ((0u * M + local_tid) >> 3u);
+          let want = ((0u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[0] = k; out_values[0] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[0] = k; out_values[0] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[0] = k; out_values[0] = v; } }
@@ -806,6 +806,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[0] = k; out_values[0] = v; } }
         }
         { let src = grp_base + ((1u * M + local_tid) >> 3u);
+          let want = ((1u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[1] = k; out_values[1] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[1] = k; out_values[1] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[1] = k; out_values[1] = v; } }
@@ -816,6 +817,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[1] = k; out_values[1] = v; } }
         }
         { let src = grp_base + ((2u * M + local_tid) >> 3u);
+          let want = ((2u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[2] = k; out_values[2] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[2] = k; out_values[2] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[2] = k; out_values[2] = v; } }
@@ -826,6 +828,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[2] = k; out_values[2] = v; } }
         }
         { let src = grp_base + ((3u * M + local_tid) >> 3u);
+          let want = ((3u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[3] = k; out_values[3] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[3] = k; out_values[3] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[3] = k; out_values[3] = v; } }
@@ -836,6 +839,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[3] = k; out_values[3] = v; } }
         }
         { let src = grp_base + ((4u * M + local_tid) >> 3u);
+          let want = ((4u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[4] = k; out_values[4] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[4] = k; out_values[4] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[4] = k; out_values[4] = v; } }
@@ -846,6 +850,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[4] = k; out_values[4] = v; } }
         }
         { let src = grp_base + ((5u * M + local_tid) >> 3u);
+          let want = ((5u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[5] = k; out_values[5] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[5] = k; out_values[5] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[5] = k; out_values[5] = v; } }
@@ -856,6 +861,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[5] = k; out_values[5] = v; } }
         }
         { let src = grp_base + ((6u * M + local_tid) >> 3u);
+          let want = ((6u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[6] = k; out_values[6] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[6] = k; out_values[6] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[6] = k; out_values[6] = v; } }
@@ -866,6 +872,7 @@ fn segsort_reg_n128_m16_striped(
           { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[6] = k; out_values[6] = v; } }
         }
         { let src = grp_base + ((7u * M + local_tid) >> 3u);
+          let want = ((7u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[7] = k; out_values[7] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[7] = k; out_values[7] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[7] = k; out_values[7] = v; } }

@@ -109,9 +109,7 @@ segsort_reg_n128_m32_striped,reg,striped,128,32,32,32,16,7
 segsort_reg_n128_m8_striped,reg,striped,128,8,32,32,16,7
 segsort_reg_n16_m16_striped,reg,striped,16,16,32,32,16,4
 segsort_reg_n16_m8_striped,reg,striped,16,8,32,32,16,4
-segsort_reg_n2048_m16_striped,reg,striped,2048,16,32,32,16,11
 segsort_reg_n2048_m32_striped,reg,striped,2048,32,32,32,16,11
-segsort_reg_n2048_m8_striped,reg,striped,2048,8,32,32,16,11
 segsort_reg_n256_m16_striped,reg,striped,256,16,32,32,16,8
 segsort_reg_n256_m32_striped,reg,striped,256,32,32,32,16,8
 segsort_reg_n256_m8_striped,reg,striped,256,8,32,32,16,8

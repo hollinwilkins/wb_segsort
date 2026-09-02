@@ -81,7 +81,8 @@ typedef struct bench_config
     uint32_t max_invocations;
     uint32_t max_smem_size;
     uint32_t target_wg_size;
-    bool validate;
+    bool validate;        // run the CPU-reference validation for this kernel
+    bool validate_only;   // skip the timed benchmark, only validate
     const char * sampler_name;
 } bench_config;
 
@@ -227,24 +228,28 @@ static void write_results_csv(
 }
 
 // Write one row per experiment describing the validation outcome, to
-// "<experiments_path minus .csv>.validate.csv" (next to the experiments file).
+// "<root_dir>/<experiments-file-basename>.validation.csv" (in the output
+// directory, alongside the per-kernel benchmark result CSVs).
 static void write_validation_csv(
+    const char * const root_dir,
     const char * const experiments_path,
     const bench_experiment * const exps,
     const bench_validation * const results,
     const size_t count
 )
 {
+    // Derive a bare basename from the experiments path: strip any directory
+    // prefix and a trailing ".csv".
+    const char * base = experiments_path;
+    for (const char * p = experiments_path; *p; p++)
+    {
+        if (*p == '/') base = p + 1;
+    }
+    size_t base_len = strlen(base);
+    if (base_len > 4 && strcmp(base + base_len - 4, ".csv") == 0) base_len -= 4;
+
     static char PATH[2048];
-    const size_t len = strlen(experiments_path);
-    if (len > 4 && strcmp(experiments_path + len - 4, ".csv") == 0)
-    {
-        snprintf(PATH, sizeof(PATH), "%.*s.validate.csv", (int)(len - 4), experiments_path);
-    }
-    else
-    {
-        snprintf(PATH, sizeof(PATH), "%s.validate.csv", experiments_path);
-    }
+    snprintf(PATH, sizeof(PATH), "%s/%.*s.validation.csv", root_dir, (int)base_len, base);
 
     make_parent_dirs(PATH);
 
@@ -1117,8 +1122,16 @@ static void run_benchmark(
             segments_len, keys_len, expected_keys, expected_value_indices,
             instance, device, queue);
         if (out_validation != NULL) *out_validation = v;
-        wgpuComputePipelineRelease(pipeline);
-        return;
+
+        // validate_only: skip the timed benchmark. Otherwise fall through and
+        // benchmark too -- the benchmark loop resets the keys buffer from the
+        // pristine staging copy before each timed run, so the in-place sort the
+        // validation dispatch just performed does not affect the measurements.
+        if (config.validate_only)
+        {
+            wgpuComputePipelineRelease(pipeline);
+            return;
+        }
     }
 
     fprintf(stdout, "Warmup run...\n");
@@ -1314,7 +1327,7 @@ int main(const int argc, const char ** const argv)
     if (args.positionals_len < 2)
     {
         PANIC("usage: %s <output_root_dir> --experiments <csv> --keys <n> --runs <n> "
-              "[--seed <n>] [--sampler <s>] [-validate] [-skip-existing]", argv[0]);
+              "[--seed <n>] [--sampler <s>] [-validate-only] [-skip-existing]", argv[0]);
     }
 
     const char * const root_dir = args.positionals[1];
@@ -1324,7 +1337,9 @@ int main(const int argc, const char ** const argv)
     const hwargs_param * const runs_param = hwargs_get_param(&args, "runs");
     const hwargs_param * const seed_param = hwargs_get_param(&args, "seed");
     const hwargs_param * const sampler_param = hwargs_get_param(&args, "sampler");
-    const bool validate = hwargs_has_flag(&args, "validate");
+    // Validation now always runs; -validate-only additionally skips the timed
+    // benchmark (the old -validate behaviour).
+    const bool validate_only = hwargs_has_flag(&args, "validate-only");
     const bool skip_existing = hwargs_has_flag(&args, "skip-existing");
 
     ENSURE_MSG(experiments_param != NULL, "must provide --experiments <csv path>");
@@ -1341,10 +1356,10 @@ int main(const int argc, const char ** const argv)
     bench_experiment * const exps = bench_load_experiments(experiments_param->value, &exp_count);
     fprintf(stdout, "Loaded %zu experiments from %s\n", exp_count, experiments_param->value);
 
-    // In validate mode, one outcome per experiment; written to a single CSV at the end.
-    bench_validation * const validations = validate
-        ? (bench_validation *)calloc(exp_count == 0 ? 1 : exp_count, sizeof(bench_validation))
-        : NULL;
+    // Validation always runs: one outcome per experiment, written to a single CSV
+    // in the output directory at the end.
+    bench_validation * const validations =
+        (bench_validation *)calloc(exp_count == 0 ? 1 : exp_count, sizeof(bench_validation));
 
     // Keys are independent of bin/smem: generate the whole set once.
     uint32_t * const keys = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
@@ -1407,7 +1422,6 @@ int main(const int argc, const char ** const argv)
             // (avoids re-sorting ~1M keys per kernel, the validation bottleneck).
             uint32_t * expected_keys = NULL;
             uint32_t * expected_value_indices = NULL;
-            if (validate)
             {
                 fprintf(stdout, "  computing cpu reference sort (shared across the bin)...\n");
                 expected_keys = (uint32_t *)malloc((size_t)keys_len * sizeof(uint32_t));
@@ -1418,7 +1432,7 @@ int main(const int argc, const char ** const argv)
                 fprintf(stdout, "  cpu reference ready\n");
             }
 
-            fprintf(stdout, "  running %s...\n", validate ? "validation" : "benchmarks");
+            fprintf(stdout, "  running %s...\n", validate_only ? "validation" : "benchmarks + validation");
             for (size_t e = 0; e < exp_count; e++)
             {
                 const bench_experiment * const exp = &exps[e];
@@ -1429,7 +1443,7 @@ int main(const int argc, const char ** const argv)
                 static char ROOT_PATH[2048];
                 snprintf(ROOT_PATH, sizeof(ROOT_PATH), "%s/%s", root_dir, exp->name);
 
-                if (skip_existing && !validate)
+                if (skip_existing && !validate_only)
                 {
                     static char CSV_PATH[2048];
                     snprintf(CSV_PATH, sizeof(CSV_PATH), "%s.csv", ROOT_PATH);
@@ -1457,7 +1471,8 @@ int main(const int argc, const char ** const argv)
                     .max_invocations = res.max_invocations,
                     .max_smem_size = res.max_smem_size,
                     .target_wg_size = 256u,
-                    .validate = validate,
+                    .validate = true,
+                    .validate_only = validate_only,
                     .sampler_name = sampler_name,
                 };
 
@@ -1474,7 +1489,7 @@ int main(const int argc, const char ** const argv)
                     res.query,
                     res.query_buffer,
                     &results,
-                    validate ? &validations[e] : NULL,
+                    &validations[e],
                     expected_keys,
                     expected_value_indices,
                     res.context.instance,
@@ -1492,11 +1507,8 @@ int main(const int argc, const char ** const argv)
         bench_context_res_release(&res);
     }
 
-    if (validate)
-    {
-        write_validation_csv(experiments_param->value, exps, validations, exp_count);
-        free(validations);
-    }
+    write_validation_csv(root_dir, experiments_param->value, exps, validations, exp_count);
+    free(validations);
 
     free(keys);
     free(segments);

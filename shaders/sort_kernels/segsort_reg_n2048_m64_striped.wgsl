@@ -6471,10 +6471,10 @@ fn segsort_reg_n2048_m64_striped(
     // striped (coalesced) store via subgroup shuffle transpose
     {
         let grp_base = sid - local_tid;   // first lane of this segment
-        let want = local_tid & (WPT - 1u);
         var out_keys: array<u32, WPT>;
         var out_values: array<u32, WPT>;
         { let src = grp_base + ((0u * M + local_tid) >> 5u);
+          let want = ((0u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[0] = k; out_values[0] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[0] = k; out_values[0] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[0] = k; out_values[0] = v; } }
@@ -6509,6 +6509,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[0] = k; out_values[0] = v; } }
         }
         { let src = grp_base + ((1u * M + local_tid) >> 5u);
+          let want = ((1u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[1] = k; out_values[1] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[1] = k; out_values[1] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[1] = k; out_values[1] = v; } }
@@ -6543,6 +6544,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[1] = k; out_values[1] = v; } }
         }
         { let src = grp_base + ((2u * M + local_tid) >> 5u);
+          let want = ((2u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[2] = k; out_values[2] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[2] = k; out_values[2] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[2] = k; out_values[2] = v; } }
@@ -6577,6 +6579,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[2] = k; out_values[2] = v; } }
         }
         { let src = grp_base + ((3u * M + local_tid) >> 5u);
+          let want = ((3u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[3] = k; out_values[3] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[3] = k; out_values[3] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[3] = k; out_values[3] = v; } }
@@ -6611,6 +6614,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[3] = k; out_values[3] = v; } }
         }
         { let src = grp_base + ((4u * M + local_tid) >> 5u);
+          let want = ((4u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[4] = k; out_values[4] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[4] = k; out_values[4] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[4] = k; out_values[4] = v; } }
@@ -6645,6 +6649,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[4] = k; out_values[4] = v; } }
         }
         { let src = grp_base + ((5u * M + local_tid) >> 5u);
+          let want = ((5u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[5] = k; out_values[5] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[5] = k; out_values[5] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[5] = k; out_values[5] = v; } }
@@ -6679,6 +6684,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[5] = k; out_values[5] = v; } }
         }
         { let src = grp_base + ((6u * M + local_tid) >> 5u);
+          let want = ((6u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[6] = k; out_values[6] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[6] = k; out_values[6] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[6] = k; out_values[6] = v; } }
@@ -6713,6 +6719,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[6] = k; out_values[6] = v; } }
         }
         { let src = grp_base + ((7u * M + local_tid) >> 5u);
+          let want = ((7u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[7] = k; out_values[7] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[7] = k; out_values[7] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[7] = k; out_values[7] = v; } }
@@ -6747,6 +6754,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[7] = k; out_values[7] = v; } }
         }
         { let src = grp_base + ((8u * M + local_tid) >> 5u);
+          let want = ((8u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[8] = k; out_values[8] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[8] = k; out_values[8] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[8] = k; out_values[8] = v; } }
@@ -6781,6 +6789,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[8] = k; out_values[8] = v; } }
         }
         { let src = grp_base + ((9u * M + local_tid) >> 5u);
+          let want = ((9u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[9] = k; out_values[9] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[9] = k; out_values[9] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[9] = k; out_values[9] = v; } }
@@ -6815,6 +6824,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[9] = k; out_values[9] = v; } }
         }
         { let src = grp_base + ((10u * M + local_tid) >> 5u);
+          let want = ((10u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[10] = k; out_values[10] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[10] = k; out_values[10] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[10] = k; out_values[10] = v; } }
@@ -6849,6 +6859,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[10] = k; out_values[10] = v; } }
         }
         { let src = grp_base + ((11u * M + local_tid) >> 5u);
+          let want = ((11u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[11] = k; out_values[11] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[11] = k; out_values[11] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[11] = k; out_values[11] = v; } }
@@ -6883,6 +6894,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[11] = k; out_values[11] = v; } }
         }
         { let src = grp_base + ((12u * M + local_tid) >> 5u);
+          let want = ((12u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[12] = k; out_values[12] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[12] = k; out_values[12] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[12] = k; out_values[12] = v; } }
@@ -6917,6 +6929,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[12] = k; out_values[12] = v; } }
         }
         { let src = grp_base + ((13u * M + local_tid) >> 5u);
+          let want = ((13u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[13] = k; out_values[13] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[13] = k; out_values[13] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[13] = k; out_values[13] = v; } }
@@ -6951,6 +6964,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[13] = k; out_values[13] = v; } }
         }
         { let src = grp_base + ((14u * M + local_tid) >> 5u);
+          let want = ((14u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[14] = k; out_values[14] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[14] = k; out_values[14] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[14] = k; out_values[14] = v; } }
@@ -6985,6 +6999,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[14] = k; out_values[14] = v; } }
         }
         { let src = grp_base + ((15u * M + local_tid) >> 5u);
+          let want = ((15u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[15] = k; out_values[15] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[15] = k; out_values[15] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[15] = k; out_values[15] = v; } }
@@ -7019,6 +7034,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[15] = k; out_values[15] = v; } }
         }
         { let src = grp_base + ((16u * M + local_tid) >> 5u);
+          let want = ((16u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[16] = k; out_values[16] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[16] = k; out_values[16] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[16] = k; out_values[16] = v; } }
@@ -7053,6 +7069,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[16] = k; out_values[16] = v; } }
         }
         { let src = grp_base + ((17u * M + local_tid) >> 5u);
+          let want = ((17u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[17] = k; out_values[17] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[17] = k; out_values[17] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[17] = k; out_values[17] = v; } }
@@ -7087,6 +7104,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[17] = k; out_values[17] = v; } }
         }
         { let src = grp_base + ((18u * M + local_tid) >> 5u);
+          let want = ((18u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[18] = k; out_values[18] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[18] = k; out_values[18] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[18] = k; out_values[18] = v; } }
@@ -7121,6 +7139,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[18] = k; out_values[18] = v; } }
         }
         { let src = grp_base + ((19u * M + local_tid) >> 5u);
+          let want = ((19u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[19] = k; out_values[19] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[19] = k; out_values[19] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[19] = k; out_values[19] = v; } }
@@ -7155,6 +7174,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[19] = k; out_values[19] = v; } }
         }
         { let src = grp_base + ((20u * M + local_tid) >> 5u);
+          let want = ((20u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[20] = k; out_values[20] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[20] = k; out_values[20] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[20] = k; out_values[20] = v; } }
@@ -7189,6 +7209,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[20] = k; out_values[20] = v; } }
         }
         { let src = grp_base + ((21u * M + local_tid) >> 5u);
+          let want = ((21u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[21] = k; out_values[21] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[21] = k; out_values[21] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[21] = k; out_values[21] = v; } }
@@ -7223,6 +7244,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[21] = k; out_values[21] = v; } }
         }
         { let src = grp_base + ((22u * M + local_tid) >> 5u);
+          let want = ((22u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[22] = k; out_values[22] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[22] = k; out_values[22] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[22] = k; out_values[22] = v; } }
@@ -7257,6 +7279,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[22] = k; out_values[22] = v; } }
         }
         { let src = grp_base + ((23u * M + local_tid) >> 5u);
+          let want = ((23u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[23] = k; out_values[23] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[23] = k; out_values[23] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[23] = k; out_values[23] = v; } }
@@ -7291,6 +7314,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[23] = k; out_values[23] = v; } }
         }
         { let src = grp_base + ((24u * M + local_tid) >> 5u);
+          let want = ((24u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[24] = k; out_values[24] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[24] = k; out_values[24] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[24] = k; out_values[24] = v; } }
@@ -7325,6 +7349,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[24] = k; out_values[24] = v; } }
         }
         { let src = grp_base + ((25u * M + local_tid) >> 5u);
+          let want = ((25u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[25] = k; out_values[25] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[25] = k; out_values[25] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[25] = k; out_values[25] = v; } }
@@ -7359,6 +7384,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[25] = k; out_values[25] = v; } }
         }
         { let src = grp_base + ((26u * M + local_tid) >> 5u);
+          let want = ((26u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[26] = k; out_values[26] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[26] = k; out_values[26] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[26] = k; out_values[26] = v; } }
@@ -7393,6 +7419,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[26] = k; out_values[26] = v; } }
         }
         { let src = grp_base + ((27u * M + local_tid) >> 5u);
+          let want = ((27u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[27] = k; out_values[27] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[27] = k; out_values[27] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[27] = k; out_values[27] = v; } }
@@ -7427,6 +7454,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[27] = k; out_values[27] = v; } }
         }
         { let src = grp_base + ((28u * M + local_tid) >> 5u);
+          let want = ((28u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[28] = k; out_values[28] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[28] = k; out_values[28] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[28] = k; out_values[28] = v; } }
@@ -7461,6 +7489,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[28] = k; out_values[28] = v; } }
         }
         { let src = grp_base + ((29u * M + local_tid) >> 5u);
+          let want = ((29u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[29] = k; out_values[29] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[29] = k; out_values[29] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[29] = k; out_values[29] = v; } }
@@ -7495,6 +7524,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[29] = k; out_values[29] = v; } }
         }
         { let src = grp_base + ((30u * M + local_tid) >> 5u);
+          let want = ((30u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[30] = k; out_values[30] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[30] = k; out_values[30] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[30] = k; out_values[30] = v; } }
@@ -7529,6 +7559,7 @@ fn segsort_reg_n2048_m64_striped(
           { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[30] = k; out_values[30] = v; } }
         }
         { let src = grp_base + ((31u * M + local_tid) >> 5u);
+          let want = ((31u * M + local_tid) & (WPT - 1u));
           { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[31] = k; out_values[31] = v; } }
           { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[31] = k; out_values[31] = v; } }
           { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[31] = k; out_values[31] = v; } }
