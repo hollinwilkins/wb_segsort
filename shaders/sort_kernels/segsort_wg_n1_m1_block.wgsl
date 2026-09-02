@@ -6,19 +6,20 @@ override WG: u32 = 256u;
 @group(0) @binding(3) var<storage, read> bin_offsets: array<u32>;
 @group(0) @binding(4) var<storage, read> bin_indices: array<u32>;
 
-const N: u32 = 1u;
-const M: u32 = 1u;
-const WPT: u32 = 1u;
-
 @compute @workgroup_size(WG, 1, 1)
 fn segsort_wg_n1_m1_block(
-    @builtin(local_invocation_index) lid: u32,
-    @builtin(workgroup_id) wg_id: vec3<u32>
+    @builtin(local_invocation_index) tid_g: u32,
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {
     let bin_base = bin_offsets[0];
-    let bin_count = bin_offsets[1u] - bin_base;
+    let bin_count = bin_offsets[1] - bin_base;
 
-    let global_seg = wg_id.x * WG + lid;
+    let local_tid = tid_g;
+    let seg_base = tid_g - local_tid;
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = wg_index * WG + tid_g;
+
     if global_seg >= bin_count {
         return;
     }

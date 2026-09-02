@@ -222,7 +222,8 @@ const WPT: u32 = {wpt}u;
 fn {name}(
     @builtin(subgroup_invocation_id) sid: u32,
     @builtin(local_invocation_index) lid: u32,
-    @builtin(workgroup_id) wg_id: vec3<u32>
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {{
     const BIN: u32 = {N.bit_length()}u;
 
@@ -230,7 +231,8 @@ fn {name}(
     let bin_count = bin_offsets[BIN] - bin_base;
 
     let local_tid = sid & (M - 1u);
-    let global_seg = (wg_id.x * WG + lid) / M;
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = (wg_index * WG + lid) / M;
 
     let is_active = global_seg < bin_count;
     let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
@@ -282,7 +284,8 @@ var<workgroup> smem_vals: array<u32, WG * WPT>;
 @compute @workgroup_size(WG, 1, 1)
 fn {name}(
     @builtin(local_invocation_index) tid_g: u32,
-    @builtin(workgroup_id) wg_id: vec3<u32>
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {{
     const BIN: u32 = {N.bit_length()}u;
 
@@ -291,7 +294,8 @@ fn {name}(
 
     let local_tid = tid_g % M;
     let seg_base = tid_g - local_tid;
-    let global_seg = (wg_id.x * WG + tid_g) / M;
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = (wg_index * WG + tid_g) / M;
 
     let is_active = global_seg < bin_count;
     let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range

@@ -17,7 +17,8 @@ var<workgroup> smem_vals: array<u32, WG * WPT>;
 @compute @workgroup_size(WG, 1, 1)
 fn segsort_wg_n64_m8_striped(
     @builtin(local_invocation_index) tid_g: u32,
-    @builtin(workgroup_id) wg_id: vec3<u32>
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {
     const BIN: u32 = 7u;
 
@@ -26,7 +27,8 @@ fn segsort_wg_n64_m8_striped(
 
     let local_tid = tid_g % M;
     let seg_base = tid_g - local_tid;
-    let global_seg = (wg_id.x * WG + tid_g) / M;
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = (wg_index * WG + tid_g) / M;
 
     let is_active = global_seg < bin_count;
     let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
