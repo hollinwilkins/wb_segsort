@@ -342,6 +342,8 @@ HWARGS_EXPORT hwargs_bool hwargs_parse(
         }
     }
 
+    if (state.kind != hwargs__state_running) return hwargs_false;
+
     return hwargs_true;
 }
 

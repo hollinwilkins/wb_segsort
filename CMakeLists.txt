@@ -21,6 +21,7 @@ endif()
 include(Cpu)
 include(Gpu)
 include(Benchmark)
+include(BenchmarkKernel)
 include(BenchmarkThroughput)
 
 enable_testing()
