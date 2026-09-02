@@ -108,6 +108,34 @@ typedef struct bench_result
     uint64_t gpu_end_ns;
 } bench_result;
 
+// One row of the experiments CSV: a single kernel config to benchmark.
+typedef struct bench_experiment
+{
+    char name[512];
+    bench_memory_kind memory;
+    bench_store_kind store;
+    uint32_t N;
+    uint32_t M;
+    uint32_t R;
+    uint32_t subgroups;
+    uint32_t smem_kb;
+    uint32_t bin;
+} bench_experiment;
+
+// Outcome of validating one kernel against the CPU reference sort.
+typedef struct bench_validation
+{
+    bool valid;
+    size_t keys_len;
+    size_t segments_len;
+    size_t fail_index;      // first mismatched global index (when !valid)
+    const char * fail_kind; // "keys" | "values" | "" when valid
+    uint32_t cpu_key;
+    uint32_t gpu_key;
+    uint32_t cpu_vi;
+    uint32_t gpu_vi;
+} bench_validation;
+
 static const bench_smem BENCH_SMEMS[2] = {
     { "16kb", 16 * 1024 },
     { "32kb", 32 * 1024 },
@@ -198,6 +226,60 @@ static void write_results_csv(
     fclose(f);
 }
 
+// Write one row per experiment describing the validation outcome, to
+// "<experiments_path minus .csv>.validate.csv" (next to the experiments file).
+static void write_validation_csv(
+    const char * const experiments_path,
+    const bench_experiment * const exps,
+    const bench_validation * const results,
+    const size_t count
+)
+{
+    static char PATH[2048];
+    const size_t len = strlen(experiments_path);
+    if (len > 4 && strcmp(experiments_path + len - 4, ".csv") == 0)
+    {
+        snprintf(PATH, sizeof(PATH), "%.*s.validate.csv", (int)(len - 4), experiments_path);
+    }
+    else
+    {
+        snprintf(PATH, sizeof(PATH), "%s.validate.csv", experiments_path);
+    }
+
+    make_parent_dirs(PATH);
+
+    FILE * const f = fopen(PATH, "w");
+    if (f == NULL) PANIC("could not open validation csv for writing: %s", PATH);
+
+    fprintf(f,
+        "name,memory,store,N,M,R,subgroups,smem,bin,keys,segments,valid,"
+        "fail_index,fail_kind,cpu_key,gpu_key,cpu_vi,gpu_vi\n");
+
+    size_t passed = 0;
+    size_t failed = 0;
+
+    for (size_t e = 0; e < count; e++)
+    {
+        const bench_experiment * const x = &exps[e];
+        const bench_validation * const v = &results[e];
+
+        fprintf(f,
+            "%s,%s,%s,%u,%u,%u,%u,%u,%u,%zu,%zu,%s,%zu,%s,%u,%u,%u,%u\n",
+            x->name, bench_memory_name(x->memory), bench_store_name(x->store),
+            x->N, x->M, x->R, x->subgroups, x->smem_kb, x->bin,
+            v->keys_len, v->segments_len, v->valid ? "true" : "false",
+            v->valid ? (size_t)0 : v->fail_index, v->valid ? "" : v->fail_kind,
+            v->cpu_key, v->gpu_key, v->cpu_vi, v->gpu_vi);
+
+        if (v->valid) passed++;
+        else failed++;
+    }
+
+    fclose(f);
+
+    fprintf(stdout, "\nvalidation: %zu passed, %zu failed -> %s\n", passed, failed, PATH);
+}
+
 static bench_memory_kind bench_memory_for_name(const char * const name)
 {
     if (strcmp("reg", name) == 0) return bench_memory_reg;
@@ -214,6 +296,57 @@ static bench_store_kind bench_store_for_name(const char * const name)
     else if (strcmp("striped", name) == 0) return bench_store_striped;
 
     PANIC("invalid memory kind %s", name);
+}
+
+// Parse the experiments CSV (header: name,memory,store,N,M,R,subgroups,smem,bin)
+// into a malloc'd array. Caller frees. Sets *out_count.
+static bench_experiment * bench_load_experiments(const char * const path, size_t * const out_count)
+{
+    FILE * const f = fopen(path, "r");
+    if (f == NULL) PANIC("could not open experiments csv: %s", path);
+
+    static char LINE[1024];
+
+    if (fgets(LINE, sizeof(LINE), f) == NULL) PANIC("empty experiments csv: %s", path);
+    const long data_start = ftell(f);
+
+    size_t cap = 0;
+    while (fgets(LINE, sizeof(LINE), f) != NULL) cap++;
+    fseek(f, data_start, SEEK_SET);
+
+    bench_experiment * const exps = (bench_experiment *)malloc((cap == 0 ? 1 : cap) * sizeof(bench_experiment));
+    size_t n = 0;
+
+    while (fgets(LINE, sizeof(LINE), f) != NULL)
+    {
+        if (LINE[0] == '\n' || LINE[0] == '\r' || LINE[0] == '\0') continue;
+
+        char name[512];
+        char memory[32];
+        char store[32];
+        uint32_t N, M, R, subgroups, smem_kb, bin;
+
+        if (sscanf(LINE, "%511[^,],%31[^,],%31[^,],%u,%u,%u,%u,%u,%u",
+                name, memory, store, &N, &M, &R, &subgroups, &smem_kb, &bin) != 9)
+        {
+            PANIC("malformed experiments row: %s", LINE);
+        }
+
+        bench_experiment * const e = &exps[n++];
+        snprintf(e->name, sizeof(e->name), "%s", name);
+        e->memory = bench_memory_for_name(memory);
+        e->store = bench_store_for_name(store);
+        e->N = N;
+        e->M = M;
+        e->R = R;
+        e->subgroups = subgroups;
+        e->smem_kb = smem_kb;
+        e->bin = bin;
+    }
+
+    fclose(f);
+    *out_count = n;
+    return exps;
 }
 
 static void bench_buffers_init(
@@ -561,6 +694,48 @@ static hwstats_sampler * create_sampler(
     return NULL;
 }
 
+// Generate the segment layout for a bin: segment sizes in (2^(bin-1), 2^bin],
+// packed until the n_keys budget is exhausted. Deterministic in seed (a fresh
+// sampler is created each call so a bin's layout is independent of iteration
+// order). Fills `segments` (cumulative ends), returns segments_len, sets keys_len.
+static uint32_t bench_generate_segments(
+    const uint32_t bin,
+    const uint32_t n_keys,
+    const uint32_t seed,
+    const char * const sampler_name,
+    uint32_t * const segments,
+    uint32_t * const out_keys_len
+)
+{
+    uint8_t sampler_buffer[1024 * 4];
+    mems_bump bump;
+    mems_allocator allocator;
+    mems_bump_init(&bump, sizeof(sampler_buffer), sampler_buffer);
+    mems_bump_allocator_init(&bump, &allocator);
+
+    hwstats_sampler * const sampler = create_sampler(sampler_name, (uint64_t)seed, &allocator);
+
+    const uint32_t lo = bin == 0u ? 1u : (1u << (bin - 1u)) + 1u;
+    const uint32_t hi = 1u << bin;
+    const uint32_t range = hi - lo;
+
+    uint32_t segments_len = 0;
+    uint32_t keys_len = 0;
+
+    while (keys_len < n_keys)
+    {
+        const uint32_t segment_len = lo + (uint32_t)(hwstats_sample(sampler) * (double)range);
+
+        if (keys_len + segment_len > n_keys) break;
+
+        keys_len += segment_len;
+        segments[segments_len++] = keys_len;
+    }
+
+    *out_keys_len = keys_len;
+    return segments_len;
+}
+
 static uint32_t bench_wg(
     const bench_memory_kind memory,
     const uint32_t N,
@@ -756,16 +931,20 @@ static void bench_compute_bins_gpu(
     mems_allocator_free(&mems_system_allocator, source);
 }
 
-// Dispatch the sort once and check the GPU output against a CPU reference sort.
-// Aborts on the first mismatch; returns normally if every key/value matches.
-static void bench_validate(
+// Dispatch the sort once and check the GPU output against a precomputed CPU
+// reference sort (shared across every experiment in the same bin). Records the
+// first mismatch (if any) and returns it; never aborts, so a sweep can validate
+// every config and tabulate the results.
+static bench_validation bench_validate(
     const char * const name,
     const bench_buffers * const buffers,
     WGPUComputePipeline const pipeline,
     WGPUBindGroup const binding,
     const wbg_dispatch_size grid,
-    const size_t segments_len, uint32_t * const segments,
-    const size_t keys_len, uint32_t * const keys,
+    const size_t segments_len,
+    const size_t keys_len,
+    const uint32_t * const expected_keys,
+    const uint32_t * const expected_value_indices,
     WGPUInstance const instance,
     WGPUDevice const device,
     WGPUQueue const queue
@@ -785,14 +964,6 @@ static void bench_validate(
     wgpuComputePassEncoderRelease(pass);
     wgpuCommandEncoderRelease(encoder);
 
-    // CPU reference: sort a copy of the original keys, values = identity global index.
-    uint32_t * const expected_keys = (uint32_t *)malloc(keys_len * sizeof(uint32_t));
-    uint32_t * const expected_value_indices = (uint32_t *)malloc(keys_len * sizeof(uint32_t));
-    memcpy(expected_keys, keys, keys_len * sizeof(uint32_t));
-    for (size_t i = 0; i < keys_len; i++) expected_value_indices[i] = (uint32_t)i;
-
-    wbc_segsort_alloc(keys_len, expected_keys, expected_value_indices, segments_len, segments);
-
     // Read back the sorted keys and value indices the kernel wrote.
     uint32_t * gpu_keys;
     hwgutil_wgpu_read_buffer_alloc(
@@ -802,29 +973,46 @@ static void bench_validate(
     hwgutil_wgpu_read_buffer_alloc(
         instance, device, queue, buffers->value_indices, &mems_system_allocator, (void **)&gpu_value_indices);
 
+    bench_validation result = (bench_validation){
+        .valid = true,
+        .keys_len = keys_len,
+        .segments_len = segments_len,
+        .fail_kind = "",
+    };
+
     for (size_t i = 0; i < keys_len; i++)
     {
-        if (expected_keys[i] != gpu_keys[i])
-        {
-            fprintf(stderr, "VALIDATION FAILED %s: keys[%zu] cpu=%u gpu=%u\n",
-                name, i, expected_keys[i], gpu_keys[i]);
-            abort();
-        }
+        const bool key_bad = expected_keys[i] != gpu_keys[i];
+        const bool vi_bad = expected_value_indices[i] != gpu_value_indices[i];
 
-        if (expected_value_indices[i] != gpu_value_indices[i])
+        if (key_bad || vi_bad)
         {
-            fprintf(stderr, "VALIDATION FAILED %s: value_indices[%zu] cpu=%u gpu=%u (key=%u)\n",
-                name, i, expected_value_indices[i], gpu_value_indices[i], gpu_keys[i]);
-            abort();
+            result.valid = false;
+            result.fail_index = i;
+            result.fail_kind = key_bad ? "keys" : "values";
+            result.cpu_key = expected_keys[i];
+            result.gpu_key = gpu_keys[i];
+            result.cpu_vi = expected_value_indices[i];
+            result.gpu_vi = gpu_value_indices[i];
+            break;
         }
     }
 
-    fprintf(stdout, "VALIDATION PASSED %s (%zu keys, %zu segments)\n", name, keys_len, segments_len);
+    if (result.valid)
+    {
+        fprintf(stdout, "VALIDATION PASSED %s (%zu keys, %zu segments)\n", name, keys_len, segments_len);
+    }
+    else
+    {
+        fprintf(stderr, "VALIDATION FAILED %s: %s[%zu] cpu_key=%u gpu_key=%u cpu_vi=%u gpu_vi=%u\n",
+            name, result.fail_kind, result.fail_index,
+            result.cpu_key, result.gpu_key, result.cpu_vi, result.gpu_vi);
+    }
 
-    free(expected_keys);
-    free(expected_value_indices);
     mems_allocator_free(&mems_system_allocator, gpu_keys);
     mems_allocator_free(&mems_system_allocator, gpu_value_indices);
+
+    return result;
 }
 
 static void run_benchmark(
@@ -837,6 +1025,9 @@ static void run_benchmark(
     WGPUQuerySet const query,
     WGPUBuffer const query_buffer,
     bench_result ** const results,
+    bench_validation * const out_validation,
+    const uint32_t * const expected_keys,
+    const uint32_t * const expected_value_indices,
     WGPUInstance const instance,
     WGPUDevice const device,
     WGPUQueue const queue
@@ -896,10 +1087,11 @@ static void run_benchmark(
 
     if (config.validate)
     {
-        bench_validate(
+        const bench_validation v = bench_validate(
             KERNEL_NAME, buffers, pipeline, binding, grid,
-            segments_len, segments, keys_len, keys,
+            segments_len, keys_len, expected_keys, expected_value_indices,
             instance, device, queue);
+        if (out_validation != NULL) *out_validation = v;
         wgpuComputePipelineRelease(pipeline);
         return;
     }
@@ -1000,151 +1192,85 @@ static void run_benchmark(
     wgpuComputePipelineRelease(pipeline);
 }
 
-int benchmark_main(
-    const bench_config config,
-    const hwgutil_wgpu_context context
-)
+
+// ---- Batch runner: many experiments in one process -------------------------
+
+// Constant per-device resources shared by every experiment that runs on a
+// context. A distinct context (device) is needed per smem value because the
+// workgroup-storage limit is fixed at device creation.
+typedef struct bench_context_res
 {
+    hwgutil_wgpu_context context;
     bench_buffers buffers;
-
-    bench_buffers_init(
-        &buffers,
-        context.device,
-        config.n_keys,
-        config.n_keys
-    );
-
     WGPUBindGroupLayout bind_layout;
     WGPUPipelineLayout pipeline_layout;
+    WGPUBindGroup binding;
+    WGPUQuerySet query;
+    WGPUBuffer query_buffer;
+    uint32_t max_invocations;
+    uint32_t max_smem_size;
+} bench_context_res;
 
-    bench_create_pipeline_layout(
-        context.device,
-        &bind_layout,
-        &pipeline_layout
-    );
+static void bench_context_res_init(
+    bench_context_res * const res,
+    const uint32_t smem_kb,
+    const uint32_t n_keys
+)
+{
+    WGPULimits required_limits = WGPU_LIMITS_INIT;
+    required_limits.maxStorageBufferBindingSize = 1024llu * 1024 * 1024 * 2;
+    required_limits.maxBufferSize = 1024llu * 1024 * 1024 * 2;
+    required_limits.maxComputeWorkgroupStorageSize = smem_kb * 1024;
 
-    WGPUBindGroup binding = bench_create_bindings(
-        &buffers,
-        context.device,
-        bind_layout
-    );
+    fprintf(stdout, "Initializing WebGPU context (smem=%uk)...\n", smem_kb);
+
+    if (!hwgutil_wgpu_context_init(
+        &res->context,
+        1, (WGPUInstanceFeatureName[]){ WGPUInstanceFeatureName_TimedWaitAny },
+        2, (WGPUFeatureName[]){ WGPUFeatureName_TimestampQuery, WGPUFeatureName_Subgroups },
+        &required_limits
+    )) PANIC("could not initialize WebGPU context");
+
+    WGPULimits limits = WGPU_LIMITS_INIT;
+    wgpuDeviceGetLimits(res->context.device, &limits);
+    res->max_invocations = limits.maxComputeInvocationsPerWorkgroup;
+    res->max_smem_size = limits.maxComputeWorkgroupStorageSize;
+
+    bench_buffers_init(&res->buffers, res->context.device, n_keys, n_keys);
+    bench_create_pipeline_layout(res->context.device, &res->bind_layout, &res->pipeline_layout);
+    res->binding = bench_create_bindings(&res->buffers, res->context.device, res->bind_layout);
 
     WGPUQuerySetDescriptor query_desc = WGPU_QUERY_SET_DESCRIPTOR_INIT;
-    query_desc.label = (WGPUStringView){
-        .data = "WB Sort: Timestamp Queries",
-        .length = WGPU_STRLEN,
-    };
+    query_desc.label = (WGPUStringView){ .data = "WB Sort: Timestamp Queries", .length = WGPU_STRLEN };
     query_desc.type = WGPUQueryType_Timestamp;
     query_desc.count = 2;
-
-    WGPUQuerySet query = wgpuDeviceCreateQuerySet(context.device, &query_desc);
-
-    wbg_sort_timing timing = (wbg_sort_timing){
-        .query = query,
-    };
+    res->query = wgpuDeviceCreateQuerySet(res->context.device, &query_desc);
 
     WGPUBufferDescriptor query_buffer_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
-    query_buffer_desc.label = (WGPUStringView){
-        .data = "WB Sort: Timestamp Queries",
-        .length = WGPU_STRLEN,
-    };
+    query_buffer_desc.label = (WGPUStringView){ .data = "WB Sort: Timestamp Queries", .length = WGPU_STRLEN };
     query_buffer_desc.usage = WGPUBufferUsage_QueryResolve | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
     query_buffer_desc.size = 2 * sizeof(uint64_t);
+    res->query_buffer = wgpuDeviceCreateBuffer(res->context.device, &query_buffer_desc);
+}
 
-    WGPUBuffer query_buffer = wgpuDeviceCreateBuffer(context.device, &query_buffer_desc);
-
-    static uint8_t SAMPLER_BUFFER[1024 * 4];
-    mems_bump bump;
-    mems_allocator allocator;
-    mems_bump_init(&bump, sizeof(SAMPLER_BUFFER), SAMPLER_BUFFER);
-    mems_bump_allocator_init(&bump, &allocator);
-
-    hwstats_sampler * const sampler = create_sampler(config.sampler_name, (uint64_t)config.seed, &allocator);
-
-    hwstats_x256pp rx;
-    hwstats_randomizer r;
-    hwstats_x256pp_init(&rx, config.seed);
-    hwstats_x256pp_rand_init(&rx, &r);
-
-    uint32_t * const keys = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
-    uint32_t * const value_indices = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
-    uint32_t * const segments = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
-
-    fprintf(stdout, "Generating key set...\n");
-    for (size_t i = 0; i < config.n_keys; i++)
-    {
-        keys[i] = (uint32_t)(hwstats_uniform(&r) * (double)UINT32_MAX);
-    }
-
-    const uint32_t bin = config.bin;
-    const uint32_t lo = bin == 0u ? 1u : (1u << (bin - 1u)) + 1u;
-    const uint32_t hi = 1u << bin;
-    const uint32_t range = hi - lo;
-
-    uint32_t segments_len = 0;
-    uint32_t keys_len = 0;
-    uint32_t key_budget = config.n_keys;
-
-    fprintf(stdout, "Generating segments...\n");
-    while (keys_len < key_budget)
-    {
-        const uint32_t segment_len = lo + (uint32_t)(hwstats_sample(sampler) * (double)range);
-
-        if (keys_len + segment_len > key_budget) break;
-
-        keys_len += segment_len;
-        segments[segments_len++] = keys_len;
-    }
-
-    fprintf(stdout, "Uploading data...\n");
-    wgpuQueueWriteBuffer(
-        context.queue,
-        buffers.segments,
-        0,
-        segments,
-        segments_len * sizeof(uint32_t)
-    );
-
-    // Bin on the GPU with the real binning kernels, writing bin_offsets/bin_indices
-    // straight into their buffers (replaces the CPU prefix-sum).
-    fprintf(stdout, "Binning segments (gpu)...\n");
-    bench_compute_bins_gpu(
-        &buffers,
-        segments_len,
-        context.instance,
-        context.device,
-        context.queue
-    );
-
-    wgpuQueueWriteBuffer(
-        context.queue,
-        buffers.keys_staging,
-        0,
-        keys,
-        keys_len * sizeof(uint32_t)
-    );
-
-    bench_result * results;
-    run_benchmark(
-        config,
-        pipeline_layout,
-        &buffers,
-        binding,
-        segments_len, segments,
-        keys_len, keys,
-        query,
-        query_buffer,
-        &results,
-        context.instance,
-        context.device,
-        context.queue
-    );
-        
-    free(keys);
-    free(value_indices);
-    free(segments);
-
-    return 0;
+static void bench_context_res_release(bench_context_res * const res)
+{
+    wgpuBufferRelease(res->query_buffer);
+    wgpuQuerySetRelease(res->query);
+    wgpuBindGroupRelease(res->binding);
+    wgpuPipelineLayoutRelease(res->pipeline_layout);
+    wgpuBindGroupLayoutRelease(res->bind_layout);
+    wgpuBufferRelease(res->buffers.keys);
+    wgpuBufferRelease(res->buffers.keys_staging);
+    wgpuBufferRelease(res->buffers.value_indices);
+    wgpuBufferRelease(res->buffers.segments);
+    wgpuBufferRelease(res->buffers.bin_offsets);
+    wgpuBufferRelease(res->buffers.bin_indices);
+    wgpuBufferRelease(res->buffers.bin_config);
+    wgpuBufferRelease(res->buffers.bin_config_data);
+    wgpuBufferRelease(res->buffers.bin_histogram);
+    wgpuBufferRelease(res->buffers.bin_dispatch);
+    hwgutil_wgpu_context_release(&res->context);
 }
 
 int main(const int argc, const char ** const argv)
@@ -1162,115 +1288,195 @@ int main(const int argc, const char ** const argv)
 
     if (args.positionals_len < 2)
     {
-        PANIC("must provide <output dir> as first poositional argument");
+        PANIC("usage: %s <output_root_dir> --experiments <csv> --keys <n> --runs <n> "
+              "[--seed <n>] [--sampler <s>] [-validate] [-skip-existing]", argv[0]);
     }
 
-    const char * const root = args.positionals[1];
-    const hwargs_param * const memory_param = hwargs_get_param(&args, "memory");
-    const hwargs_param * const store_param = hwargs_get_param(&args, "store");
-    const hwargs_param * const seed_param = hwargs_get_param(&args, "seed");
-    const hwargs_param * const bin_param = hwargs_get_param(&args, "bin");
-    const hwargs_param * const n_keys_param = hwargs_get_param(&args, "keys");
-    const hwargs_param * const runs_param = hwargs_get_param(&args, "runs");
-    const hwargs_param * const N_param = hwargs_get_param(&args, "N");
-    const hwargs_param * const M_param = hwargs_get_param(&args, "M");
-    const hwargs_param * const R_param = hwargs_get_param(&args, "R");
-    const hwargs_param * const smem_param = hwargs_get_param(&args, "smem");
-    const hwargs_param * const subgroups_param = hwargs_get_param(&args, "subgroups");
-    const hwargs_param * const sampler_name_param = hwargs_get_param(&args, "sampler");
-    const bool skip_existing = hwargs_has_flag(&args, "skip-existing");
-    const bool validate = hwargs_has_flag(&args, "validate");
+    const char * const root_dir = args.positionals[1];
 
-    ENSURE_MSG(memory_param != NULL, "must provide --memory <reg|smem|hybrid|hybmerge>");
-    ENSURE_MSG(store_param != NULL, "must provide --store <block|striped>");
-    ENSURE_MSG(seed_param != NULL, "must provide --seed <u32>");
-    ENSURE_MSG(bin_param != NULL, "must provide --bin <0..12>");
-    ENSURE_MSG(runs_param != NULL, "must provide --keys <u32>");
-    ENSURE_MSG(n_keys_param != NULL, "must provide --keys <u32>");
-    ENSURE_MSG(N_param != NULL, "must provide --N <u32>");
-    ENSURE_MSG(M_param != NULL, "must provide --M <u32>");
-    ENSURE_MSG(smem_param != NULL, "must provide --smem <16|32>");
-    ENSURE_MSG(subgroups_param != NULL, "must provide --subgroups <8|16|32|64|128>");
-    ENSURE_MSG(sampler_name_param != NULL, "must provide --sampler <const([0.0,1.0]),uniform> # distributes segment sizes across bin range");
+    const hwargs_param * const experiments_param = hwargs_get_param(&args, "experiments");
+    const hwargs_param * const keys_param = hwargs_get_param(&args, "keys");
+    const hwargs_param * const runs_param = hwargs_get_param(&args, "runs");
+    const hwargs_param * const seed_param = hwargs_get_param(&args, "seed");
+    const hwargs_param * const sampler_param = hwargs_get_param(&args, "sampler");
+    const bool validate = hwargs_has_flag(&args, "validate");
+    const bool skip_existing = hwargs_has_flag(&args, "skip-existing");
+
+    ENSURE_MSG(experiments_param != NULL, "must provide --experiments <csv path>");
+    ENSURE_MSG(keys_param != NULL, "must provide --keys <u32>");
+    ENSURE_MSG(runs_param != NULL, "must provide --runs <u32>");
 
     char * endptr;
-    const bench_memory_kind memory = bench_memory_for_name(memory_param->value);
-    const bench_store_kind store = bench_store_for_name(store_param->value);
-    const uint32_t seed = strtol(seed_param->value, &endptr, 10);
-    const uint32_t N = strtol(N_param->value, &endptr, 10);
-    const uint32_t M = strtol(M_param->value, &endptr, 10);
-    uint32_t R = 0;
-    const uint32_t smem_kb = strtol(smem_param->value, &endptr, 10);
+    const uint32_t n_keys = strtol(keys_param->value, &endptr, 10);
     const uint32_t runs = strtol(runs_param->value, &endptr, 10);
-    const uint32_t bin = strtol(bin_param->value, &endptr, 10);
-    const uint32_t n_keys = strtol(n_keys_param->value, &endptr, 10);
-    const uint32_t subgroups = strtol(subgroups_param->value, &endptr, 10);
+    const uint32_t seed = seed_param != NULL ? (uint32_t)strtol(seed_param->value, &endptr, 10) : 1u;
+    const char * const sampler_name = sampler_param != NULL ? sampler_param->value : "uniform";
 
-    if (smem_kb != 16 && smem_kb != 32 && smem_kb) PANIC("smem must be 16 or 32");
-    if (bin > 11) PANIC("bin must be <= 12");
+    size_t exp_count = 0;
+    bench_experiment * const exps = bench_load_experiments(experiments_param->value, &exp_count);
+    fprintf(stdout, "Loaded %zu experiments from %s\n", exp_count, experiments_param->value);
 
-    switch (memory)
+    // In validate mode, one outcome per experiment; written to a single CSV at the end.
+    bench_validation * const validations = validate
+        ? (bench_validation *)calloc(exp_count == 0 ? 1 : exp_count, sizeof(bench_validation))
+        : NULL;
+
+    // Keys are independent of bin/smem: generate the whole set once.
+    uint32_t * const keys = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
+    uint32_t * const segments = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
     {
-        case bench_memory_hybrid:
-        case bench_memory_hybmerge:
+        hwstats_x256pp rx;
+        hwstats_randomizer r;
+        hwstats_x256pp_init(&rx, seed);
+        hwstats_x256pp_rand_init(&rx, &r);
+        fprintf(stdout, "Generating %u keys...\n", n_keys);
+        for (size_t i = 0; i < n_keys; i++)
         {
-            ENSURE_MSG(R_param != NULL, "must provide --R <u32>");
-            R = strtol(R_param->value, &endptr, 10);
-        } break;
-        default: break;
-    }
-
-    hwgutil_wgpu_context context;
-
-    WGPULimits required_limits = WGPU_LIMITS_INIT;
-    required_limits.maxStorageBufferBindingSize = 1024llu * 1024 * 1024 * 2;
-    required_limits.maxBufferSize = 1024llu * 1024 * 1024 * 2;
-    required_limits.maxComputeWorkgroupStorageSize = smem_kb * 1024;
-
-    fprintf(stdout, "Initializing WebGPU Context...\n");
-
-    if (!hwgutil_wgpu_context_init(
-        &context,
-        1, (WGPUInstanceFeatureName[]){ WGPUInstanceFeatureName_TimedWaitAny },
-        2, (WGPUFeatureName[]){ WGPUFeatureName_TimestampQuery, WGPUFeatureName_Subgroups },
-        &required_limits
-    )) PANIC("could not initialize WebGPU context");
-
-    WGPULimits limits = WGPU_LIMITS_INIT;
-    wgpuDeviceGetLimits(context.device, &limits);
-
-    const bench_config config = (bench_config){
-        .root = root,
-        .memory = memory,
-        .store = store,
-        .seed = seed,
-        .runs = runs,
-        .N = N,
-        .M = M,
-        .R = R,
-        .smem_bytes = smem_kb * 1024,
-        .bin = bin,
-        .n_keys = n_keys,
-        .sampler_name = sampler_name_param->value,
-        .subgroups = subgroups,
-        .max_invocations = limits.maxComputeInvocationsPerWorkgroup,
-        .max_smem_size = limits.maxComputeWorkgroupStorageSize,
-        .target_wg_size = 256u,
-        .validate = validate,
-    };
-
-    if (skip_existing)
-    {
-        static char CSV_PATH[2048];
-        snprintf(CSV_PATH, sizeof(CSV_PATH), "%s.csv", config.root);
-
-        struct stat st;
-        if (stat(CSV_PATH, &st) == 0)
-        {
-            fprintf(stdout, "Skipping (results exist): %s\n", CSV_PATH);
-            return 0;
+            keys[i] = (uint32_t)(hwstats_uniform(&r) * (double)UINT32_MAX);
         }
     }
 
-    return benchmark_main(config, context);
+    size_t total = 0;
+
+    // Iterate by smem: each distinct value needs its own device (the
+    // workgroup-storage limit is fixed at device creation).
+    for (uint32_t smem_kb = 1; smem_kb <= 64; smem_kb <<= 1)
+    {
+        bool smem_used = false;
+        for (size_t e = 0; e < exp_count; e++)
+        {
+            if (exps[e].smem_kb == smem_kb) { smem_used = true; break; }
+        }
+        if (!smem_used) continue;
+
+        bench_context_res res;
+        bench_context_res_init(&res, smem_kb, n_keys);
+
+        // Pristine keys uploaded once per device (reset source for every run).
+        fprintf(stdout, "Uploading %u keys to device (smem=%uk)...\n", n_keys, smem_kb);
+        wgpuQueueWriteBuffer(res.context.queue, res.buffers.keys_staging, 0, keys, (size_t)n_keys * sizeof(uint32_t));
+
+        // Iterate by bin: the segment layout depends only on the bin.
+        for (uint32_t bin = 0; bin <= 12; bin++)
+        {
+            bool bin_used = false;
+            for (size_t e = 0; e < exp_count; e++)
+            {
+                if (exps[e].smem_kb == smem_kb && exps[e].bin == bin) { bin_used = true; break; }
+            }
+            if (!bin_used) continue;
+
+            fprintf(stdout, "\n=== smem=%uk bin=%u ===\n", smem_kb, bin);
+
+            fprintf(stdout, "  generating segment layout...\n");
+            uint32_t keys_len = 0;
+            const uint32_t segments_len = bench_generate_segments(bin, n_keys, seed, sampler_name, segments, &keys_len);
+            fprintf(stdout, "  %u segments, %u keys\n", segments_len, keys_len);
+
+            fprintf(stdout, "  uploading segments + binning (gpu)...\n");
+            wgpuQueueWriteBuffer(res.context.queue, res.buffers.segments, 0, segments, segments_len * sizeof(uint32_t));
+            bench_compute_bins_gpu(&res.buffers, segments_len, res.context.instance, res.context.device, res.context.queue);
+
+            // CPU reference sort depends only on (keys, segments) == the bin, so
+            // compute it once here and share it across every experiment in the bin
+            // (avoids re-sorting ~1M keys per kernel, the validation bottleneck).
+            uint32_t * expected_keys = NULL;
+            uint32_t * expected_value_indices = NULL;
+            if (validate)
+            {
+                fprintf(stdout, "  computing cpu reference sort (shared across the bin)...\n");
+                expected_keys = (uint32_t *)malloc((size_t)keys_len * sizeof(uint32_t));
+                expected_value_indices = (uint32_t *)malloc((size_t)keys_len * sizeof(uint32_t));
+                memcpy(expected_keys, keys, (size_t)keys_len * sizeof(uint32_t));
+                for (size_t i = 0; i < keys_len; i++) expected_value_indices[i] = (uint32_t)i;
+                wbc_segsort_alloc(keys_len, expected_keys, expected_value_indices, segments_len, segments);
+                fprintf(stdout, "  cpu reference ready\n");
+            }
+
+            fprintf(stdout, "  running %s...\n", validate ? "validation" : "benchmarks");
+            for (size_t e = 0; e < exp_count; e++)
+            {
+                const bench_experiment * const exp = &exps[e];
+                if (exp->smem_kb != smem_kb || exp->bin != bin) continue;
+
+                total++;
+
+                static char ROOT_PATH[2048];
+                snprintf(ROOT_PATH, sizeof(ROOT_PATH), "%s/%s", root_dir, exp->name);
+
+                if (skip_existing && !validate)
+                {
+                    static char CSV_PATH[2048];
+                    snprintf(CSV_PATH, sizeof(CSV_PATH), "%s.csv", ROOT_PATH);
+                    struct stat st;
+                    if (stat(CSV_PATH, &st) == 0)
+                    {
+                        fprintf(stdout, "[%zu/%zu] skip (exists): %s\n", total, exp_count, exp->name);
+                        continue;
+                    }
+                }
+
+                const bench_config config = (bench_config){
+                    .root = ROOT_PATH,
+                    .memory = exp->memory,
+                    .store = exp->store,
+                    .seed = seed,
+                    .runs = runs,
+                    .N = exp->N,
+                    .M = exp->M,
+                    .R = exp->R,
+                    .smem_bytes = exp->smem_kb * 1024,
+                    .bin = exp->bin,
+                    .n_keys = n_keys,
+                    .subgroups = exp->subgroups,
+                    .max_invocations = res.max_invocations,
+                    .max_smem_size = res.max_smem_size,
+                    .target_wg_size = 256u,
+                    .validate = validate,
+                    .sampler_name = sampler_name,
+                };
+
+                fprintf(stdout, "[%zu/%zu] %s\n", total, exp_count, exp->name);
+
+                bench_result * results = NULL;
+                run_benchmark(
+                    config,
+                    res.pipeline_layout,
+                    &res.buffers,
+                    res.binding,
+                    segments_len, segments,
+                    keys_len, keys,
+                    res.query,
+                    res.query_buffer,
+                    &results,
+                    validate ? &validations[e] : NULL,
+                    expected_keys,
+                    expected_value_indices,
+                    res.context.instance,
+                    res.context.device,
+                    res.context.queue
+                );
+
+                free(results);
+            }
+
+            free(expected_keys);
+            free(expected_value_indices);
+        }
+
+        bench_context_res_release(&res);
+    }
+
+    if (validate)
+    {
+        write_validation_csv(experiments_param->value, exps, validations, exp_count);
+        free(validations);
+    }
+
+    free(keys);
+    free(segments);
+    free(exps);
+
+    fprintf(stdout, "\ndone: %zu experiments\n", total);
+    return 0;
 }
