@@ -205,7 +205,7 @@ static hwstats_sampler * create_bin_sampler(const uint32_t bin)
     hwstats_const * const c = (hwstats_const *)malloc(sizeof(hwstats_const));
     hwstats_sampler * const sampler = (hwstats_sampler *)malloc(sizeof(hwstats_sampler));
 
-    const double value = (1.0 / 11.0 * (double)(bin - 1)) + (1e-4);
+    const double value = (1.0 / 12.0 * (double)bin) + (1e-4);
     *c = (hwstats_const){ .value = value };
 
     hwstats_const_sampler_init(sampler, c);
@@ -860,9 +860,9 @@ static void benchmark_meta_init(
 
 static uint32_t benchmark_segment_bucket(const uint32_t segment_len)
 {
-    const uint32_t v = (segment_len == 0u ? 1u : segment_len) - 1u;
-    if (v == 0u) return 0u;
-    const uint32_t b = 32u - (uint32_t)__builtin_clz(v);
+    if (segment_len == 0) PANIC("cannot bucket a 0-length segment");
+    if (segment_len == 1u) return 0u;
+    const uint32_t b = 32u - (uint32_t)__builtin_clz(segment_len - 1u);
     return b < 12u ? b : 12u;
 }
 
@@ -884,7 +884,7 @@ static void benchmark_data_init(
 
     uint32_t bin_key_quota[13] = {0};
     for (size_t i = 0; i < key_budget; i++) {
-        uint32_t bin = sample_range(bin_sampler, 1, 12);
+        uint32_t bin = sample_range(bin_sampler, 0, 12);
         bin_key_quota[bin]++;
     }
 
@@ -905,15 +905,15 @@ static void benchmark_data_init(
         {
             uint32_t bin = i;
 
-            // 0 -> [0,0]
-            // 1 -> [1,1]
-            // 2 -> [2,3]
-            // 3 -> [4,7]
-            // 4 -> [8,15]
-            const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 2u)) + 1u;
-            const uint32_t hi = bin == 12 ?
+            // 0 -> [1,1]
+            // 1 -> [2,2]
+            // 2 -> [3,4]
+            // 3 -> [5,8]
+            // 4 -> [9,16]
+            const uint32_t lo = bin == 0u ? 1u : (1u << (bin - 1u)) + 1u;
+            const uint32_t hi = bin == 12u ?
                 MAX_SEGMENT_LEN :
-                (bin <= 1 ? bin : (1u << (bin - 1u)));
+                (bin == 0u ? 1u : (1u << bin));
             uint32_t segment_len = sample_range(key_sampler, lo, hi);
 
             if (keys_len + segment_len > quota)
@@ -924,7 +924,7 @@ static void benchmark_data_init(
 
             bin_counts[bin]++;
             bin_key_counts[bin] += segment_len;
-            keys_len += bin == 0 ? 1 : segment_len;
+            keys_len += segment_len;
             global_keys_len += segment_len;
             segments[segments_len++] = segment_len;
         }
@@ -1105,28 +1105,19 @@ static void write_benchmark_meta(
                 write_json_bool_field(mf, false, 4, "is_striped", (bin.flags & wbg_bin_flag_is_striped) != 0);
                 write_json_bool_field(mf, false, 4, "is_variable", (bin.flags & wbg_bin_flag_is_variable) != 0);
 
-                if (i == 0)
+                if ((bin.flags & wbg_bin_flag_is_variable) != 0)
                 {
                     write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
                     write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
-                    write_json_bool_field(mf, true, 4, "is_empty", true);
+                    write_json_bool_field(mf, true, 4, "is_merge", true);
                 }
-                else if (i > 0)
+                else
                 {
-                    if ((bin.flags & wbg_bin_flag_is_variable) != 0)
-                    {
-                        write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
-                        write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
-                        write_json_bool_field(mf, true, 4, "is_merge", true);
-                    }
-                    else
-                    {
-                        write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
-                        write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
-                        write_json_uint32_field(mf, false, 4, "N", bin.n);
-                        write_json_uint32_field(mf, false, 4, "M", bin.m);
-                        write_json_uint32_field(mf, true, 4, "wg", bin.wg);
-                    }
+                    write_json_uint32_field(mf, false, 4, "n_segments", meta->bin_counts[i]);
+                    write_json_uint32_field(mf, false, 4, "n_keys", meta->bin_key_counts[i]);
+                    write_json_uint32_field(mf, false, 4, "N", bin.n);
+                    write_json_uint32_field(mf, false, 4, "M", bin.m);
+                    write_json_uint32_field(mf, true, 4, "wg", bin.wg);
                 }
             }
             else

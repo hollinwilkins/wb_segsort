@@ -20,7 +20,7 @@ fn segsort_reg_n64_m32_striped(
     @builtin(workgroup_id) wg_id: vec3<u32>,
     @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {
-    const BIN: u32 = 7u;
+    const BIN: u32 = 6u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;

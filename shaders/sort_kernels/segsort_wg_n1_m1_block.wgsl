@@ -12,8 +12,7 @@ fn segsort_wg_n1_m1_block(
     @builtin(workgroup_id) wg_id: vec3<u32>,
     @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {
-    let bin_base = bin_offsets[0];
-    let bin_count = bin_offsets[1] - bin_base;
+    let bin_count = bin_offsets[0];
 
     let local_tid = tid_g;
     let seg_base = tid_g - local_tid;

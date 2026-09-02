@@ -37,17 +37,18 @@ KEY_BUDGETS=(12400000 102400000 268435456)
 
 # label : sampler : memory
 CONDITIONS=(
-    "gpu_subgroups:bin(1):register" "gpu_smem:bin(1):workgroup"
-    "gpu_subgroups:bin(2):register" "gpu_smem:bin(2):workgroup"
-    "gpu_subgroups:bin(3):register" "gpu_smem:bin(3):workgroup"
-    "gpu_subgroups:bin(4):register" "gpu_smem:bin(4):workgroup"
-    "gpu_subgroups:bin(5):register" "gpu_smem:bin(5):workgroup"
-    "gpu_subgroups:bin(6):register" "gpu_smem:bin(6):workgroup"
-    "gpu_subgroups:bin(7):register" "gpu_smem:bin(7):workgroup"
-    "gpu_subgroups:bin(8):register" "gpu_smem:bin(8):workgroup"
-    "gpu_subgroups:bin(9):register" "gpu_smem:bin(9):workgroup"
-    "gpu_subgroups:bin(10):register" "gpu_smem:bin(10):workgroup"
-    "gpu_subgroups:bin(11):register" "gpu_smem:bin(11):workgroup"
+    "gpu_subgroups:bin(0):register" "gpu_smem:bin(0):workgroup" "gpu_adaptive:bin(0):adaptive"
+    "gpu_subgroups:bin(1):register" "gpu_smem:bin(1):workgroup" "gpu_adaptive:bin(1):adaptive"
+    "gpu_subgroups:bin(2):register" "gpu_smem:bin(2):workgroup" "gpu_adaptive:bin(2):adaptive"
+    "gpu_subgroups:bin(3):register" "gpu_smem:bin(3):workgroup" "gpu_adaptive:bin(3):adaptive"
+    "gpu_subgroups:bin(4):register" "gpu_smem:bin(4):workgroup" "gpu_adaptive:bin(4):adaptive"
+    "gpu_subgroups:bin(5):register" "gpu_smem:bin(5):workgroup" "gpu_adaptive:bin(5):adaptive"
+    "gpu_subgroups:bin(6):register" "gpu_smem:bin(6):workgroup" "gpu_adaptive:bin(6):adaptive"
+    "gpu_subgroups:bin(7):register" "gpu_smem:bin(7):workgroup" "gpu_adaptive:bin(7):adaptive"
+    "gpu_subgroups:bin(8):register" "gpu_smem:bin(8):workgroup" "gpu_adaptive:bin(8):adaptive"
+    "gpu_subgroups:bin(9):register" "gpu_smem:bin(9):workgroup" "gpu_adaptive:bin(9):adaptive"
+    "gpu_subgroups:bin(10):register" "gpu_smem:bin(10):workgroup" "gpu_adaptive:bin(10):adaptive"
+    "gpu_subgroups:bin(11):register" "gpu_smem:bin(11):workgroup" "gpu_adaptive:bin(11):adaptive"
 )
 NC=${#CONDITIONS[@]}
 

@@ -29,19 +29,8 @@ struct DispatchSize {
 
 var <workgroup> local_bin_counts: array<atomic<u32>, 13>;
 
-fn segment_bucket(index: u32) -> u32 {
-    let segment_end = segments[index];
-    var segment_start = 0u;
-    if index > 0u {
-        segment_start = segments[index - 1u];
-    }
-    let segment_len = segment_end - segment_start;
-
-    if segment_len <= 2u {
-        return segment_len;
-    }
-
-    return min(32u - countLeadingZeros(segment_len - 1u) + 1u, 12u);
+fn segment_bucket(segment_len: u32) -> u32 {
+    return min(32u - countLeadingZeros(segment_len - 1u), 12u);
 }
 
 @compute @workgroup_size(16, 1, 1)
@@ -72,7 +61,16 @@ fn main_histogram(
     workgroupBarrier();
 
     if GID < ARRAY_LENGTH {
-        atomicAdd(&local_bin_counts[segment_bucket(GID)], 1u);
+        let segment_end = segments[GID];
+        var segment_start = 0u;
+        if GID > 0u {
+            segment_start = segments[GID - 1u];
+        }
+        let segment_len = segment_end - segment_start;
+
+        if (segment_len > 0) {
+            atomicAdd(&local_bin_counts[segment_bucket(segment_len)], 1u);
+        }
     }
 
     workgroupBarrier();
@@ -97,7 +95,7 @@ fn main_schedule() {
         let groups = select(
             (cur_count + segments_per_workgroup - 1u) / segments_per_workgroup,
             0u,
-            i == 0u || cur_count == 0u
+            cur_count == 0u
         );
 
         var x = groups;
@@ -125,7 +123,16 @@ fn main_group(
     let GID = WID + TID; // Global thread ID
 
     if GID < ARRAY_LENGTH {
-        let pos = atomicSub(&bin_histogram[segment_bucket(GID)], 1u) - 1u;
-        bin_indices[pos] = GID;
+        let segment_end = segments[GID];
+        var segment_start = 0u;
+        if GID > 0u {
+            segment_start = segments[GID - 1u];
+        }
+        let segment_len = segment_end - segment_start;
+
+        if segment_len > 0 {
+            let pos = atomicSub(&bin_histogram[segment_bucket(segment_len)], 1u) - 1u;
+            bin_indices[pos] = GID;
+        }
     }
 }

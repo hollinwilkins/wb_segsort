@@ -9,7 +9,7 @@
     }, {
         "name": "release",
         "inherits": "base",
-        "displayName": "Relese (Dawn)",
+        "displayName": "Release (Dawn)",
         "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release"
         }
