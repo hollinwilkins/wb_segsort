@@ -488,6 +488,17 @@ fn {name}(
         # (bb_segsort style). Each thread merge-paths its WPT outputs into
         # registers, barriers so every read is done, then writes them back to the
         # same buffer -- the registers are the "pong", so no second buffer.
+        #
+        # The read->barrier->write-back is a WAR hazard on smem. A plain
+        # workgroupBarrier() (threadgroup-scope memory fence) is NOT sufficient to
+        # order the write-back for single-SIMD-group workgroups (M <= subgroup):
+        # it fails for M <= 32 & wpt >= 8 on this 32-lane device with a torn read
+        # (correct value index, wrong key). A SECOND barrier at the same scope
+        # does not help; a storageBarrier() (storage/device-scope fence, Metal
+        # mem_device) DOES -- so we emit both. Measured cost of the extra fence is
+        # ~1% worst-case (5-pass config) and it keeps the single 8*N buffer and
+        # full WG=M utilization. Emitted unconditionally (device-agnostic): large
+        # multi-SIMD-group configs don't need it but pay <=1%.
         run = RUN
         passes = []
         for p in range(P):
@@ -531,6 +542,8 @@ fn {name}(
             }}
         }}
         workgroupBarrier();   // every read is done before any write-back
+        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
+                              // the in-place write-back for single-SIMD-group WGs
         for (var k = 0u; k < WPT; k = k + 1u) {{
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];

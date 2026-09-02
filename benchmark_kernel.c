@@ -1015,6 +1015,31 @@ static bench_validation bench_validate(
     return result;
 }
 
+static void bench_write_buffer(
+    WGPUQueue const queue,
+    WGPUBuffer const buffer,
+    const uint64_t buffer_offset,
+    const void * const data,
+    const size_t size
+)
+{
+    if (size % 8 != 0)
+    {
+        // Dawn errors when uploading large chunks that are not multiples of 8 size
+        // so special case it here...
+
+        const size_t chunk1_size = MEMS_ALIGN_BACKWARD(size, 8);
+        const size_t chunk2_size = size - chunk1_size;
+
+        wgpuQueueWriteBuffer(queue, buffer, buffer_offset, data, chunk1_size);
+        wgpuQueueWriteBuffer(queue, buffer, buffer_offset + chunk1_size, (void *)((mems_ptr)data + chunk1_size), chunk2_size);
+    }
+    else
+    {
+        wgpuQueueWriteBuffer(queue, buffer, buffer_offset, data, size);
+    }
+}
+
 static void run_benchmark(
     const bench_config config,
     WGPUPipelineLayout const pipeline_layout,
@@ -1079,7 +1104,7 @@ static void run_benchmark(
     WGPUComputePipeline pipeline = bench_create_pipeline(KERNEL_NAME, FILE_PATH, wg, device, pipeline_layout);
 
     // segments + bin_offsets/bin_indices were uploaded/computed by the caller.
-    wgpuQueueWriteBuffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
+    bench_write_buffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
 
     const uint32_t segs_per_wg = wg / config.M;
     const wbg_dispatch_size base = { segs_per_wg, 1u, 1u };

@@ -323,6 +323,8 @@ fn segsort_hybmerge_sg8_smem16k_n256_m64_striped(
             }
         }
         workgroupBarrier();   // every read is done before any write-back
+        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
+                              // the in-place write-back for single-SIMD-group WGs
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
@@ -368,6 +370,8 @@ fn segsort_hybmerge_sg8_smem16k_n256_m64_striped(
             }
         }
         workgroupBarrier();   // every read is done before any write-back
+        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
+                              // the in-place write-back for single-SIMD-group WGs
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
@@ -413,6 +417,8 @@ fn segsort_hybmerge_sg8_smem16k_n256_m64_striped(
             }
         }
         workgroupBarrier();   // every read is done before any write-back
+        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
+                              // the in-place write-back for single-SIMD-group WGs
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
