@@ -15,7 +15,8 @@ fn segsort_wg_n1_m1_block(
     @builtin(local_invocation_index) lid: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {
-    let bin_count = bin_offsets[0];
+    let bin_base = bin_offsets[0];
+    let bin_count = bin_offsets[1u] - bin_base;
 
     let global_seg = wg_id.x * WG + lid;
     if global_seg >= bin_count {

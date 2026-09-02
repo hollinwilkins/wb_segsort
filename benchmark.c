@@ -449,6 +449,54 @@ static void benchmark_validate(
                     i == 0 ? i : i - 1, i + 1,
                     value_indices[i == 0 ? i : i - 1], value_indices[i],
                     i + 1 < data->keys_len ? value_indices[i + 1] : 0u);
+
+            uint32_t * bin_histogram;
+            hwgutil_wgpu_read_buffer_alloc(
+                pipeline->instance,
+                pipeline->device,
+                pipeline->queue,
+                buffers->bin_histogram,
+                &mems_system_allocator,
+                (void **)&bin_histogram
+            );
+
+            uint32_t * bin_offsets;
+            hwgutil_wgpu_read_buffer_alloc(
+                pipeline->instance,
+                pipeline->device,
+                pipeline->queue,
+                buffers->bin_offsets,
+                &mems_system_allocator,
+                (void **)&bin_offsets
+            );
+
+            uint32_t * bin_indices;
+            hwgutil_wgpu_read_buffer_alloc(
+                pipeline->instance,
+                pipeline->device,
+                pipeline->queue,
+                buffers->bin_indices,
+                &mems_system_allocator,
+                (void **)&bin_indices
+            );
+
+            wbg_dispatch_size * dispatches;
+            hwgutil_wgpu_read_buffer_alloc(
+                pipeline->instance,
+                pipeline->device,
+                pipeline->queue,
+                buffers->dispatch,
+                &mems_system_allocator,
+                (void **)&dispatches
+            );
+
+            for (int i = 0; i < 13; i++)
+            {
+                printf("Dispatch(%d): %u,%u,%u :: bin(%u,%u)\n", i,
+                    dispatches[i].x, dispatches[i].y, dispatches[i].z,
+                    pipeline->bins[i].n, pipeline->bins[i].m);
+            }
+
             abort();
         }
     }
