@@ -129,6 +129,24 @@ static const char * bench_store_name(const bench_store_kind kind)
     }
 }
 
+static void make_parent_dirs(const char * const path)
+{
+    static char DIR_PATH[2048];
+    snprintf(DIR_PATH, sizeof(DIR_PATH), "%s", path);
+
+    for (char * p = DIR_PATH + 1; *p != '\0'; p++)
+    {
+        if (*p != '/') continue;
+
+        *p = '\0';
+        if (mkdir(DIR_PATH, 0755) != 0 && errno != EEXIST)
+        {
+            PANIC("could not create directory %s: %s", DIR_PATH, strerror(errno));
+        }
+        *p = '/';
+    }
+}
+
 static void write_results_csv(
     const bench_config config,
     const uint32_t wg,
@@ -139,6 +157,8 @@ static void write_results_csv(
 {
     static char CSV_PATH[2048];
     snprintf(CSV_PATH, sizeof(CSV_PATH), "%s.csv", config.root);
+
+    make_parent_dirs(config.root);
 
     FILE * f = fopen(CSV_PATH, "w");
     if (f == NULL) PANIC("could not open csv file for writing: %s", CSV_PATH);
