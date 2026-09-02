@@ -861,10 +861,10 @@ static void benchmark_data_init(
             // 2 -> [2,3]
             // 3 -> [4,7]
             // 4 -> [8,15]
-            const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 1u));
+            const uint32_t lo = bin <= 1 ? bin : (1u << (bin - 2u)) + 1u;
             const uint32_t hi = bin == 12 ?
                 MAX_SEGMENT_LEN :
-                (bin <= 1 ? bin : (1u << bin) - 1u);
+                (bin <= 1 ? bin : (1u << (bin - 1u)));
             uint32_t segment_len = sample_range(key_sampler, lo, hi);
 
             if (keys_len + segment_len > quota)

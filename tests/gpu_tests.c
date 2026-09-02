@@ -34,6 +34,7 @@ void tearDown(void)
 }
 
 void test__sort_kernel(
+    const uint32_t min_n,
     const uint32_t max_n,
     const uint32_t segments_len,
     const unsigned int seed
@@ -43,27 +44,26 @@ void test__sort_kernel(
 
     uint32_t * const segments = (uint32_t *)malloc(segments_len * sizeof(uint32_t));
 
+    const uint32_t range = max_n - min_n;
     uint32_t len = 0;
     for (uint32_t i = 0; i < segments_len; i++)
     {
-        const uint32_t segment_len = rand() % max_n;
+        const uint32_t segment_len = min_n + (range == 0 ? 0 : rand() % range);
         len += segment_len;
         segments[i] = len;
     }
 
     uint32_t * const keys = (uint32_t *)malloc(len * sizeof(uint32_t));
-    uint32_t * const values = (uint32_t *)malloc(len * sizeof(uint32_t));
+    uint32_t * const value_indices = (uint32_t *)malloc(len * sizeof(uint32_t));
 
     for (uint32_t i = 0; i < len; i++)
     {
         keys[i] = rand() % 100;
-        values[i] = rand() % 712893;
     }
 
     uint32_t * expected_keys = (uint32_t *)malloc(len * sizeof(uint32_t));
     memcpy(expected_keys, keys, len * sizeof(uint32_t));
 
-    uint32_t * value_indices = (uint32_t *)malloc(len * sizeof(uint32_t));
     wbc_segsort_alloc(len, expected_keys, value_indices, segments_len, segments);
 
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline.device, &(WGPUCommandEncoderDescriptor){
@@ -95,6 +95,16 @@ void test__sort_kernel(
     wgpuCommandBufferRelease(commands);
     wgpuCommandEncoderRelease(encoder);
 
+    wbg_dispatch_size * dispatches;
+    if (!hwgutil_wgpu_read_buffer_alloc(
+        pipeline.instance,
+        pipeline.device,
+        pipeline.queue,
+        buffers.dispatch,
+        &mems_system_allocator,
+        (void **)&dispatches)
+    ) abort();
+
     uint32_t *gpu_keys;
     if (!hwgutil_wgpu_read_buffer_alloc(
         pipeline.instance,
@@ -105,23 +115,48 @@ void test__sort_kernel(
         (void **)&gpu_keys)
     ) abort();
     
+    uint32_t *gpu_value_indices;
+    if (!hwgutil_wgpu_read_buffer_alloc(
+        pipeline.instance,
+        pipeline.device,
+        pipeline.queue,
+        buffers.value_indices,
+        &mems_system_allocator,
+        (void **)&gpu_value_indices)
+    ) abort();
+    
     TEST_ASSERT_EQUAL_UINT32_ARRAY(expected_keys, gpu_keys, len);
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(value_indices, gpu_value_indices, len);
 
     mems_allocator_free(&mems_system_allocator, gpu_keys);
     free(expected_keys);
-    free(values);
     free(keys);
+    free(value_indices);
     free(segments);
+}
+
+void test_sort_fixed_small_seed1337()
+{
+    test__sort_kernel(8, 8, 4096, 1337);
+    test__sort_kernel(16, 16, 4096, 1337);
+    test__sort_kernel(32, 32, 4096, 1337);
+    test__sort_kernel(64, 64, 4096, 1337);
+    test__sort_kernel(128, 128, 4096, 1337);
+    test__sort_kernel(256, 256, 4096, 1337);
+    test__sort_kernel(512, 512, 4096, 1337);
+    test__sort_kernel(1024, 1024, 4096, 1337);
+    test__sort_kernel(2048, 2048, 4096, 1337);
+    test__sort_kernel(256, 2048, 4096, 1337);
 }
 
 void test_sort_fixed_4096_seed1337()
 {
-    test__sort_kernel(2048, 4096, 1337);
+    test__sort_kernel(1, 2048, 4096, 1337);
 }
 
 void test_sort_variable_seed99()
 {
-    test__sort_kernel(10000, 128, 99);
+    test__sort_kernel(1, 10000, 128, 99);
 }
 
 int main(void)
@@ -160,6 +195,7 @@ int main(void)
     );
 
     UNITY_BEGIN();
+    RUN_TEST(test_sort_fixed_small_seed1337);
     RUN_TEST(test_sort_fixed_4096_seed1337);
     RUN_TEST(test_sort_variable_seed99);
     return UNITY_END();

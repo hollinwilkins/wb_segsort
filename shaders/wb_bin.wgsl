@@ -37,8 +37,11 @@ fn segment_bucket(index: u32) -> u32 {
     }
     let segment_len = segment_end - segment_start;
 
-    let bucket_segment_len = max(segment_len, 1u) - 1u;
-    return min(32u - countLeadingZeros(bucket_segment_len), 12u);
+    if segment_len <= 2u {
+        return segment_len;
+    }
+
+    return min(32u - countLeadingZeros(segment_len - 1u) + 1u, 12u);
 }
 
 @compute @workgroup_size(16, 1, 1)

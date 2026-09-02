@@ -11,7 +11,7 @@ const M: u32 = 1u;
 const WPT: u32 = 1u;
 
 @compute @workgroup_size(WG, 1, 1)
-fn segsort_n1_m1(
+fn segsort_wg_n1_m1_block(
     @builtin(local_invocation_index) lid: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {

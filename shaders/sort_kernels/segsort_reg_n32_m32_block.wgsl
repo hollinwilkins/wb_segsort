@@ -19,7 +19,7 @@ fn segsort_reg_n32_m32_block(
     @builtin(local_invocation_index) lid: u32,
     @builtin(workgroup_id) wg_id: vec3<u32>
 ) {
-    const BIN: u32 = 5u;
+    const BIN: u32 = 6u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;

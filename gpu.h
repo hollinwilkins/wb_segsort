@@ -1303,9 +1303,14 @@ WB_EXPORT void wbg_pipeline_init(
     );
 
     pipeline->bins[0] = (wbg_gpu_bin){0};
-    for (uint32_t i = 1u; i < 12u; i++)
+    pipeline->bins[1] = (wbg_gpu_bin){
+        .n = 1,
+        .m = 1,
+        .wg = 256u,
+    };
+    for (uint32_t i = 2u; i < 12u; i++)
     {
-        const uint32_t N = 1u << i;
+        const uint32_t N = 1u << (i - 1);
         uint32_t M = 0;
         bool is_register = false;
 
@@ -1395,12 +1400,6 @@ WB_EXPORT void wbg_pipeline_init(
         .flags = (uint32_t)wbg_bin_flag_is_variable | ((merge_store == wbg_store_striped) != 0) * wbg_bin_flag_is_striped,
     };
 
-    pipeline->sort_kernels[0] = wbg__pipeline_create_sort_kernel_by_name(
-        pipeline,
-        "segsort_n1_m1",
-        256u,
-        allocator
-    );
     for (int i = 1; i < 12; i++)
     {
         const wbg_gpu_bin bin = pipeline->bins[i];
@@ -1411,6 +1410,8 @@ WB_EXPORT void wbg_pipeline_init(
             allocator
         );
     }
+    pipeline->sort_kernels[0] = NULL;
+    pipeline->sort_kernels[12] = NULL;
 
     wbg__kernels_init(
         pipeline,
@@ -1976,7 +1977,7 @@ WB_EXPORT void wbg_segsort(
 {
     wgpuComputePassEncoderSetBindGroup(encoder, 0, bindings->sort, 0, NULL);
       
-    for (uint32_t i = 0u; i < 12u; i++)
+    for (uint32_t i = 1u; i < 12u; i++)
     {
         const wbg_gpu_bin * const bin = &pipeline->bins[i];
 
