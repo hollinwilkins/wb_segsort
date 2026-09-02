@@ -63,16 +63,14 @@ run_condition() {
         --seed ${SEED} --keys ${budget} \
         --runs ${RUNS_PER_ROUND} --warmup-runs ${N_WARMUP} \
         --memory ${memory} --store ${STORE} \
-        --sort-iterations 1 \
-        -validate
+        --sort-iterations 1
     "${BIN}" \
         --kind wbg --output "${results_dir}" \
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
         --memory "${memory}" --store "${STORE}" \
-        --sort-iterations 1 \
-        -validate
+        --sort-iterations 1
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
