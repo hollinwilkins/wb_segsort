@@ -399,14 +399,15 @@ static void benchmark_validate(
 )
 {
     uint32_t * const expected_keys = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
-    uint32_t * const value_indices = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
+    uint32_t * const expected_value_indices = (uint32_t *)malloc(data->keys_len * sizeof(uint32_t));
 
     memcpy(expected_keys, data->keys, data->keys_len * sizeof(uint32_t));
+    for (uint32_t i = 0; i < data->keys_len; i++) expected_value_indices[i] = i;
 
     wbc_segsort_alloc(
         data->keys_len,
         expected_keys,
-        value_indices,
+        expected_value_indices,
         data->segments_len,
         data->segments
     );
@@ -421,11 +422,33 @@ static void benchmark_validate(
         (void **)&keys
     );
 
+    uint32_t * value_indices;
+    hwgutil_wgpu_read_buffer_alloc(
+        pipeline->instance,
+        pipeline->device,
+        pipeline->queue,
+        buffers->value_indices,
+        &mems_system_allocator,
+        (void **)&value_indices
+    );
+
     for (size_t i = 0; i < data->keys_len; i++)
     {
         if (expected_keys[i] != keys[i])
         {
-            fprintf(stderr, "invalid sort, doesn't match cpu\n");
+            fprintf(stderr, "invalid sort: keys[%zu] cpu=%u gpu=%u\n",
+                    i, expected_keys[i], keys[i]);
+            abort();
+        }
+
+        if (expected_value_indices[i] != value_indices[i])
+        {
+            fprintf(stderr, "invalid sort: value_indices[%zu] cpu=%u gpu=%u "
+                    "(key=%u, neighbors gpu vi[%zu..%zu]=%u,%u,%u)\n",
+                    i, expected_value_indices[i], value_indices[i], keys[i],
+                    i == 0 ? i : i - 1, i + 1,
+                    value_indices[i == 0 ? i : i - 1], value_indices[i],
+                    i + 1 < data->keys_len ? value_indices[i + 1] : 0u);
             abort();
         }
     }

@@ -61,7 +61,7 @@ static void wbc__merge(
             dst[i] = src[a];
             dst_value_indices[i] = src_value_indices[a++];
         }
-        else if (src[a] < src[b])
+        else if (src[a] < src[b] || (src[a] == src[b] && src_value_indices[a] < src_value_indices[b]))
         {
             dst[i] = src[a];
             dst_value_indices[i] = src_value_indices[a++];
