@@ -68,7 +68,7 @@ void test__sort_kernel(
 
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(pipeline.device, &(WGPUCommandEncoderDescriptor){
         .label = (WGPUStringView){
-            .data = "Merge Sort: Command Encoder",
+            .data = "WB Sort: Command Encoder",
             .length = WGPU_STRLEN,
         }
     });
