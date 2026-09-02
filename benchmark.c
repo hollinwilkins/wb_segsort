@@ -542,6 +542,7 @@ static void benchmark_run_wbg(
         );
 
         benchmark_validate(pipeline, buffers, data);
+        exit(0);
     }
 
     benchmark_result warmup_result;

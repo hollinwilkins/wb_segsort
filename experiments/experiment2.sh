@@ -58,19 +58,21 @@ run_condition() {
     local results_dir="${RESULTS_ROOT}/keys_${budget}/${label}"
 
     echo "${BIN}" \
-        --kind wbg --output "${results_dir}" \
-        --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
-        --seed "${SEED}" --keys "${budget}" \
-        --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
-        --memory "${memory}" --store "${STORE}" \
-        --sort-iterations 1
+        --kind wbg --output ${results_dir} \
+        --sampler ${bin_sampler} --key-sampler ${KEY_SAMPLER} \
+        --seed ${SEED} --keys ${budget} \
+        --runs ${RUNS_PER_ROUND} --warmup-runs ${N_WARMUP} \
+        --memory ${memory} --store ${STORE} \
+        --sort-iterations 1 \
+        -validate
     "${BIN}" \
         --kind wbg --output "${results_dir}" \
         --sampler "${bin_sampler}" --key-sampler "${KEY_SAMPLER}" \
         --seed "${SEED}" --keys "${budget}" \
         --runs "${RUNS_PER_ROUND}" --warmup-runs "${N_WARMUP}" \
         --memory "${memory}" --store "${STORE}" \
-        --sort-iterations 1
+        --sort-iterations 1 \
+        -validate
 }
 
 for budget in "${KEY_BUDGETS[@]}"; do
