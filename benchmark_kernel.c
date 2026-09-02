@@ -701,6 +701,7 @@ static void run_benchmark(
     const wbg_dispatch_size base = { segs_per_wg, 1u, 1u };
     const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&base, segments_len);
 
+    fprintf(stdout, "Warmup run...\n");
     {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
         WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(encoder, NULL);
@@ -716,8 +717,23 @@ static void run_benchmark(
         wgpuCommandEncoderRelease(encoder);
     }
 
+    fprintf(stdout,
+        "Benchmarking %s:\n"
+        "  root=%s memory=%s store=%s sampler=%s\n"
+        "  N=%u M=%u wpt=%u R=%u subgroups=%u wg=%u bin=%u smem_bytes=%u\n"
+        "  seed=%u runs=%u n_keys=%u segments=%zu keys=%zu\n"
+        "  max_invocations=%u max_smem_size=%u target_wg_size=%u\n",
+        KERNEL_NAME,
+        config.root, bench_memory_name(config.memory), bench_store_name(config.store),
+        config.sampler_name,
+        config.N, config.M, config.N / config.M, config.R, config.subgroups, wg,
+        config.bin, config.smem_bytes,
+        config.seed, config.runs, config.n_keys, segments_len, keys_len,
+        config.max_invocations, config.max_smem_size, config.target_wg_size);
+
     for (uint32_t i = 0; i < config.runs; i++)
     {
+        fprintf(stdout, "Benchmark run (%u/%u)...\n", i, config.runs);
         {
             WGPUCommandEncoder reset_encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
             wgpuCommandEncoderCopyBufferToBuffer(
@@ -853,6 +869,7 @@ int benchmark_main(
     uint32_t * const bin_indices = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
     uint32_t * const bin_offsets = (uint32_t *)malloc(13 * sizeof(uint32_t));
 
+    fprintf(stdout, "Generating key set...\n");
     for (size_t i = 0; i < config.n_keys; i++)
     {
         keys[i] = (uint32_t)(hwstats_uniform(&r) * (double)UINT32_MAX);
@@ -867,6 +884,7 @@ int benchmark_main(
     uint32_t keys_len = 0;
     uint32_t key_budget = config.n_keys;
 
+    fprintf(stdout, "Generating segments...\n");
     while (keys_len < key_budget)
     {
         const uint32_t segment_len = lo + (uint32_t)(hwstats_sample(sampler) * (double)range);
@@ -882,6 +900,7 @@ int benchmark_main(
         bin_offsets, bin_indices
     );
 
+    fprintf(stdout, "Uploading data...\n");
     wgpuQueueWriteBuffer(
         context.queue,
         buffers.bin_offsets,
@@ -960,6 +979,7 @@ int main(const int argc, const char ** const argv)
     const hwargs_param * const smem_param = hwargs_get_param(&args, "smem");
     const hwargs_param * const subgroups_param = hwargs_get_param(&args, "subgroups");
     const hwargs_param * const sampler_name_param = hwargs_get_param(&args, "sampler");
+    const bool skip_existing = hwargs_has_flag(&args, "skip-existing");
 
     ENSURE_MSG(memory_param != NULL, "must provide --memory <reg|smem|hybrid|hybmerge>");
     ENSURE_MSG(store_param != NULL, "must provide --store <block|striped>");
@@ -986,7 +1006,7 @@ int main(const int argc, const char ** const argv)
     const uint32_t n_keys = strtol(n_keys_param->value, &endptr, 10);
     const uint32_t subgroups = strtol(subgroups_param->value, &endptr, 10);
 
-    if (smem_kb != 16 && smem_kb != 32) PANIC("smem must be 16 or 32");
+    if (smem_kb != 16 && smem_kb != 32 && smem_kb) PANIC("smem must be 16 or 32");
     if (bin > 11) PANIC("bin must be <= 12");
 
     switch (memory)
@@ -1005,6 +1025,9 @@ int main(const int argc, const char ** const argv)
     WGPULimits required_limits = WGPU_LIMITS_INIT;
     required_limits.maxStorageBufferBindingSize = 1024llu * 1024 * 1024 * 2;
     required_limits.maxBufferSize = 1024llu * 1024 * 1024 * 2;
+    required_limits.maxComputeWorkgroupStorageSize = smem_kb * 1024;
+
+    fprintf(stdout, "Initializing WebGPU Context...\n");
 
     if (!hwgutil_wgpu_context_init(
         &context,
@@ -1034,6 +1057,19 @@ int main(const int argc, const char ** const argv)
         .max_smem_size = limits.maxComputeWorkgroupStorageSize,
         .target_wg_size = 256u,
     };
+
+    if (skip_existing)
+    {
+        static char CSV_PATH[2048];
+        snprintf(CSV_PATH, sizeof(CSV_PATH), "%s.csv", config.root);
+
+        struct stat st;
+        if (stat(CSV_PATH, &st) == 0)
+        {
+            fprintf(stdout, "Skipping (results exist): %s\n", CSV_PATH);
+            return 0;
+        }
+    }
 
     return benchmark_main(config, context);
 }
