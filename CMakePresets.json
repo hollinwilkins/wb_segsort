@@ -40,5 +40,14 @@
     "buildPresets": [{
         "name": "debug",
         "configurePreset": "debug"
+    }, {
+        "name": "release",
+        "configurePreset": "release"
+    }, {
+        "name": "release-wgpu",
+        "configurePreset": "release-wgpu"
+    }, {
+        "name": "debug-wgpu",
+        "configurePreset": "debug-wgpu"
     }]
 }

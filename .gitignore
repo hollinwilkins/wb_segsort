@@ -14,3 +14,4 @@ build-*/
 *.old
 .cache/
 __pycache__/
+output/

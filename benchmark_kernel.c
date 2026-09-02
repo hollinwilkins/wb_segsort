@@ -1166,7 +1166,7 @@ static void run_benchmark(
 
     for (uint32_t i = 0; i < config.runs; i++)
     {
-        fprintf(stdout, "Benchmark run (%u/%u)...\n", i, config.runs);
+        fprintf(stdout, "Benchmark run (%u/%u)...\n", i + 1, config.runs);
         {
             WGPUCommandEncoder reset_encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
             wgpuCommandEncoderCopyBufferToBuffer(
@@ -1414,7 +1414,7 @@ int main(const int argc, const char ** const argv)
             fprintf(stdout, "  %u segments, %u keys\n", segments_len, keys_len);
 
             fprintf(stdout, "  uploading segments + binning (gpu)...\n");
-            wgpuQueueWriteBuffer(res.context.queue, res.buffers.segments, 0, segments, segments_len * sizeof(uint32_t));
+            bench_write_buffer(res.context.queue, res.buffers.segments, 0, segments, segments_len * sizeof(uint32_t));
             bench_compute_bins_gpu(&res.buffers, segments_len, res.context.instance, res.context.device, res.context.queue);
 
             // CPU reference sort depends only on (keys, segments) == the bin, so
