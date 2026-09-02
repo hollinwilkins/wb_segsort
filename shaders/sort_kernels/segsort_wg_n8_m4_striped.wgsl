@@ -78,15 +78,15 @@ fn segsort_wg_n8_m4_striped(
 
     // striped (coalesced) store via shared memory
     for (var r = 0u; r < WPT; r = r + 1u) {
-        smem_keys[local_tid * WPT + r] = keys[r];
-        smem_vals[local_tid * WPT + r] = values[r];
+        smem_keys[tid_g * WPT + r] = keys[r];
+        smem_vals[tid_g * WPT + r] = values[r];
     }
     workgroupBarrier();
     for (var c = 0u; c < WPT; c = c + 1u) {
         let j = c * M + local_tid;
         if is_active && j < seg_size {
-            global_keys[seg_start + j] = smem_keys[j];
-            global_value_indices[seg_start + j] = smem_vals[j];
+            global_keys[seg_start + j] = smem_keys[seg_base * WPT + j];
+            global_value_indices[seg_start + j] = smem_vals[seg_base * WPT + j];
         }
     }
 }

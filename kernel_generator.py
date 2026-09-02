@@ -215,18 +215,24 @@ class KernelGenerator:
 
     def _striped_store_smem(self, base: str, length: str, active: str | None) -> str:
         guard = f"{active} && j < {length}" if active else f"j < {length}"
+        # smem is shared by every segment in the workgroup (WG can be a multiple of
+        # M -> WG/M segments per workgroup), so index it by the WORKGROUP-relative
+        # position, not the segment-relative local_tid. Writing/reading at
+        # local_tid*WPT would make all segments collide in smem[0, M*WPT). Each
+        # segment owns smem[seg_base*WPT, seg_base*WPT + M*WPT); tid_g*WPT ==
+        # seg_base*WPT + local_tid*WPT is this thread's blocked slot within it.
         return (
             "    // striped (coalesced) store via shared memory\n"
             "    for (var r = 0u; r < WPT; r = r + 1u) {\n"
-            "        smem_keys[local_tid * WPT + r] = keys[r];\n"
-            "        smem_vals[local_tid * WPT + r] = values[r];\n"
+            "        smem_keys[tid_g * WPT + r] = keys[r];\n"
+            "        smem_vals[tid_g * WPT + r] = values[r];\n"
             "    }\n"
             "    workgroupBarrier();\n"
             "    for (var c = 0u; c < WPT; c = c + 1u) {\n"
             "        let j = c * M + local_tid;\n"
             f"        if {guard} {{\n"
-            f"            global_keys[{base} + j] = smem_keys[j];\n"
-            f"            global_value_indices[{base} + j] = smem_vals[j];\n"
+            f"            global_keys[{base} + j] = smem_keys[seg_base * WPT + j];\n"
+            f"            global_value_indices[{base} + j] = smem_vals[seg_base * WPT + j];\n"
             "        }\n"
             "    }"
         )
