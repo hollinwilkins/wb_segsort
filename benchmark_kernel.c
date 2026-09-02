@@ -81,6 +81,7 @@ typedef struct bench_config
     uint32_t max_invocations;
     uint32_t max_smem_size;
     uint32_t target_wg_size;
+    bool validate;
     const char * sampler_name;
 } bench_config;
 
@@ -92,6 +93,11 @@ typedef struct bench_buffers
     WGPUBuffer segments;
     WGPUBuffer bin_offsets;
     WGPUBuffer bin_indices;
+    // Scratch for the GPU binning pass (wb_bin.wgsl).
+    WGPUBuffer bin_config;      // uniform: Config { segments_len }
+    WGPUBuffer bin_config_data; // storage: array<BinConfig> (unused by us, kept valid)
+    WGPUBuffer bin_histogram;   // storage: array<atomic<u32>, 13>
+    WGPUBuffer bin_dispatch;    // storage: array<DispatchSize, 13> (unused output)
 } bench_buffers;
 
 typedef struct bench_result
@@ -265,6 +271,26 @@ static void bench_buffers_init(
     bin_indices_desc.size = max_segments * sizeof(uint32_t);
     bin_indices_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
 
+    WGPUBufferDescriptor bin_config_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_config_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Bin Config", .length = WGPU_STRLEN };
+    bin_config_desc.size = 16; // Config { segments_len } padded to a uniform block
+    bin_config_desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
+
+    WGPUBufferDescriptor bin_config_data_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_config_data_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Bin Config Data", .length = WGPU_STRLEN };
+    bin_config_data_desc.size = 13 * 16; // array<BinConfig{n,m,wg,flags}, 13>
+    bin_config_data_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
+
+    WGPUBufferDescriptor bin_histogram_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_histogram_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Bin Histogram", .length = WGPU_STRLEN };
+    bin_histogram_desc.size = 13 * sizeof(uint32_t);
+    bin_histogram_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
+
+    WGPUBufferDescriptor bin_dispatch_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bin_dispatch_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Bin Dispatch", .length = WGPU_STRLEN };
+    bin_dispatch_desc.size = 13 * 16; // array<DispatchSize, 13> (over-allocated)
+    bin_dispatch_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
+
     *buffers = (bench_buffers){
         .keys = wgpuDeviceCreateBuffer(device, &keys_desc),
         .keys_staging = wgpuDeviceCreateBuffer(device, &keys_staging_desc),
@@ -272,6 +298,10 @@ static void bench_buffers_init(
         .segments = wgpuDeviceCreateBuffer(device, &segments_desc),
         .bin_offsets = wgpuDeviceCreateBuffer(device, &bin_offsets_desc),
         .bin_indices = wgpuDeviceCreateBuffer(device, &bin_indices_desc),
+        .bin_config = wgpuDeviceCreateBuffer(device, &bin_config_desc),
+        .bin_config_data = wgpuDeviceCreateBuffer(device, &bin_config_data_desc),
+        .bin_histogram = wgpuDeviceCreateBuffer(device, &bin_histogram_desc),
+        .bin_dispatch = wgpuDeviceCreateBuffer(device, &bin_dispatch_desc),
     };
 }
 
@@ -563,45 +593,6 @@ static uint32_t bench_wg(
     }
 }
 
-static uint32_t segment_bucket(const uint32_t segment_len)
-{
-    if (segment_len <= 1u) return 0u;
-    const uint32_t bucket = 32u - (uint32_t)__builtin_clz(segment_len - 1u);
-    return bucket < 12u ? bucket : 12u;
-}
-
-static void bench_compute_bins(
-    const uint32_t segments_len,
-    const uint32_t * const segments,
-    uint32_t * const bin_offsets,
-    uint32_t * const bin_indices
-)
-{
-    uint32_t histogram[13] = { 0 };
-    for (uint32_t i = 0; i < segments_len; i++)
-    {
-        const uint32_t start = (i == 0u) ? 0u : segments[i - 1u];
-        const uint32_t len = segments[i] - start;
-        if (len > 0u) histogram[segment_bucket(len)]++;
-    }
-
-    uint32_t cursor[13];
-    uint32_t sum = 0u;
-    for (uint32_t b = 0; b < 13; b++)
-    {
-        cursor[b] = sum;
-        sum += histogram[b];
-        bin_offsets[b] = sum;
-    }
-
-    for (uint32_t i = 0; i < segments_len; i++)
-    {
-        const uint32_t start = (i == 0u) ? 0u : segments[i - 1u];
-        const uint32_t len = segments[i] - start;
-        if (len > 0u) bin_indices[cursor[segment_bucket(len)]++] = i;
-    }
-}
-
 static uint64_t now_ns(void)
 {
     struct timespec ts;
@@ -632,6 +623,208 @@ static void benchmark_wait_idle(WGPUInstance const instance, WGPUQueue const que
     WGPUFutureWaitInfo wait = WGPU_FUTURE_WAIT_INFO_INIT;
     wait.future = f;
     wgpuInstanceWaitAny(instance, 1, &wait, (uint64_t)5 * 1000000000);
+}
+
+// Compute bin_offsets/bin_indices on the GPU using the real binning kernels
+// (shaders/wb_bin.wgsl), the same clear -> histogram -> schedule -> group passes
+// the production pipeline uses. Writes directly into buffers->bin_offsets and
+// buffers->bin_indices; segments must already be uploaded. This replaces the CPU
+// prefix-sum, which is prohibitively slow when small N produces millions of
+// segments. bin_config_data/bin_histogram/bin_dispatch are Dawn zero-initialized;
+// only bin_dispatch's output (unused here) depends on bin_config_data.
+static void bench_compute_bins_gpu(
+    const bench_buffers * const buffers,
+    const uint32_t segments_len,
+    WGPUInstance const instance,
+    WGPUDevice const device,
+    WGPUQueue const queue
+)
+{
+    size_t source_len;
+    char * const source = wbg__read_file("shaders/wb_bin.wgsl", &mems_system_allocator, &source_len);
+
+    WGPUShaderSourceWGSL source_wgsl = (WGPUShaderSourceWGSL){
+        .chain = (WGPUChainedStruct){ .sType = WGPUSType_ShaderSourceWGSL },
+        .code = (WGPUStringView){ .data = source, .length = source_len },
+    };
+    WGPUShaderModuleDescriptor module_desc = (WGPUShaderModuleDescriptor){
+        .label = (WGPUStringView){ .data = "wb_bin", .length = WGPU_STRLEN },
+        .nextInChain = (WGPUChainedStruct *)(&source_wgsl),
+    };
+    WGPUShaderModule module = wgpuDeviceCreateShaderModule(device, &module_desc);
+
+    WGPUBindGroupLayoutDescriptor layout_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout_desc.entryCount = 7;
+    layout_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        { .binding = 0, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Uniform } },
+        { .binding = 1, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },
+        { .binding = 2, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },
+        { .binding = 3, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },
+        { .binding = 4, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },
+        { .binding = 5, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },
+        { .binding = 6, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },
+    };
+    WGPUBindGroupLayout layout = wgpuDeviceCreateBindGroupLayout(device, &layout_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){ layout };
+    WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+
+    // main_histogram / main_group are 16x16 workgroups (WORKGROUP_ITEMS = 256).
+    WGPUConstantEntry wg_consts[2] = {
+        { .key = (WGPUStringView){ .data = "WORKGROUP_SIZE_X", .length = WGPU_STRLEN }, .value = 16.0 },
+        { .key = (WGPUStringView){ .data = "WORKGROUP_SIZE_Y", .length = WGPU_STRLEN }, .value = 16.0 },
+    };
+
+    WGPUComputePipelineDescriptor clear_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    clear_desc.layout = pipeline_layout;
+    clear_desc.compute.module = module;
+    clear_desc.compute.entryPoint = (WGPUStringView){ .data = "main_clear", .length = WGPU_STRLEN };
+    WGPUComputePipeline clear_pipeline = wgpuDeviceCreateComputePipeline(device, &clear_desc);
+
+    WGPUComputePipelineDescriptor histogram_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    histogram_desc.layout = pipeline_layout;
+    histogram_desc.compute.module = module;
+    histogram_desc.compute.entryPoint = (WGPUStringView){ .data = "main_histogram", .length = WGPU_STRLEN };
+    histogram_desc.compute.constantCount = 2;
+    histogram_desc.compute.constants = wg_consts;
+    WGPUComputePipeline histogram_pipeline = wgpuDeviceCreateComputePipeline(device, &histogram_desc);
+
+    WGPUComputePipelineDescriptor schedule_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    schedule_desc.layout = pipeline_layout;
+    schedule_desc.compute.module = module;
+    schedule_desc.compute.entryPoint = (WGPUStringView){ .data = "main_schedule", .length = WGPU_STRLEN };
+    WGPUComputePipeline schedule_pipeline = wgpuDeviceCreateComputePipeline(device, &schedule_desc);
+
+    WGPUComputePipelineDescriptor group_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    group_desc.layout = pipeline_layout;
+    group_desc.compute.module = module;
+    group_desc.compute.entryPoint = (WGPUStringView){ .data = "main_group", .length = WGPU_STRLEN };
+    group_desc.compute.constantCount = 2;
+    group_desc.compute.constants = wg_consts;
+    WGPUComputePipeline group_pipeline = wgpuDeviceCreateComputePipeline(device, &group_desc);
+
+    WGPUBindGroupDescriptor bind_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    bind_desc.layout = layout;
+    bind_desc.entryCount = 7;
+    bind_desc.entries = (WGPUBindGroupEntry[]){
+        { .binding = 0, .buffer = buffers->bin_config,      .size = WGPU_WHOLE_SIZE },
+        { .binding = 1, .buffer = buffers->segments,        .size = WGPU_WHOLE_SIZE },
+        { .binding = 2, .buffer = buffers->bin_config_data, .size = WGPU_WHOLE_SIZE },
+        { .binding = 3, .buffer = buffers->bin_histogram,   .size = WGPU_WHOLE_SIZE },
+        { .binding = 4, .buffer = buffers->bin_offsets,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 5, .buffer = buffers->bin_indices,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 6, .buffer = buffers->bin_dispatch,    .size = WGPU_WHOLE_SIZE },
+    };
+    WGPUBindGroup binding = wgpuDeviceCreateBindGroup(device, &bind_desc);
+
+    wgpuQueueWriteBuffer(queue, buffers->bin_config, 0, &segments_len, sizeof(segments_len));
+
+    // One workgroup (16x16=256 threads) per 256 segments; kernel flattens x/y.
+    const wbg_dispatch_size bin_base = { 16u, 16u, 1u };
+    const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&bin_base, segments_len);
+
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
+    WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(encoder, NULL);
+    wgpuComputePassEncoderSetBindGroup(pass, 0, binding, 0, NULL);
+    wgpuComputePassEncoderSetPipeline(pass, clear_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, 1, 1, 1);
+    wgpuComputePassEncoderSetPipeline(pass, histogram_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, grid.x, grid.y, grid.z);
+    wgpuComputePassEncoderSetPipeline(pass, schedule_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, 1, 1, 1);
+    wgpuComputePassEncoderSetPipeline(pass, group_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, grid.x, grid.y, grid.z);
+    wgpuComputePassEncoderEnd(pass);
+
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, NULL);
+    wgpuQueueSubmit(queue, 1, &commands);
+    benchmark_wait_idle(instance, queue);
+
+    wgpuCommandBufferRelease(commands);
+    wgpuComputePassEncoderRelease(pass);
+    wgpuCommandEncoderRelease(encoder);
+    wgpuBindGroupRelease(binding);
+    wgpuComputePipelineRelease(clear_pipeline);
+    wgpuComputePipelineRelease(histogram_pipeline);
+    wgpuComputePipelineRelease(schedule_pipeline);
+    wgpuComputePipelineRelease(group_pipeline);
+    wgpuPipelineLayoutRelease(pipeline_layout);
+    wgpuBindGroupLayoutRelease(layout);
+    wgpuShaderModuleRelease(module);
+    mems_allocator_free(&mems_system_allocator, source);
+}
+
+// Dispatch the sort once and check the GPU output against a CPU reference sort.
+// Aborts on the first mismatch; returns normally if every key/value matches.
+static void bench_validate(
+    const char * const name,
+    const bench_buffers * const buffers,
+    WGPUComputePipeline const pipeline,
+    WGPUBindGroup const binding,
+    const wbg_dispatch_size grid,
+    const size_t segments_len, uint32_t * const segments,
+    const size_t keys_len, uint32_t * const keys,
+    WGPUInstance const instance,
+    WGPUDevice const device,
+    WGPUQueue const queue
+)
+{
+    // Single dispatch over the freshly-uploaded (unsorted) keys.
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
+    WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(encoder, NULL);
+    wgpuComputePassEncoderSetPipeline(pass, pipeline);
+    wgpuComputePassEncoderSetBindGroup(pass, 0, binding, 0, NULL);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, grid.x, grid.y, grid.z);
+    wgpuComputePassEncoderEnd(pass);
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, NULL);
+    wgpuQueueSubmit(queue, 1, &commands);
+    benchmark_wait_idle(instance, queue);
+    wgpuCommandBufferRelease(commands);
+    wgpuComputePassEncoderRelease(pass);
+    wgpuCommandEncoderRelease(encoder);
+
+    // CPU reference: sort a copy of the original keys, values = identity global index.
+    uint32_t * const expected_keys = (uint32_t *)malloc(keys_len * sizeof(uint32_t));
+    uint32_t * const expected_value_indices = (uint32_t *)malloc(keys_len * sizeof(uint32_t));
+    memcpy(expected_keys, keys, keys_len * sizeof(uint32_t));
+    for (size_t i = 0; i < keys_len; i++) expected_value_indices[i] = (uint32_t)i;
+
+    wbc_segsort_alloc(keys_len, expected_keys, expected_value_indices, segments_len, segments);
+
+    // Read back the sorted keys and value indices the kernel wrote.
+    uint32_t * gpu_keys;
+    hwgutil_wgpu_read_buffer_alloc(
+        instance, device, queue, buffers->keys, &mems_system_allocator, (void **)&gpu_keys);
+
+    uint32_t * gpu_value_indices;
+    hwgutil_wgpu_read_buffer_alloc(
+        instance, device, queue, buffers->value_indices, &mems_system_allocator, (void **)&gpu_value_indices);
+
+    for (size_t i = 0; i < keys_len; i++)
+    {
+        if (expected_keys[i] != gpu_keys[i])
+        {
+            fprintf(stderr, "VALIDATION FAILED %s: keys[%zu] cpu=%u gpu=%u\n",
+                name, i, expected_keys[i], gpu_keys[i]);
+            abort();
+        }
+
+        if (expected_value_indices[i] != gpu_value_indices[i])
+        {
+            fprintf(stderr, "VALIDATION FAILED %s: value_indices[%zu] cpu=%u gpu=%u (key=%u)\n",
+                name, i, expected_value_indices[i], gpu_value_indices[i], gpu_keys[i]);
+            abort();
+        }
+    }
+
+    fprintf(stdout, "VALIDATION PASSED %s (%zu keys, %zu segments)\n", name, keys_len, segments_len);
+
+    free(expected_keys);
+    free(expected_value_indices);
+    mems_allocator_free(&mems_system_allocator, gpu_keys);
+    mems_allocator_free(&mems_system_allocator, gpu_value_indices);
 }
 
 static void run_benchmark(
@@ -694,12 +887,22 @@ static void run_benchmark(
     snprintf(FILE_PATH, sizeof(FILE_PATH), "shaders/sort_kernels/%s.wgsl", KERNEL_NAME);
     WGPUComputePipeline pipeline = bench_create_pipeline(KERNEL_NAME, FILE_PATH, wg, device, pipeline_layout);
 
+    // segments + bin_offsets/bin_indices were uploaded/computed by the caller.
     wgpuQueueWriteBuffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
-    wgpuQueueWriteBuffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));
 
     const uint32_t segs_per_wg = wg / config.M;
     const wbg_dispatch_size base = { segs_per_wg, 1u, 1u };
     const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&base, segments_len);
+
+    if (config.validate)
+    {
+        bench_validate(
+            KERNEL_NAME, buffers, pipeline, binding, grid,
+            segments_len, segments, keys_len, keys,
+            instance, device, queue);
+        wgpuComputePipelineRelease(pipeline);
+        return;
+    }
 
     fprintf(stdout, "Warmup run...\n");
     {
@@ -866,8 +1069,6 @@ int benchmark_main(
     uint32_t * const keys = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
     uint32_t * const value_indices = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
     uint32_t * const segments = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
-    uint32_t * const bin_indices = (uint32_t *)malloc(config.n_keys * sizeof(uint32_t));
-    uint32_t * const bin_offsets = (uint32_t *)malloc(13 * sizeof(uint32_t));
 
     fprintf(stdout, "Generating key set...\n");
     for (size_t i = 0; i < config.n_keys; i++)
@@ -895,26 +1096,24 @@ int benchmark_main(
         segments[segments_len++] = keys_len;
     }
 
-    bench_compute_bins(
-        segments_len, segments,
-        bin_offsets, bin_indices
-    );
-
     fprintf(stdout, "Uploading data...\n");
     wgpuQueueWriteBuffer(
         context.queue,
-        buffers.bin_offsets,
+        buffers.segments,
         0,
-        bin_offsets,
-        13 * sizeof(uint32_t)
+        segments,
+        segments_len * sizeof(uint32_t)
     );
 
-    wgpuQueueWriteBuffer(
-        context.queue,
-        buffers.bin_indices,
-        0,
-        bin_indices,
-        segments_len * sizeof(uint32_t)
+    // Bin on the GPU with the real binning kernels, writing bin_offsets/bin_indices
+    // straight into their buffers (replaces the CPU prefix-sum).
+    fprintf(stdout, "Binning segments (gpu)...\n");
+    bench_compute_bins_gpu(
+        &buffers,
+        segments_len,
+        context.instance,
+        context.device,
+        context.queue
     );
 
     wgpuQueueWriteBuffer(
@@ -980,6 +1179,7 @@ int main(const int argc, const char ** const argv)
     const hwargs_param * const subgroups_param = hwargs_get_param(&args, "subgroups");
     const hwargs_param * const sampler_name_param = hwargs_get_param(&args, "sampler");
     const bool skip_existing = hwargs_has_flag(&args, "skip-existing");
+    const bool validate = hwargs_has_flag(&args, "validate");
 
     ENSURE_MSG(memory_param != NULL, "must provide --memory <reg|smem|hybrid|hybmerge>");
     ENSURE_MSG(store_param != NULL, "must provide --store <block|striped>");
@@ -1036,7 +1236,7 @@ int main(const int argc, const char ** const argv)
         &required_limits
     )) PANIC("could not initialize WebGPU context");
 
-    WGPULimits limits;
+    WGPULimits limits = WGPU_LIMITS_INIT;
     wgpuDeviceGetLimits(context.device, &limits);
 
     const bench_config config = (bench_config){
@@ -1056,6 +1256,7 @@ int main(const int argc, const char ** const argv)
         .max_invocations = limits.maxComputeInvocationsPerWorkgroup,
         .max_smem_size = limits.maxComputeWorkgroupStorageSize,
         .target_wg_size = 256u,
+        .validate = validate,
     };
 
     if (skip_existing)
