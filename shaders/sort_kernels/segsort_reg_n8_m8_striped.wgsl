@@ -99,21 +99,9 @@ fn segsort_reg_n8_m8_striped(
     if tmp_22 == tmp_23 { keys[0] = tmp_20; values[0] = tmp_21; }
     }
 
-    // striped (coalesced) store via subgroup shuffle transpose
-    {
-        let grp_base = sid - local_tid;   // first lane of this segment
-        var out_keys: array<u32, WPT>;
-        var out_values: array<u32, WPT>;
-        { let src = grp_base + ((0u * M + local_tid) >> 0u);
-          let want = ((0u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[0] = k; out_values[0] = v; } }
-        }
-        for (var r = 0u; r < WPT; r = r + 1u) {
-            let j = r * M + local_tid;
-            if is_active && j < seg_size {
-                global_keys[seg_start + j] = out_keys[r];
-                global_value_indices[seg_start + j] = out_values[r];
-            }
-        }
+    // striped (coalesced) store (WPT==1, no transpose)
+    if is_active && local_tid < seg_size {
+        global_keys[seg_start + local_tid] = keys[0];
+        global_value_indices[seg_start + local_tid] = values[0];
     }
 }

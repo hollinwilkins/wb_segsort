@@ -372,44 +372,86 @@ fn segsort_reg_n64_m16_striped(
     { let tmp_172 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_172;let tmp_173 = values[2]; values[2] = values[3]; values[3] = tmp_173; }
     }
 
-    // striped (coalesced) store via subgroup shuffle transpose
+    // striped (coalesced) store via shfl_xor transpose
     {
-        let grp_base = sid - local_tid;   // first lane of this segment
-        var out_keys: array<u32, WPT>;
-        var out_values: array<u32, WPT>;
-        { let src = grp_base + ((0u * M + local_tid) >> 2u);
-          let want = ((0u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[0] = k; out_values[0] = v; } }
-        }
-        { let src = grp_base + ((1u * M + local_tid) >> 2u);
-          let want = ((1u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[1] = k; out_values[1] = v; } }
-        }
-        { let src = grp_base + ((2u * M + local_tid) >> 2u);
-          let want = ((2u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[2] = k; out_values[2] = v; } }
-        }
-        { let src = grp_base + ((3u * M + local_tid) >> 2u);
-          let want = ((3u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[3] = k; out_values[3] = v; } }
-        }
+        { let ex_k = subgroupShuffleXor(keys[1], 1u);
+          let ex_v = subgroupShuffleXor(values[1], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[1] = subgroupShuffleXor(t_k, 1u);
+          values[1] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[3], 1u);
+          let ex_v = subgroupShuffleXor(values[3], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[2]; t_v = values[2];
+              keys[2] = ex_k; values[2] = ex_v;
+          }
+          keys[3] = subgroupShuffleXor(t_k, 1u);
+          values[3] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[2], 2u);
+          let ex_v = subgroupShuffleXor(values[2], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[2] = subgroupShuffleXor(t_k, 2u);
+          values[2] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[3], 2u);
+          let ex_v = subgroupShuffleXor(values[3], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[1]; t_v = values[1];
+              keys[1] = ex_k; values[1] = ex_v;
+          }
+          keys[3] = subgroupShuffleXor(t_k, 2u);
+          values[3] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[1], 4u);
+          let ex_v = subgroupShuffleXor(values[1], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[1] = subgroupShuffleXor(t_k, 4u);
+          values[1] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[3], 4u);
+          let ex_v = subgroupShuffleXor(values[3], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[2]; t_v = values[2];
+              keys[2] = ex_k; values[2] = ex_v;
+          }
+          keys[3] = subgroupShuffleXor(t_k, 4u);
+          values[3] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[2], 8u);
+          let ex_v = subgroupShuffleXor(values[2], 8u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 8u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[2] = subgroupShuffleXor(t_k, 8u);
+          values[2] = subgroupShuffleXor(t_v, 8u); }
+        { let ex_k = subgroupShuffleXor(keys[3], 8u);
+          let ex_v = subgroupShuffleXor(values[3], 8u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 8u) != 0u) {
+              t_k = keys[1]; t_v = values[1];
+              keys[1] = ex_k; values[1] = ex_v;
+          }
+          keys[3] = subgroupShuffleXor(t_k, 8u);
+          values[3] = subgroupShuffleXor(t_v, 8u); }
+        var out_reg = array<u32, WPT>(0u, 1u, 2u, 3u);
         for (var r = 0u; r < WPT; r = r + 1u) {
-            let j = r * M + local_tid;
+            let j = out_reg[r] * M + local_tid;
             if is_active && j < seg_size {
-                global_keys[seg_start + j] = out_keys[r];
-                global_value_indices[seg_start + j] = out_values[r];
+                global_keys[seg_start + j] = keys[r];
+                global_value_indices[seg_start + j] = values[r];
             }
         }
     }

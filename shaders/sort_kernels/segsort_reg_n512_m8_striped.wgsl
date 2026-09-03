@@ -7890,4304 +7890,878 @@ fn segsort_reg_n512_m8_striped(
     { let tmp_3652 = keys[62]; keys[62] = keys[63]; keys[63] = tmp_3652;let tmp_3653 = values[62]; values[62] = values[63]; values[63] = tmp_3653; }
     }
 
-    // striped (coalesced) store via subgroup shuffle transpose
+    // striped (coalesced) store via shfl_xor transpose
     {
-        let grp_base = sid - local_tid;   // first lane of this segment
-        var out_keys: array<u32, WPT>;
-        var out_values: array<u32, WPT>;
-        { let src = grp_base + ((0u * M + local_tid) >> 6u);
-          let want = ((0u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[0] = k; out_values[0] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[0] = k; out_values[0] = v; } }
-        }
-        { let src = grp_base + ((1u * M + local_tid) >> 6u);
-          let want = ((1u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[1] = k; out_values[1] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[1] = k; out_values[1] = v; } }
-        }
-        { let src = grp_base + ((2u * M + local_tid) >> 6u);
-          let want = ((2u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[2] = k; out_values[2] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[2] = k; out_values[2] = v; } }
-        }
-        { let src = grp_base + ((3u * M + local_tid) >> 6u);
-          let want = ((3u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[3] = k; out_values[3] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[3] = k; out_values[3] = v; } }
-        }
-        { let src = grp_base + ((4u * M + local_tid) >> 6u);
-          let want = ((4u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[4] = k; out_values[4] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[4] = k; out_values[4] = v; } }
-        }
-        { let src = grp_base + ((5u * M + local_tid) >> 6u);
-          let want = ((5u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[5] = k; out_values[5] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[5] = k; out_values[5] = v; } }
-        }
-        { let src = grp_base + ((6u * M + local_tid) >> 6u);
-          let want = ((6u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[6] = k; out_values[6] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[6] = k; out_values[6] = v; } }
-        }
-        { let src = grp_base + ((7u * M + local_tid) >> 6u);
-          let want = ((7u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[7] = k; out_values[7] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[7] = k; out_values[7] = v; } }
-        }
-        { let src = grp_base + ((8u * M + local_tid) >> 6u);
-          let want = ((8u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[8] = k; out_values[8] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[8] = k; out_values[8] = v; } }
-        }
-        { let src = grp_base + ((9u * M + local_tid) >> 6u);
-          let want = ((9u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[9] = k; out_values[9] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[9] = k; out_values[9] = v; } }
-        }
-        { let src = grp_base + ((10u * M + local_tid) >> 6u);
-          let want = ((10u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[10] = k; out_values[10] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[10] = k; out_values[10] = v; } }
-        }
-        { let src = grp_base + ((11u * M + local_tid) >> 6u);
-          let want = ((11u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[11] = k; out_values[11] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[11] = k; out_values[11] = v; } }
-        }
-        { let src = grp_base + ((12u * M + local_tid) >> 6u);
-          let want = ((12u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[12] = k; out_values[12] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[12] = k; out_values[12] = v; } }
-        }
-        { let src = grp_base + ((13u * M + local_tid) >> 6u);
-          let want = ((13u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[13] = k; out_values[13] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[13] = k; out_values[13] = v; } }
-        }
-        { let src = grp_base + ((14u * M + local_tid) >> 6u);
-          let want = ((14u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[14] = k; out_values[14] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[14] = k; out_values[14] = v; } }
-        }
-        { let src = grp_base + ((15u * M + local_tid) >> 6u);
-          let want = ((15u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[15] = k; out_values[15] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[15] = k; out_values[15] = v; } }
-        }
-        { let src = grp_base + ((16u * M + local_tid) >> 6u);
-          let want = ((16u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[16] = k; out_values[16] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[16] = k; out_values[16] = v; } }
-        }
-        { let src = grp_base + ((17u * M + local_tid) >> 6u);
-          let want = ((17u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[17] = k; out_values[17] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[17] = k; out_values[17] = v; } }
-        }
-        { let src = grp_base + ((18u * M + local_tid) >> 6u);
-          let want = ((18u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[18] = k; out_values[18] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[18] = k; out_values[18] = v; } }
-        }
-        { let src = grp_base + ((19u * M + local_tid) >> 6u);
-          let want = ((19u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[19] = k; out_values[19] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[19] = k; out_values[19] = v; } }
-        }
-        { let src = grp_base + ((20u * M + local_tid) >> 6u);
-          let want = ((20u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[20] = k; out_values[20] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[20] = k; out_values[20] = v; } }
-        }
-        { let src = grp_base + ((21u * M + local_tid) >> 6u);
-          let want = ((21u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[21] = k; out_values[21] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[21] = k; out_values[21] = v; } }
-        }
-        { let src = grp_base + ((22u * M + local_tid) >> 6u);
-          let want = ((22u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[22] = k; out_values[22] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[22] = k; out_values[22] = v; } }
-        }
-        { let src = grp_base + ((23u * M + local_tid) >> 6u);
-          let want = ((23u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[23] = k; out_values[23] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[23] = k; out_values[23] = v; } }
-        }
-        { let src = grp_base + ((24u * M + local_tid) >> 6u);
-          let want = ((24u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[24] = k; out_values[24] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[24] = k; out_values[24] = v; } }
-        }
-        { let src = grp_base + ((25u * M + local_tid) >> 6u);
-          let want = ((25u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[25] = k; out_values[25] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[25] = k; out_values[25] = v; } }
-        }
-        { let src = grp_base + ((26u * M + local_tid) >> 6u);
-          let want = ((26u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[26] = k; out_values[26] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[26] = k; out_values[26] = v; } }
-        }
-        { let src = grp_base + ((27u * M + local_tid) >> 6u);
-          let want = ((27u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[27] = k; out_values[27] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[27] = k; out_values[27] = v; } }
-        }
-        { let src = grp_base + ((28u * M + local_tid) >> 6u);
-          let want = ((28u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[28] = k; out_values[28] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[28] = k; out_values[28] = v; } }
-        }
-        { let src = grp_base + ((29u * M + local_tid) >> 6u);
-          let want = ((29u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[29] = k; out_values[29] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[29] = k; out_values[29] = v; } }
-        }
-        { let src = grp_base + ((30u * M + local_tid) >> 6u);
-          let want = ((30u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[30] = k; out_values[30] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[30] = k; out_values[30] = v; } }
-        }
-        { let src = grp_base + ((31u * M + local_tid) >> 6u);
-          let want = ((31u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[31] = k; out_values[31] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[31] = k; out_values[31] = v; } }
-        }
-        { let src = grp_base + ((32u * M + local_tid) >> 6u);
-          let want = ((32u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[32] = k; out_values[32] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[32] = k; out_values[32] = v; } }
-        }
-        { let src = grp_base + ((33u * M + local_tid) >> 6u);
-          let want = ((33u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[33] = k; out_values[33] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[33] = k; out_values[33] = v; } }
-        }
-        { let src = grp_base + ((34u * M + local_tid) >> 6u);
-          let want = ((34u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[34] = k; out_values[34] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[34] = k; out_values[34] = v; } }
-        }
-        { let src = grp_base + ((35u * M + local_tid) >> 6u);
-          let want = ((35u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[35] = k; out_values[35] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[35] = k; out_values[35] = v; } }
-        }
-        { let src = grp_base + ((36u * M + local_tid) >> 6u);
-          let want = ((36u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[36] = k; out_values[36] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[36] = k; out_values[36] = v; } }
-        }
-        { let src = grp_base + ((37u * M + local_tid) >> 6u);
-          let want = ((37u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[37] = k; out_values[37] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[37] = k; out_values[37] = v; } }
-        }
-        { let src = grp_base + ((38u * M + local_tid) >> 6u);
-          let want = ((38u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[38] = k; out_values[38] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[38] = k; out_values[38] = v; } }
-        }
-        { let src = grp_base + ((39u * M + local_tid) >> 6u);
-          let want = ((39u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[39] = k; out_values[39] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[39] = k; out_values[39] = v; } }
-        }
-        { let src = grp_base + ((40u * M + local_tid) >> 6u);
-          let want = ((40u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[40] = k; out_values[40] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[40] = k; out_values[40] = v; } }
-        }
-        { let src = grp_base + ((41u * M + local_tid) >> 6u);
-          let want = ((41u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[41] = k; out_values[41] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[41] = k; out_values[41] = v; } }
-        }
-        { let src = grp_base + ((42u * M + local_tid) >> 6u);
-          let want = ((42u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[42] = k; out_values[42] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[42] = k; out_values[42] = v; } }
-        }
-        { let src = grp_base + ((43u * M + local_tid) >> 6u);
-          let want = ((43u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[43] = k; out_values[43] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[43] = k; out_values[43] = v; } }
-        }
-        { let src = grp_base + ((44u * M + local_tid) >> 6u);
-          let want = ((44u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[44] = k; out_values[44] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[44] = k; out_values[44] = v; } }
-        }
-        { let src = grp_base + ((45u * M + local_tid) >> 6u);
-          let want = ((45u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[45] = k; out_values[45] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[45] = k; out_values[45] = v; } }
-        }
-        { let src = grp_base + ((46u * M + local_tid) >> 6u);
-          let want = ((46u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[46] = k; out_values[46] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[46] = k; out_values[46] = v; } }
-        }
-        { let src = grp_base + ((47u * M + local_tid) >> 6u);
-          let want = ((47u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[47] = k; out_values[47] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[47] = k; out_values[47] = v; } }
-        }
-        { let src = grp_base + ((48u * M + local_tid) >> 6u);
-          let want = ((48u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[48] = k; out_values[48] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[48] = k; out_values[48] = v; } }
-        }
-        { let src = grp_base + ((49u * M + local_tid) >> 6u);
-          let want = ((49u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[49] = k; out_values[49] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[49] = k; out_values[49] = v; } }
-        }
-        { let src = grp_base + ((50u * M + local_tid) >> 6u);
-          let want = ((50u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[50] = k; out_values[50] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[50] = k; out_values[50] = v; } }
-        }
-        { let src = grp_base + ((51u * M + local_tid) >> 6u);
-          let want = ((51u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[51] = k; out_values[51] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[51] = k; out_values[51] = v; } }
-        }
-        { let src = grp_base + ((52u * M + local_tid) >> 6u);
-          let want = ((52u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[52] = k; out_values[52] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[52] = k; out_values[52] = v; } }
-        }
-        { let src = grp_base + ((53u * M + local_tid) >> 6u);
-          let want = ((53u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[53] = k; out_values[53] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[53] = k; out_values[53] = v; } }
-        }
-        { let src = grp_base + ((54u * M + local_tid) >> 6u);
-          let want = ((54u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[54] = k; out_values[54] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[54] = k; out_values[54] = v; } }
-        }
-        { let src = grp_base + ((55u * M + local_tid) >> 6u);
-          let want = ((55u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[55] = k; out_values[55] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[55] = k; out_values[55] = v; } }
-        }
-        { let src = grp_base + ((56u * M + local_tid) >> 6u);
-          let want = ((56u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[56] = k; out_values[56] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[56] = k; out_values[56] = v; } }
-        }
-        { let src = grp_base + ((57u * M + local_tid) >> 6u);
-          let want = ((57u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[57] = k; out_values[57] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[57] = k; out_values[57] = v; } }
-        }
-        { let src = grp_base + ((58u * M + local_tid) >> 6u);
-          let want = ((58u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[58] = k; out_values[58] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[58] = k; out_values[58] = v; } }
-        }
-        { let src = grp_base + ((59u * M + local_tid) >> 6u);
-          let want = ((59u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[59] = k; out_values[59] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[59] = k; out_values[59] = v; } }
-        }
-        { let src = grp_base + ((60u * M + local_tid) >> 6u);
-          let want = ((60u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[60] = k; out_values[60] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[60] = k; out_values[60] = v; } }
-        }
-        { let src = grp_base + ((61u * M + local_tid) >> 6u);
-          let want = ((61u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[61] = k; out_values[61] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[61] = k; out_values[61] = v; } }
-        }
-        { let src = grp_base + ((62u * M + local_tid) >> 6u);
-          let want = ((62u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[62] = k; out_values[62] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[62] = k; out_values[62] = v; } }
-        }
-        { let src = grp_base + ((63u * M + local_tid) >> 6u);
-          let want = ((63u * M + local_tid) & (WPT - 1u));
-          { let k = subgroupShuffle(keys[0], src); let v = subgroupShuffle(values[0], src); if want == 0u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[1], src); let v = subgroupShuffle(values[1], src); if want == 1u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[2], src); let v = subgroupShuffle(values[2], src); if want == 2u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[3], src); let v = subgroupShuffle(values[3], src); if want == 3u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[4], src); let v = subgroupShuffle(values[4], src); if want == 4u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[5], src); let v = subgroupShuffle(values[5], src); if want == 5u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[6], src); let v = subgroupShuffle(values[6], src); if want == 6u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[7], src); let v = subgroupShuffle(values[7], src); if want == 7u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[8], src); let v = subgroupShuffle(values[8], src); if want == 8u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[9], src); let v = subgroupShuffle(values[9], src); if want == 9u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[10], src); let v = subgroupShuffle(values[10], src); if want == 10u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[11], src); let v = subgroupShuffle(values[11], src); if want == 11u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[12], src); let v = subgroupShuffle(values[12], src); if want == 12u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[13], src); let v = subgroupShuffle(values[13], src); if want == 13u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[14], src); let v = subgroupShuffle(values[14], src); if want == 14u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[15], src); let v = subgroupShuffle(values[15], src); if want == 15u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[16], src); let v = subgroupShuffle(values[16], src); if want == 16u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[17], src); let v = subgroupShuffle(values[17], src); if want == 17u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[18], src); let v = subgroupShuffle(values[18], src); if want == 18u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[19], src); let v = subgroupShuffle(values[19], src); if want == 19u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[20], src); let v = subgroupShuffle(values[20], src); if want == 20u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[21], src); let v = subgroupShuffle(values[21], src); if want == 21u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[22], src); let v = subgroupShuffle(values[22], src); if want == 22u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[23], src); let v = subgroupShuffle(values[23], src); if want == 23u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[24], src); let v = subgroupShuffle(values[24], src); if want == 24u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[25], src); let v = subgroupShuffle(values[25], src); if want == 25u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[26], src); let v = subgroupShuffle(values[26], src); if want == 26u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[27], src); let v = subgroupShuffle(values[27], src); if want == 27u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[28], src); let v = subgroupShuffle(values[28], src); if want == 28u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[29], src); let v = subgroupShuffle(values[29], src); if want == 29u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[30], src); let v = subgroupShuffle(values[30], src); if want == 30u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[31], src); let v = subgroupShuffle(values[31], src); if want == 31u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[32], src); let v = subgroupShuffle(values[32], src); if want == 32u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[33], src); let v = subgroupShuffle(values[33], src); if want == 33u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[34], src); let v = subgroupShuffle(values[34], src); if want == 34u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[35], src); let v = subgroupShuffle(values[35], src); if want == 35u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[36], src); let v = subgroupShuffle(values[36], src); if want == 36u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[37], src); let v = subgroupShuffle(values[37], src); if want == 37u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[38], src); let v = subgroupShuffle(values[38], src); if want == 38u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[39], src); let v = subgroupShuffle(values[39], src); if want == 39u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[40], src); let v = subgroupShuffle(values[40], src); if want == 40u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[41], src); let v = subgroupShuffle(values[41], src); if want == 41u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[42], src); let v = subgroupShuffle(values[42], src); if want == 42u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[43], src); let v = subgroupShuffle(values[43], src); if want == 43u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[44], src); let v = subgroupShuffle(values[44], src); if want == 44u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[45], src); let v = subgroupShuffle(values[45], src); if want == 45u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[46], src); let v = subgroupShuffle(values[46], src); if want == 46u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[47], src); let v = subgroupShuffle(values[47], src); if want == 47u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[48], src); let v = subgroupShuffle(values[48], src); if want == 48u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[49], src); let v = subgroupShuffle(values[49], src); if want == 49u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[50], src); let v = subgroupShuffle(values[50], src); if want == 50u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[51], src); let v = subgroupShuffle(values[51], src); if want == 51u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[52], src); let v = subgroupShuffle(values[52], src); if want == 52u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[53], src); let v = subgroupShuffle(values[53], src); if want == 53u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[54], src); let v = subgroupShuffle(values[54], src); if want == 54u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[55], src); let v = subgroupShuffle(values[55], src); if want == 55u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[56], src); let v = subgroupShuffle(values[56], src); if want == 56u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[57], src); let v = subgroupShuffle(values[57], src); if want == 57u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[58], src); let v = subgroupShuffle(values[58], src); if want == 58u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[59], src); let v = subgroupShuffle(values[59], src); if want == 59u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[60], src); let v = subgroupShuffle(values[60], src); if want == 60u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[61], src); let v = subgroupShuffle(values[61], src); if want == 61u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[62], src); let v = subgroupShuffle(values[62], src); if want == 62u { out_keys[63] = k; out_values[63] = v; } }
-          { let k = subgroupShuffle(keys[63], src); let v = subgroupShuffle(values[63], src); if want == 63u { out_keys[63] = k; out_values[63] = v; } }
-        }
+        { let ex_k = subgroupShuffleXor(keys[1], 1u);
+          let ex_v = subgroupShuffleXor(values[1], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[1] = subgroupShuffleXor(t_k, 1u);
+          values[1] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[3], 1u);
+          let ex_v = subgroupShuffleXor(values[3], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[2]; t_v = values[2];
+              keys[2] = ex_k; values[2] = ex_v;
+          }
+          keys[3] = subgroupShuffleXor(t_k, 1u);
+          values[3] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[5], 1u);
+          let ex_v = subgroupShuffleXor(values[5], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[4]; t_v = values[4];
+              keys[4] = ex_k; values[4] = ex_v;
+          }
+          keys[5] = subgroupShuffleXor(t_k, 1u);
+          values[5] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[7], 1u);
+          let ex_v = subgroupShuffleXor(values[7], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[6]; t_v = values[6];
+              keys[6] = ex_k; values[6] = ex_v;
+          }
+          keys[7] = subgroupShuffleXor(t_k, 1u);
+          values[7] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[9], 1u);
+          let ex_v = subgroupShuffleXor(values[9], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[8]; t_v = values[8];
+              keys[8] = ex_k; values[8] = ex_v;
+          }
+          keys[9] = subgroupShuffleXor(t_k, 1u);
+          values[9] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[11], 1u);
+          let ex_v = subgroupShuffleXor(values[11], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[10]; t_v = values[10];
+              keys[10] = ex_k; values[10] = ex_v;
+          }
+          keys[11] = subgroupShuffleXor(t_k, 1u);
+          values[11] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[13], 1u);
+          let ex_v = subgroupShuffleXor(values[13], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[12]; t_v = values[12];
+              keys[12] = ex_k; values[12] = ex_v;
+          }
+          keys[13] = subgroupShuffleXor(t_k, 1u);
+          values[13] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[15], 1u);
+          let ex_v = subgroupShuffleXor(values[15], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[14]; t_v = values[14];
+              keys[14] = ex_k; values[14] = ex_v;
+          }
+          keys[15] = subgroupShuffleXor(t_k, 1u);
+          values[15] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[17], 1u);
+          let ex_v = subgroupShuffleXor(values[17], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[16]; t_v = values[16];
+              keys[16] = ex_k; values[16] = ex_v;
+          }
+          keys[17] = subgroupShuffleXor(t_k, 1u);
+          values[17] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[19], 1u);
+          let ex_v = subgroupShuffleXor(values[19], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[18]; t_v = values[18];
+              keys[18] = ex_k; values[18] = ex_v;
+          }
+          keys[19] = subgroupShuffleXor(t_k, 1u);
+          values[19] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[21], 1u);
+          let ex_v = subgroupShuffleXor(values[21], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[20]; t_v = values[20];
+              keys[20] = ex_k; values[20] = ex_v;
+          }
+          keys[21] = subgroupShuffleXor(t_k, 1u);
+          values[21] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[23], 1u);
+          let ex_v = subgroupShuffleXor(values[23], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[22]; t_v = values[22];
+              keys[22] = ex_k; values[22] = ex_v;
+          }
+          keys[23] = subgroupShuffleXor(t_k, 1u);
+          values[23] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[25], 1u);
+          let ex_v = subgroupShuffleXor(values[25], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[24]; t_v = values[24];
+              keys[24] = ex_k; values[24] = ex_v;
+          }
+          keys[25] = subgroupShuffleXor(t_k, 1u);
+          values[25] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[27], 1u);
+          let ex_v = subgroupShuffleXor(values[27], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[26]; t_v = values[26];
+              keys[26] = ex_k; values[26] = ex_v;
+          }
+          keys[27] = subgroupShuffleXor(t_k, 1u);
+          values[27] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[29], 1u);
+          let ex_v = subgroupShuffleXor(values[29], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[28]; t_v = values[28];
+              keys[28] = ex_k; values[28] = ex_v;
+          }
+          keys[29] = subgroupShuffleXor(t_k, 1u);
+          values[29] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[31], 1u);
+          let ex_v = subgroupShuffleXor(values[31], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[30]; t_v = values[30];
+              keys[30] = ex_k; values[30] = ex_v;
+          }
+          keys[31] = subgroupShuffleXor(t_k, 1u);
+          values[31] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[33], 1u);
+          let ex_v = subgroupShuffleXor(values[33], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[32]; t_v = values[32];
+              keys[32] = ex_k; values[32] = ex_v;
+          }
+          keys[33] = subgroupShuffleXor(t_k, 1u);
+          values[33] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[35], 1u);
+          let ex_v = subgroupShuffleXor(values[35], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[34]; t_v = values[34];
+              keys[34] = ex_k; values[34] = ex_v;
+          }
+          keys[35] = subgroupShuffleXor(t_k, 1u);
+          values[35] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[37], 1u);
+          let ex_v = subgroupShuffleXor(values[37], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[36]; t_v = values[36];
+              keys[36] = ex_k; values[36] = ex_v;
+          }
+          keys[37] = subgroupShuffleXor(t_k, 1u);
+          values[37] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[39], 1u);
+          let ex_v = subgroupShuffleXor(values[39], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[38]; t_v = values[38];
+              keys[38] = ex_k; values[38] = ex_v;
+          }
+          keys[39] = subgroupShuffleXor(t_k, 1u);
+          values[39] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[41], 1u);
+          let ex_v = subgroupShuffleXor(values[41], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[40]; t_v = values[40];
+              keys[40] = ex_k; values[40] = ex_v;
+          }
+          keys[41] = subgroupShuffleXor(t_k, 1u);
+          values[41] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[43], 1u);
+          let ex_v = subgroupShuffleXor(values[43], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[42]; t_v = values[42];
+              keys[42] = ex_k; values[42] = ex_v;
+          }
+          keys[43] = subgroupShuffleXor(t_k, 1u);
+          values[43] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[45], 1u);
+          let ex_v = subgroupShuffleXor(values[45], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[44]; t_v = values[44];
+              keys[44] = ex_k; values[44] = ex_v;
+          }
+          keys[45] = subgroupShuffleXor(t_k, 1u);
+          values[45] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[47], 1u);
+          let ex_v = subgroupShuffleXor(values[47], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[46]; t_v = values[46];
+              keys[46] = ex_k; values[46] = ex_v;
+          }
+          keys[47] = subgroupShuffleXor(t_k, 1u);
+          values[47] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[49], 1u);
+          let ex_v = subgroupShuffleXor(values[49], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[48]; t_v = values[48];
+              keys[48] = ex_k; values[48] = ex_v;
+          }
+          keys[49] = subgroupShuffleXor(t_k, 1u);
+          values[49] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[51], 1u);
+          let ex_v = subgroupShuffleXor(values[51], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[50]; t_v = values[50];
+              keys[50] = ex_k; values[50] = ex_v;
+          }
+          keys[51] = subgroupShuffleXor(t_k, 1u);
+          values[51] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[53], 1u);
+          let ex_v = subgroupShuffleXor(values[53], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[52]; t_v = values[52];
+              keys[52] = ex_k; values[52] = ex_v;
+          }
+          keys[53] = subgroupShuffleXor(t_k, 1u);
+          values[53] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[55], 1u);
+          let ex_v = subgroupShuffleXor(values[55], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[54]; t_v = values[54];
+              keys[54] = ex_k; values[54] = ex_v;
+          }
+          keys[55] = subgroupShuffleXor(t_k, 1u);
+          values[55] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[57], 1u);
+          let ex_v = subgroupShuffleXor(values[57], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[56]; t_v = values[56];
+              keys[56] = ex_k; values[56] = ex_v;
+          }
+          keys[57] = subgroupShuffleXor(t_k, 1u);
+          values[57] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[59], 1u);
+          let ex_v = subgroupShuffleXor(values[59], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[58]; t_v = values[58];
+              keys[58] = ex_k; values[58] = ex_v;
+          }
+          keys[59] = subgroupShuffleXor(t_k, 1u);
+          values[59] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[61], 1u);
+          let ex_v = subgroupShuffleXor(values[61], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[60]; t_v = values[60];
+              keys[60] = ex_k; values[60] = ex_v;
+          }
+          keys[61] = subgroupShuffleXor(t_k, 1u);
+          values[61] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[63], 1u);
+          let ex_v = subgroupShuffleXor(values[63], 1u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 1u) != 0u) {
+              t_k = keys[62]; t_v = values[62];
+              keys[62] = ex_k; values[62] = ex_v;
+          }
+          keys[63] = subgroupShuffleXor(t_k, 1u);
+          values[63] = subgroupShuffleXor(t_v, 1u); }
+        { let ex_k = subgroupShuffleXor(keys[2], 2u);
+          let ex_v = subgroupShuffleXor(values[2], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[2] = subgroupShuffleXor(t_k, 2u);
+          values[2] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[3], 2u);
+          let ex_v = subgroupShuffleXor(values[3], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[1]; t_v = values[1];
+              keys[1] = ex_k; values[1] = ex_v;
+          }
+          keys[3] = subgroupShuffleXor(t_k, 2u);
+          values[3] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[6], 2u);
+          let ex_v = subgroupShuffleXor(values[6], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[4]; t_v = values[4];
+              keys[4] = ex_k; values[4] = ex_v;
+          }
+          keys[6] = subgroupShuffleXor(t_k, 2u);
+          values[6] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[7], 2u);
+          let ex_v = subgroupShuffleXor(values[7], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[5]; t_v = values[5];
+              keys[5] = ex_k; values[5] = ex_v;
+          }
+          keys[7] = subgroupShuffleXor(t_k, 2u);
+          values[7] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[10], 2u);
+          let ex_v = subgroupShuffleXor(values[10], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[8]; t_v = values[8];
+              keys[8] = ex_k; values[8] = ex_v;
+          }
+          keys[10] = subgroupShuffleXor(t_k, 2u);
+          values[10] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[11], 2u);
+          let ex_v = subgroupShuffleXor(values[11], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[9]; t_v = values[9];
+              keys[9] = ex_k; values[9] = ex_v;
+          }
+          keys[11] = subgroupShuffleXor(t_k, 2u);
+          values[11] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[14], 2u);
+          let ex_v = subgroupShuffleXor(values[14], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[12]; t_v = values[12];
+              keys[12] = ex_k; values[12] = ex_v;
+          }
+          keys[14] = subgroupShuffleXor(t_k, 2u);
+          values[14] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[15], 2u);
+          let ex_v = subgroupShuffleXor(values[15], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[13]; t_v = values[13];
+              keys[13] = ex_k; values[13] = ex_v;
+          }
+          keys[15] = subgroupShuffleXor(t_k, 2u);
+          values[15] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[18], 2u);
+          let ex_v = subgroupShuffleXor(values[18], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[16]; t_v = values[16];
+              keys[16] = ex_k; values[16] = ex_v;
+          }
+          keys[18] = subgroupShuffleXor(t_k, 2u);
+          values[18] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[19], 2u);
+          let ex_v = subgroupShuffleXor(values[19], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[17]; t_v = values[17];
+              keys[17] = ex_k; values[17] = ex_v;
+          }
+          keys[19] = subgroupShuffleXor(t_k, 2u);
+          values[19] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[22], 2u);
+          let ex_v = subgroupShuffleXor(values[22], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[20]; t_v = values[20];
+              keys[20] = ex_k; values[20] = ex_v;
+          }
+          keys[22] = subgroupShuffleXor(t_k, 2u);
+          values[22] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[23], 2u);
+          let ex_v = subgroupShuffleXor(values[23], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[21]; t_v = values[21];
+              keys[21] = ex_k; values[21] = ex_v;
+          }
+          keys[23] = subgroupShuffleXor(t_k, 2u);
+          values[23] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[26], 2u);
+          let ex_v = subgroupShuffleXor(values[26], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[24]; t_v = values[24];
+              keys[24] = ex_k; values[24] = ex_v;
+          }
+          keys[26] = subgroupShuffleXor(t_k, 2u);
+          values[26] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[27], 2u);
+          let ex_v = subgroupShuffleXor(values[27], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[25]; t_v = values[25];
+              keys[25] = ex_k; values[25] = ex_v;
+          }
+          keys[27] = subgroupShuffleXor(t_k, 2u);
+          values[27] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[30], 2u);
+          let ex_v = subgroupShuffleXor(values[30], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[28]; t_v = values[28];
+              keys[28] = ex_k; values[28] = ex_v;
+          }
+          keys[30] = subgroupShuffleXor(t_k, 2u);
+          values[30] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[31], 2u);
+          let ex_v = subgroupShuffleXor(values[31], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[29]; t_v = values[29];
+              keys[29] = ex_k; values[29] = ex_v;
+          }
+          keys[31] = subgroupShuffleXor(t_k, 2u);
+          values[31] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[34], 2u);
+          let ex_v = subgroupShuffleXor(values[34], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[32]; t_v = values[32];
+              keys[32] = ex_k; values[32] = ex_v;
+          }
+          keys[34] = subgroupShuffleXor(t_k, 2u);
+          values[34] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[35], 2u);
+          let ex_v = subgroupShuffleXor(values[35], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[33]; t_v = values[33];
+              keys[33] = ex_k; values[33] = ex_v;
+          }
+          keys[35] = subgroupShuffleXor(t_k, 2u);
+          values[35] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[38], 2u);
+          let ex_v = subgroupShuffleXor(values[38], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[36]; t_v = values[36];
+              keys[36] = ex_k; values[36] = ex_v;
+          }
+          keys[38] = subgroupShuffleXor(t_k, 2u);
+          values[38] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[39], 2u);
+          let ex_v = subgroupShuffleXor(values[39], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[37]; t_v = values[37];
+              keys[37] = ex_k; values[37] = ex_v;
+          }
+          keys[39] = subgroupShuffleXor(t_k, 2u);
+          values[39] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[42], 2u);
+          let ex_v = subgroupShuffleXor(values[42], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[40]; t_v = values[40];
+              keys[40] = ex_k; values[40] = ex_v;
+          }
+          keys[42] = subgroupShuffleXor(t_k, 2u);
+          values[42] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[43], 2u);
+          let ex_v = subgroupShuffleXor(values[43], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[41]; t_v = values[41];
+              keys[41] = ex_k; values[41] = ex_v;
+          }
+          keys[43] = subgroupShuffleXor(t_k, 2u);
+          values[43] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[46], 2u);
+          let ex_v = subgroupShuffleXor(values[46], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[44]; t_v = values[44];
+              keys[44] = ex_k; values[44] = ex_v;
+          }
+          keys[46] = subgroupShuffleXor(t_k, 2u);
+          values[46] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[47], 2u);
+          let ex_v = subgroupShuffleXor(values[47], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[45]; t_v = values[45];
+              keys[45] = ex_k; values[45] = ex_v;
+          }
+          keys[47] = subgroupShuffleXor(t_k, 2u);
+          values[47] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[50], 2u);
+          let ex_v = subgroupShuffleXor(values[50], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[48]; t_v = values[48];
+              keys[48] = ex_k; values[48] = ex_v;
+          }
+          keys[50] = subgroupShuffleXor(t_k, 2u);
+          values[50] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[51], 2u);
+          let ex_v = subgroupShuffleXor(values[51], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[49]; t_v = values[49];
+              keys[49] = ex_k; values[49] = ex_v;
+          }
+          keys[51] = subgroupShuffleXor(t_k, 2u);
+          values[51] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[54], 2u);
+          let ex_v = subgroupShuffleXor(values[54], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[52]; t_v = values[52];
+              keys[52] = ex_k; values[52] = ex_v;
+          }
+          keys[54] = subgroupShuffleXor(t_k, 2u);
+          values[54] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[55], 2u);
+          let ex_v = subgroupShuffleXor(values[55], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[53]; t_v = values[53];
+              keys[53] = ex_k; values[53] = ex_v;
+          }
+          keys[55] = subgroupShuffleXor(t_k, 2u);
+          values[55] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[58], 2u);
+          let ex_v = subgroupShuffleXor(values[58], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[56]; t_v = values[56];
+              keys[56] = ex_k; values[56] = ex_v;
+          }
+          keys[58] = subgroupShuffleXor(t_k, 2u);
+          values[58] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[59], 2u);
+          let ex_v = subgroupShuffleXor(values[59], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[57]; t_v = values[57];
+              keys[57] = ex_k; values[57] = ex_v;
+          }
+          keys[59] = subgroupShuffleXor(t_k, 2u);
+          values[59] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[62], 2u);
+          let ex_v = subgroupShuffleXor(values[62], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[60]; t_v = values[60];
+              keys[60] = ex_k; values[60] = ex_v;
+          }
+          keys[62] = subgroupShuffleXor(t_k, 2u);
+          values[62] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[63], 2u);
+          let ex_v = subgroupShuffleXor(values[63], 2u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 2u) != 0u) {
+              t_k = keys[61]; t_v = values[61];
+              keys[61] = ex_k; values[61] = ex_v;
+          }
+          keys[63] = subgroupShuffleXor(t_k, 2u);
+          values[63] = subgroupShuffleXor(t_v, 2u); }
+        { let ex_k = subgroupShuffleXor(keys[4], 4u);
+          let ex_v = subgroupShuffleXor(values[4], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[0]; t_v = values[0];
+              keys[0] = ex_k; values[0] = ex_v;
+          }
+          keys[4] = subgroupShuffleXor(t_k, 4u);
+          values[4] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[5], 4u);
+          let ex_v = subgroupShuffleXor(values[5], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[1]; t_v = values[1];
+              keys[1] = ex_k; values[1] = ex_v;
+          }
+          keys[5] = subgroupShuffleXor(t_k, 4u);
+          values[5] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[6], 4u);
+          let ex_v = subgroupShuffleXor(values[6], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[2]; t_v = values[2];
+              keys[2] = ex_k; values[2] = ex_v;
+          }
+          keys[6] = subgroupShuffleXor(t_k, 4u);
+          values[6] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[7], 4u);
+          let ex_v = subgroupShuffleXor(values[7], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[3]; t_v = values[3];
+              keys[3] = ex_k; values[3] = ex_v;
+          }
+          keys[7] = subgroupShuffleXor(t_k, 4u);
+          values[7] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[12], 4u);
+          let ex_v = subgroupShuffleXor(values[12], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[8]; t_v = values[8];
+              keys[8] = ex_k; values[8] = ex_v;
+          }
+          keys[12] = subgroupShuffleXor(t_k, 4u);
+          values[12] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[13], 4u);
+          let ex_v = subgroupShuffleXor(values[13], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[9]; t_v = values[9];
+              keys[9] = ex_k; values[9] = ex_v;
+          }
+          keys[13] = subgroupShuffleXor(t_k, 4u);
+          values[13] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[14], 4u);
+          let ex_v = subgroupShuffleXor(values[14], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[10]; t_v = values[10];
+              keys[10] = ex_k; values[10] = ex_v;
+          }
+          keys[14] = subgroupShuffleXor(t_k, 4u);
+          values[14] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[15], 4u);
+          let ex_v = subgroupShuffleXor(values[15], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[11]; t_v = values[11];
+              keys[11] = ex_k; values[11] = ex_v;
+          }
+          keys[15] = subgroupShuffleXor(t_k, 4u);
+          values[15] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[20], 4u);
+          let ex_v = subgroupShuffleXor(values[20], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[16]; t_v = values[16];
+              keys[16] = ex_k; values[16] = ex_v;
+          }
+          keys[20] = subgroupShuffleXor(t_k, 4u);
+          values[20] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[21], 4u);
+          let ex_v = subgroupShuffleXor(values[21], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[17]; t_v = values[17];
+              keys[17] = ex_k; values[17] = ex_v;
+          }
+          keys[21] = subgroupShuffleXor(t_k, 4u);
+          values[21] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[22], 4u);
+          let ex_v = subgroupShuffleXor(values[22], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[18]; t_v = values[18];
+              keys[18] = ex_k; values[18] = ex_v;
+          }
+          keys[22] = subgroupShuffleXor(t_k, 4u);
+          values[22] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[23], 4u);
+          let ex_v = subgroupShuffleXor(values[23], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[19]; t_v = values[19];
+              keys[19] = ex_k; values[19] = ex_v;
+          }
+          keys[23] = subgroupShuffleXor(t_k, 4u);
+          values[23] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[28], 4u);
+          let ex_v = subgroupShuffleXor(values[28], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[24]; t_v = values[24];
+              keys[24] = ex_k; values[24] = ex_v;
+          }
+          keys[28] = subgroupShuffleXor(t_k, 4u);
+          values[28] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[29], 4u);
+          let ex_v = subgroupShuffleXor(values[29], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[25]; t_v = values[25];
+              keys[25] = ex_k; values[25] = ex_v;
+          }
+          keys[29] = subgroupShuffleXor(t_k, 4u);
+          values[29] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[30], 4u);
+          let ex_v = subgroupShuffleXor(values[30], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[26]; t_v = values[26];
+              keys[26] = ex_k; values[26] = ex_v;
+          }
+          keys[30] = subgroupShuffleXor(t_k, 4u);
+          values[30] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[31], 4u);
+          let ex_v = subgroupShuffleXor(values[31], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[27]; t_v = values[27];
+              keys[27] = ex_k; values[27] = ex_v;
+          }
+          keys[31] = subgroupShuffleXor(t_k, 4u);
+          values[31] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[36], 4u);
+          let ex_v = subgroupShuffleXor(values[36], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[32]; t_v = values[32];
+              keys[32] = ex_k; values[32] = ex_v;
+          }
+          keys[36] = subgroupShuffleXor(t_k, 4u);
+          values[36] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[37], 4u);
+          let ex_v = subgroupShuffleXor(values[37], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[33]; t_v = values[33];
+              keys[33] = ex_k; values[33] = ex_v;
+          }
+          keys[37] = subgroupShuffleXor(t_k, 4u);
+          values[37] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[38], 4u);
+          let ex_v = subgroupShuffleXor(values[38], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[34]; t_v = values[34];
+              keys[34] = ex_k; values[34] = ex_v;
+          }
+          keys[38] = subgroupShuffleXor(t_k, 4u);
+          values[38] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[39], 4u);
+          let ex_v = subgroupShuffleXor(values[39], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[35]; t_v = values[35];
+              keys[35] = ex_k; values[35] = ex_v;
+          }
+          keys[39] = subgroupShuffleXor(t_k, 4u);
+          values[39] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[44], 4u);
+          let ex_v = subgroupShuffleXor(values[44], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[40]; t_v = values[40];
+              keys[40] = ex_k; values[40] = ex_v;
+          }
+          keys[44] = subgroupShuffleXor(t_k, 4u);
+          values[44] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[45], 4u);
+          let ex_v = subgroupShuffleXor(values[45], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[41]; t_v = values[41];
+              keys[41] = ex_k; values[41] = ex_v;
+          }
+          keys[45] = subgroupShuffleXor(t_k, 4u);
+          values[45] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[46], 4u);
+          let ex_v = subgroupShuffleXor(values[46], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[42]; t_v = values[42];
+              keys[42] = ex_k; values[42] = ex_v;
+          }
+          keys[46] = subgroupShuffleXor(t_k, 4u);
+          values[46] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[47], 4u);
+          let ex_v = subgroupShuffleXor(values[47], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[43]; t_v = values[43];
+              keys[43] = ex_k; values[43] = ex_v;
+          }
+          keys[47] = subgroupShuffleXor(t_k, 4u);
+          values[47] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[52], 4u);
+          let ex_v = subgroupShuffleXor(values[52], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[48]; t_v = values[48];
+              keys[48] = ex_k; values[48] = ex_v;
+          }
+          keys[52] = subgroupShuffleXor(t_k, 4u);
+          values[52] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[53], 4u);
+          let ex_v = subgroupShuffleXor(values[53], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[49]; t_v = values[49];
+              keys[49] = ex_k; values[49] = ex_v;
+          }
+          keys[53] = subgroupShuffleXor(t_k, 4u);
+          values[53] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[54], 4u);
+          let ex_v = subgroupShuffleXor(values[54], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[50]; t_v = values[50];
+              keys[50] = ex_k; values[50] = ex_v;
+          }
+          keys[54] = subgroupShuffleXor(t_k, 4u);
+          values[54] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[55], 4u);
+          let ex_v = subgroupShuffleXor(values[55], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[51]; t_v = values[51];
+              keys[51] = ex_k; values[51] = ex_v;
+          }
+          keys[55] = subgroupShuffleXor(t_k, 4u);
+          values[55] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[60], 4u);
+          let ex_v = subgroupShuffleXor(values[60], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[56]; t_v = values[56];
+              keys[56] = ex_k; values[56] = ex_v;
+          }
+          keys[60] = subgroupShuffleXor(t_k, 4u);
+          values[60] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[61], 4u);
+          let ex_v = subgroupShuffleXor(values[61], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[57]; t_v = values[57];
+              keys[57] = ex_k; values[57] = ex_v;
+          }
+          keys[61] = subgroupShuffleXor(t_k, 4u);
+          values[61] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[62], 4u);
+          let ex_v = subgroupShuffleXor(values[62], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[58]; t_v = values[58];
+              keys[58] = ex_k; values[58] = ex_v;
+          }
+          keys[62] = subgroupShuffleXor(t_k, 4u);
+          values[62] = subgroupShuffleXor(t_v, 4u); }
+        { let ex_k = subgroupShuffleXor(keys[63], 4u);
+          let ex_v = subgroupShuffleXor(values[63], 4u);
+          var t_k = ex_k; var t_v = ex_v;
+          if ((local_tid & 4u) != 0u) {
+              t_k = keys[59]; t_v = values[59];
+              keys[59] = ex_k; values[59] = ex_v;
+          }
+          keys[63] = subgroupShuffleXor(t_k, 4u);
+          values[63] = subgroupShuffleXor(t_v, 4u); }
+        var out_reg = array<u32, WPT>(0u, 8u, 16u, 24u, 32u, 40u, 48u, 56u, 1u, 9u, 17u, 25u, 33u, 41u, 49u, 57u, 2u, 10u, 18u, 26u, 34u, 42u, 50u, 58u, 3u, 11u, 19u, 27u, 35u, 43u, 51u, 59u, 4u, 12u, 20u, 28u, 36u, 44u, 52u, 60u, 5u, 13u, 21u, 29u, 37u, 45u, 53u, 61u, 6u, 14u, 22u, 30u, 38u, 46u, 54u, 62u, 7u, 15u, 23u, 31u, 39u, 47u, 55u, 63u);
         for (var r = 0u; r < WPT; r = r + 1u) {
-            let j = r * M + local_tid;
+            let j = out_reg[r] * M + local_tid;
             if is_active && j < seg_size {
-                global_keys[seg_start + j] = out_keys[r];
-                global_value_indices[seg_start + j] = out_values[r];
+                global_keys[seg_start + j] = keys[r];
+                global_value_indices[seg_start + j] = values[r];
             }
         }
     }
