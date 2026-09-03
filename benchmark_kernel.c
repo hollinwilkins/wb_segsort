@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <unistd.h>
+#include <notify.h>
 #include <webgpu/webgpu.h>
 
 #define HWDS_MEMS_ENABLED
@@ -1045,6 +1047,52 @@ static void bench_write_buffer(
     }
 }
 
+// Current system thermal-pressure level via Darwin's notify API (no sudo).
+// 0 == nominal; higher == hotter (OSThermalPressureLevel). Returns -1 if the
+// key is unavailable so callers can degrade gracefully.
+static int64_t thermal_pressure_level(void)
+{
+    static int token = -1;
+    static bool registered = false;
+    if (!registered)
+    {
+        if (notify_register_check("com.apple.system.thermalpressurelevel", &token)
+            != NOTIFY_STATUS_OK)
+        {
+            return -1;
+        }
+        registered = true;
+    }
+
+    uint64_t state = 0;
+    if (notify_get_state(token, &state) != NOTIFY_STATUS_OK) return -1;
+    return (int64_t)state;
+}
+
+// Block until thermal pressure returns to nominal so every experiment starts
+// from the same thermal baseline. Polls once a second, capped so a stuck/hot
+// machine can't stall the run forever. No-op if the API is unavailable.
+static void thermal_wait_for_nominal(const uint32_t max_wait_s)
+{
+    const int64_t level = thermal_pressure_level();
+    if (level <= 0) return; // nominal, or API unavailable (-1)
+
+    fprintf(stdout, "  thermal pressure=%lld, cooling down (max %us)...\n",
+        (long long)level, max_wait_s);
+
+    for (uint32_t waited = 0; waited < max_wait_s; waited++)
+    {
+        sleep(1);
+        const int64_t l = thermal_pressure_level();
+        if (l <= 0)
+        {
+            fprintf(stdout, "  thermal nominal after %us\n", waited + 1);
+            return;
+        }
+    }
+    fprintf(stdout, "  thermal still elevated after %us, proceeding\n", max_wait_s);
+}
+
 static void run_benchmark(
     const bench_config config,
     WGPUPipelineLayout const pipeline_layout,
@@ -1134,22 +1182,6 @@ static void run_benchmark(
         }
     }
 
-    fprintf(stdout, "Warmup run...\n");
-    {
-        WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
-        WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(encoder, NULL);
-        wgpuComputePassEncoderSetPipeline(pass, pipeline);
-        wgpuComputePassEncoderSetBindGroup(pass, 0, binding, 0, NULL);
-        wgpuComputePassEncoderDispatchWorkgroups(pass, grid.x, grid.y, grid.z);
-        wgpuComputePassEncoderEnd(pass);
-        WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, NULL);
-        wgpuQueueSubmit(queue, 1, &commands);
-        benchmark_wait_idle(instance, queue);
-        wgpuCommandBufferRelease(commands);
-        wgpuComputePassEncoderRelease(pass);
-        wgpuCommandEncoderRelease(encoder);
-    }
-
     fprintf(stdout,
         "Benchmarking %s:\n"
         "  root=%s memory=%s store=%s sampler=%s\n"
@@ -1164,9 +1196,22 @@ static void run_benchmark(
         config.seed, config.runs, config.n_keys, segments_len, keys_len,
         config.max_invocations, config.max_smem_size, config.target_wg_size);
 
-    for (uint32_t i = 0; i < config.runs; i++)
+    const uint32_t warmup_runs = 5;
+    for (uint32_t iter = 0; iter < warmup_runs + config.runs; iter++)
     {
-        fprintf(stdout, "Benchmark run (%u/%u)...\n", i + 1, config.runs);
+        const bool is_warmup = iter < warmup_runs;
+        const uint32_t i = is_warmup ? 0u : iter - warmup_runs;
+        if (is_warmup)
+            fprintf(stdout, "Warmup run (%u/%u)...\n", iter + 1, warmup_runs);
+        else
+            fprintf(stdout, "Benchmark run (%u/%u)...\n", i + 1, config.runs);
+
+        // Re-check thermal state every 5 timed runs so a heat build-up mid-run
+        // pauses measurement until pressure returns to nominal.
+        if (!is_warmup && i > 0 && (i % 5u) == 0u)
+        {
+            thermal_wait_for_nominal(120u);
+        }
         {
             WGPUCommandEncoder reset_encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
             wgpuCommandEncoderCopyBufferToBuffer(
@@ -1217,12 +1262,15 @@ static void run_benchmark(
             sizeof(timestamps), timestamps, &required_size
         );
 
-        (*results)[i] = (bench_result){
-            .wall_start_ns = wall_start,
-            .wall_end_ns = wall_end,
-            .gpu_start_ns = timestamps[0],
-            .gpu_end_ns = timestamps[1],
-        };
+        if (!is_warmup)
+        {
+            (*results)[i] = (bench_result){
+                .wall_start_ns = wall_start,
+                .wall_end_ns = wall_end,
+                .gpu_start_ns = timestamps[0],
+                .gpu_end_ns = timestamps[1],
+            };
+        }
     }
 
     write_results_csv(config, wg, segments_len, keys_len, *results);
@@ -1477,6 +1525,8 @@ int main(const int argc, const char ** const argv)
                 };
 
                 fprintf(stdout, "[%zu/%zu] %s\n", total, exp_count, exp->name);
+
+                thermal_wait_for_nominal(120u);
 
                 bench_result * results = NULL;
                 run_benchmark(
