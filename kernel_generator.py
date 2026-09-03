@@ -28,6 +28,9 @@ SEGMENT_SIZES = [
 
 WPT_THRESHOLD = 8
 
+INDENT_SPACES = 4
+INDENT1 = " " * INDENT_SPACES
+
 def msg_round_pow2(x: int) -> int:
     if x <= 1:
         return 1
@@ -41,23 +44,15 @@ class KernelArgs:
     N: int          # segment length
     M: int          # number of threads (lanes) cooperating on a segment
     wpt: int        # work items per thread = N // M
-    R: int          # shuffle radius in lanes: a cross-lane sort stage whose
-                    # exchange distance tmask < R runs via subgroup shuffle, the
-                    # rest go through shared memory. reg: R = M (all shuffle);
-                    # wg: R = 1 (all smem); hybrid: R = subgroup size (shuffle
-                    # within a subgroup, smem across). Requires M > R to have a seam.
-    mode: str       # reg, wg, or hybrid
-    is_block: bool
+    R: int          # number of threads in subgroup (for register shuffling),
+                    # must be <= n_subgroups supported by chip
+    is_block: bool  # block store if true, otherwise striped store
 
     def name(self):
         store = "block" if self.is_block else "striped"
         if self.mode == "hybrid":
-            # R (subgroup size) disambiguates the several hybrids sharing an (N, M)
             return f"segsort_hybrid_sg{self.R}_n{self.N}_m{self.M}_{store}"
         if self.mode == "hybrid-merge":
-            # smem tag = smallest budget the single buffer (8*N bytes: keys+vals)
-            # fits in, so the host can dispatch by the device's reported
-            # maxComputeWorkgroupStorageSize
             smem_k = 16 if 8 * self.N <= 16384 else 32
             return f"segsort_hybmerge_sg{self.R}_smem{smem_k}k_n{self.N}_m{self.M}_{store}"
         return f"segsort_{self.mode}_n{self.N}_m{self.M}_{store}"
@@ -74,45 +69,91 @@ class KernelGenerator:
         self._tmp_index += 1
         return f"tmp_{tmp_index}"
 
-    def swap(self, a: int, b: int) -> str:
+    # swap key/value pairs
+    def swap(self, a: int, b: int, indent: int) -> str:
         tk = self.tmp()
         tv = self.tmp()
-        return (f"// swap({a},{b}) \n" +
-                f"{{ let {tk} = keys[{a}]; keys[{a}] = keys[{b}]; keys[{b}] = {tk};" +
-                f"let {tv} = values[{a}]; values[{a}] = values[{b}]; values[{b}] = {tv}; }}")
 
-    def cmp_swap(self, a: int, b: int) -> str:
-        return (f"// cmp_swap({a},{b})\n" +
-                f"if keys[{a}] > keys[{b}] || (keys[{a}] == keys[{b}] && values[{a}] > values[{b}]) {{\n" +
-                self.swap(a, b) + "\n}")
+        lines = f"""// swap({a},{b})
+{{
+{INDENT1}let {tk} = keys[{a}]; keys[{a}] = keys[{b}]; keys[{b}] = {tk};
+{INDENT1}let {tv} = values[{a}]; values[{a}] = values[{b}]; values[{b}] = {tv};
+}}
 
-    def eql_swap(self, a: int, b: int) -> str:
-        return (f"// eql_swap({a},{b}) \n" +
-                f"if keys[{a}] != keys[{b}] {{\n" +
-                self.swap(a, b) + "\n}")
+""".split("\n")
 
-    def exch(self, r: int, tmask: int, swbit: int) -> str:
-        pk, pv, less, bit = self.tmp(), self.tmp(), self.tmp(), self.tmp()
-        return (f"// exch(r:{r},tmask:{tmask},swbit:{swbit})\n" +
-                f"{{\n" +
-                f"  let {pk} = subgroupShuffleXor(keys[{r}], {tmask}u);\n" +
-                f"  let {pv} = subgroupShuffleXor(values[{r}], {tmask}u);\n" +
-                f"  let {less} = keys[{r}] < {pk} || (keys[{r}] == {pk} && values[{r}] < {pv});\n" +
-                f"  let {bit} = extractBits(local_tid, {swbit}u, 1u) != 0u;\n" +
-                f"  if {bit} == {less} {{ keys[{r}] = {pk}; values[{r}] = {pv}; }}\n" +
-                "}}")
+        spaces = " " * indent * INDENT_SPACES
+        return "\n".join(spaces + line for line in lines)
 
-    def exch_local(self, rmask: int, wpt: int) -> str:
-        out = []
+    # swap key/value pairs if keys[a] > keys[b]
+    # tie break with value index
+    def cmp_swap(self, a: int, b: int, indent: str) -> str:
+        lines = f"""// cmp_swap({a},{b})
+if keys[{a}] > keys[{b}] || (keys[{a}] == keys[{b}] && values[{a}] > values[{b}]) {{
+{INDENT1}{self.swap(a, b, 1)}
+}}
+""".split("\n")
+
+        spaces = " " * indent * INDENT_SPACES
+        return "\n".join(spaces + line for line in lines)
+
+    # swap key/value pairs if keys[a] != keys[b]
+    def eql_swap(self, a: int, b: int, indent: int) -> str:
+        lines = f"""// eql_swap({a},{b})
+if keys[{a}] != keys[{b}] {{
+{INDENT1}{self.swap(a, b, 1)}
+}}
+
+""".split("\n")
+        
+        spaces = " " * indent * INDENT_SPACES
+        return "\n".join(spaces + line for line in lines)
+
+
+#     def exch(self, r: int, tmask: int, swbit: int, indent: int) -> str:
+#         pk, pv, less, bit = self.tmp(), self.tmp(), self.tmp(), self.tmp()
+
+#         lines = f"""// exch(r:{r},tmask:{tmask},swbit:{swbit})
+# {{
+# {INDENT1}let {pk} = subgroupShuffleXor(keys[{r}], {tmask}u);
+# {INDENT1}let {pv} = subgroupShuffleXor(values[{r}], {tmask}u);
+# {INDENT1}let {less} = keys[{r}] < {pk} || (keys[{r}] == {pk} && values[{r}] < {pv});
+# {INDENT1}let {bit} = extractBits(local_tid, {swbit}u, 1u) != 0u;
+# {INDENT1}if {bit} == {less} {{ keys[{r}] = {pk}; values[{r}] = {pv}; }}
+# }}
+
+# """.split("\n")
+        
+#         spaces = " " * indent * INDENT_SPACES
+#         return "\n".join(spaces + line for line in lines)
+
+    # exchanges registers within a thread
+    def exch_local(self, rmask: int, wpt: int, indent: str) -> str:
+        swaps = []
         for i in range(wpt):
             j = i ^ rmask
             if i < j:
-                out.append(self.cmp_swap(i, j))
-        return (f"// exch_local({rmask},{wpt}) \n" +
-                "\n".join(out))
+                swaps.append(self.cmp_swap(i, j, 1))
 
-    def _exch_subgroup(self, pairs, tmask: int, swbit: int) -> str:
+        lines = f"""// exch_local({rmask},{wpt})
+{{
+{[spaces + line for line in swaps].join("\n")}
+}}
+
+""".split("\n")
+
+        spaces = " " * indent * INDENT_SPACES
+        return [spaces + line for line in lines].join("\n")
+
+    # exchanges registers within a subgroup, different threads
+    # Called _exch_primitive in Hou et al
+    # This operation swaps registers between cooperating threads in a subgroup
+    # r - register index to swap (contains key being compared between the two threads)
+    # tmask - bit mask to find cooperating thread
+    # swbit - 1/0, determines which threads perform the swap
+    def _exch_subgroup(self, pairs, tmask: int, swbit: int, indent: int) -> str:
         reads, lines = [], []
+
         for dst, src in pairs:
             pk, pv = self.tmp(), self.tmp()
             lines.append(f"let {pk} = subgroupShuffleXor(keys[{src}], {tmask}u);")
@@ -124,9 +165,22 @@ class KernelGenerator:
             less = self.tmp()
             lines.append(f"let {less} = keys[{dst}] < {pk} || (keys[{dst}] == {pk} && values[{dst}] < {pv});")
             lines.append(f"if {bit} == {less} {{ keys[{dst}] = {pk}; values[{dst}] = {pv}; }}")
-        return "{\n" + "\n".join(lines) + "\n}"
 
-    def _exch_workgroup(self, pairs, tmask: int, swbit: int) -> str:
+        lines = f"""// _exch_subgroup({pairs},{tmask},{swbit})
+{{
+{[INDENT1 + line for line in lines]}
+}}
+""".split("\n")
+
+        spaces = " " * indent * INDENT_SPACES
+        return [spaces + line for line in lines]
+
+    # exchanges registers withing a workgroup using shared memory
+    # this works to exchange data within a subgroup, but not as efficient as _exch_subgroup
+    # avoid this by tuning N, M, and R properly
+    # this could fail on Metal, as workgroupBarrier() is not a strong guarantee if workgroup_size <= 32
+    # WGSL -> MSL is this: workgroupBarrier() -> threadgroup_barrier(mem_flags::mem_threadgroup)
+    def _exch_workgroup(self, pairs, tmask: int, swbit: int, indent: int) -> str:
         srcs = sorted({src for _, src in pairs})
         lines = []
         for s in srcs:
@@ -143,25 +197,55 @@ class KernelGenerator:
             lines.append(f"let {less} = keys[{dst}] < {pk} || (keys[{dst}] == {pk} && values[{dst}] < {pv});")
             lines.append(f"if {bit} == {less} {{ keys[{dst}] = {pk}; values[{dst}] = {pv}; }}")
         lines.append("workgroupBarrier();")
-        return "{ " + " ".join(lines) + " }"
 
-    def _exch(self, kernel: KernelArgs, pairs, tmask: int, swbit: int) -> str:
+        lines = f"""// _exch_workgroup({pairs},{tmask},{swbit})
+{{
+{[INDENT1 + line for line in lines]}
+}}
+
+"""
+
+        spaces = " " * indent * INDENT_SPACES
+        return [spaces + line for line in lines]
+
+    # dispatches to subgroup or workgroup variant based on R
+    # this is the exchange primitive in Hou et al, extended to work across
+    #   subgroups as well
+    def _exch(self, kernel: KernelArgs, pairs, tmask: int, swbit: int, indent: int) -> str:
         if tmask < kernel.R:
-            return self._exch_subgroup(pairs, tmask, swbit)
-        return self._exch_workgroup(pairs, tmask, swbit)
+            return self._exch_subgroup(pairs, tmask, swbit, indent)
+        return self._exch_workgroup(pairs, tmask, swbit, indent)
 
-
-    def exch_intxn(self, kernel: KernelArgs, tmask: int, swbit: int) -> str:
+    # the _exch_intxn primitive from Hou et al, extended to work across subgroups
+    def exch_intxn(self, kernel: KernelArgs, tmask: int, swbit: int, indent: int) -> str:
         wpt = kernel.wpt
-        return (f"// exch_intxn(tmask:{tmask},swbit:{swbit},wpt:{wpt})\n" +
-                self._exch(kernel, [(r, wpt - 1 - r) for r in range(wpt)], tmask, swbit))
 
-    def exch_paral(self, kernel: KernelArgs, tmask: int, swbit: int) -> str:
+        lines = f"""// exch_intxn(tmask:{tmask},swbit:{swbit},wpt:{wpt})
+{{
+{self._exch(kernel, [(r, wpt - 1 - r) for r in range(wpt)], tmask, swbit, 1)}
+}}
+
+""".split("\n")
+
+        spaces = " " * indent * INDENT_SPACES
+        return [spaces + line for line in lines].join("\n")
+
+    # the _exch_paral primitive from Hou et al, extended to work across subgroups
+    def exch_paral(self, kernel: KernelArgs, tmask: int, swbit: int, indent: int) -> str:
         wpt = kernel.wpt
-        return (f"// exch_paral(tmask:{tmask},swbit:{swbit},wpt:{wpt}) \n" +
-                self._exch(kernel, [(r, r) for r in range(wpt)], tmask, swbit))
 
-    def reg_sort(self, kernel: KernelArgs) -> str:
+        lines = f"""// exch_paral(tmask:{tmask},swbit:{swbit},wpt:{wpt})
+{{
+{self._exch(kernel, [(r, r) for r in range(wpt)], tmask, swbit)}
+}}
+
+""".split("\n")
+
+        spaces = " " * indent * INDENT_SPACES
+        return [spaces + line for line in lines].join("\n")
+
+    # Algorithm 1 from Hou et al
+    def reg_sort(self, kernel: KernelArgs, indent: int) -> str:
         N, M = kernel.N, kernel.M
         p = int(log2(N))
         pt = int(log2(M))
@@ -188,17 +272,36 @@ class KernelGenerator:
                     tmask = cts - 1
                     stages.append(self.exch_paral(kernel, tmask ^ (tmask >> 1), swbit_of(cts)))
 
-        return "\n".join(stages)
+        spaces = " " * indent * INDENT_SPACES
+        return [spaces + line for line in stages].join("\n")
 
+    # storage algorithm back to global memory. two modes are supported: block, striped
+    # block stores items back to global memory without any register reordering
+    #   Example: Numbers are write indices in global memory after sorting
+    #       Thread 1: [10,11,12,13]
+    #       Thread 2: [14,15,16,17]
+    #       
+    #       Because data is written by threads in lock stop, the index write pairs, in sequence are:
+    #           [10,14], [11,15], [12,16], [13,17]
+    #       When WPT (items per thread) is greater, the distances between indices is greater, which can cause
+    #           additional memory traffic to the GPU, because ranges of memory are written, not just single values
+    #
+    # striped stores transpose the registers or workgoup memory before writing back to global memory.
+    #   Example: Numbers are write indices in global memory after sorting
+    #       Thread 1: [10,11,12,13] -> transpose -> [10,12,14,16]
+    #       Thread 2: [14,15,16,17] -> transpose -> [11,13,15,17]
+    #
+    #       So now the data write pairs are coalesed and are written back to global memory in sequence:
+    #           [10,11], [12,13], [14,15], [16,17]
+    #       The cost of the transpose may outweigh the benefit to memory traffic, so this difference needs to be measured
     def store_back(self, kernel: KernelArgs, base: str, length: str,
                    active: str | None) -> str:
         if kernel.is_block:
             return self._block_store(base, length, active)
-        # hybrid shares the smem striped store: a subgroup-shuffle transpose can't
-        # reach across subgroups, but hybrid segments span several of them.
+        
         if kernel.mode in ("wg", "hybrid"):
             return self._striped_store_smem(base, length, active)
-        return self._striped_store_subgroup(base, length, active, kernel.N, kernel.M)
+        return self._striped_store_shuffle(base, length, active, kernel.N, kernel.M)
 
     def _block_store(self, base: str, length: str, active: str | None) -> str:
         guard = f"{active} && pos < {length}" if active else f"pos < {length}"
@@ -269,6 +372,105 @@ class KernelGenerator:
         lines.append("            }")
         lines.append("        }")
         lines.append("    }")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _transpose_plan(M: int, WPT: int):
+        """Plan a blocked->striped register transpose as a list of (lane_bit,
+        reg_bit) subgroup transpositions, plus the per-register output remap.
+
+        Blocked: lane t, reg r holds sorted rank t*WPT + r.
+        Striped: lane t, reg r holds sorted rank remap[r]*M + t  (coalesced).
+
+        The network uses only shfl_xor exchanges within the M-aligned segment
+        (masks < M), i.e. O(WPT * log M) shuffles instead of the O(WPT^2) scan.
+        Verified exhaustively against a reference simulator for every (M, WPT).
+        """
+        m = M.bit_length() - 1
+        w = WPT.bit_length() - 1
+        lane_bits = [w + j for j in range(m)]   # element-bit held at each lane bit
+        reg_bits = [i for i in range(w)]        # element-bit held at each reg bit
+        ops = []
+
+        def do(a, b):
+            ops.append((a, b))
+            lane_bits[a], reg_bits[b] = reg_bits[b], lane_bits[a]
+
+        for j in range(m):
+            if lane_bits[j] == j:
+                continue
+            if j in reg_bits:
+                do(j, reg_bits.index(j))
+            else:
+                j2 = lane_bits.index(j)
+                do(j2, 0)   # park element-bit j into a register
+                do(j, 0)    # pull it to lane bit j
+
+        # physical register r -> striped output register (reg_bits carries the
+        # element-bits [m, n) in a permuted order).
+        remap = []
+        for r in range(WPT):
+            rp = 0
+            for i, ebit in enumerate(reg_bits):
+                if (r >> i) & 1:
+                    rp |= 1 << (ebit - m)
+            remap.append(rp)
+        return ops, remap
+
+    def _striped_store_shuffle(self, base: str, length: str, active: str | None,
+                               N: int, M: int) -> str:
+        """Register-only coalesced store: transpose blocked->striped with a
+        shfl_xor butterfly (bb_segsort style), then write striped. No shared
+        memory. Used by the reg path, where each segment fits one subgroup."""
+        wpt = N // M
+        guard = f"{active} && j < {length}" if active else f"j < {length}"
+
+        if wpt == 1:
+            # nothing to transpose: striped == blocked for a single element.
+            g = f"{active} && local_tid < {length}" if active else f"local_tid < {length}"
+            return (
+                "    // striped (coalesced) store (WPT==1, no transpose)\n"
+                f"    if {g} {{\n"
+                f"        global_keys[{base} + local_tid] = keys[0];\n"
+                f"        global_value_indices[{base} + local_tid] = values[0];\n"
+                "    }"
+            )
+
+        ops, remap = self._transpose_plan(M, wpt)
+
+        lines = ["    // striped (coalesced) store via shfl_xor transpose",
+                 "    {"]
+        # emit each lane<->reg transposition as shfl_xor swap idioms
+        for (a_bit, b_bit) in ops:
+            mask = 1 << a_bit
+            for r0 in range(wpt):
+                if r0 & (1 << b_bit):
+                    continue
+                r1 = r0 | (1 << b_bit)
+                lines += [
+                    f"        {{ let ex_k = subgroupShuffleXor(keys[{r1}], {mask}u);",
+                    f"          let ex_v = subgroupShuffleXor(values[{r1}], {mask}u);",
+                    f"          var t_k = ex_k; var t_v = ex_v;",
+                    f"          if ((local_tid & {mask}u) != 0u) {{",
+                    f"              t_k = keys[{r0}]; t_v = values[{r0}];",
+                    f"              keys[{r0}] = ex_k; values[{r0}] = ex_v;",
+                    f"          }}",
+                    f"          keys[{r1}] = subgroupShuffleXor(t_k, {mask}u);",
+                    f"          values[{r1}] = subgroupShuffleXor(t_v, {mask}u); }}",
+                ]
+        # coalesced store with the compile-time output remap
+        remap_lit = ", ".join(f"{v}u" for v in remap)
+        lines += [
+            f"        var out_reg = array<u32, WPT>({remap_lit});",
+            "        for (var r = 0u; r < WPT; r = r + 1u) {",
+            "            let j = out_reg[r] * M + local_tid;",
+            f"            if {guard} {{",
+            f"                global_keys[{base} + j] = keys[r];",
+            f"                global_value_indices[{base} + j] = values[r];",
+            "            }",
+            "        }",
+            "    }",
+        ]
         return "\n".join(lines)
 
     def sort_kernel_reg(self, kernel: KernelArgs) -> str:
