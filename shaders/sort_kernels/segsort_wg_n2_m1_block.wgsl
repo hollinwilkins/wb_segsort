@@ -51,11 +51,16 @@ fn segsort_wg_n2_m1_block(
         }
     }
 
-    // exch_local(1,2) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1; }
+    // exch_local(1,2)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;
+                let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1;
+            }
+        }
     }
 
     // block store

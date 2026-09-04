@@ -51,196 +51,387 @@ fn segsort_wg_n16_m2_striped(
         }
     }
 
-    // exch_local(1,8) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1; }
+    // exch_local(1,8)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;
+                let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1;
+            }
+        }
+        // cmp_swap(2,3)
+        if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
+            // swap(2,3)
+            {
+                let tmp_2 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_2;
+                let tmp_3 = values[2]; values[2] = values[3]; values[3] = tmp_3;
+            }
+        }
+        // cmp_swap(4,5)
+        if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
+            // swap(4,5)
+            {
+                let tmp_4 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_4;
+                let tmp_5 = values[4]; values[4] = values[5]; values[5] = tmp_5;
+            }
+        }
+        // cmp_swap(6,7)
+        if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
+            // swap(6,7)
+            {
+                let tmp_6 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_6;
+                let tmp_7 = values[6]; values[6] = values[7]; values[7] = tmp_7;
+            }
+        }
     }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_2 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_2;let tmp_3 = values[2]; values[2] = values[3]; values[3] = tmp_3; }
+
+    // exch_local(3,8)
+    {
+        // cmp_swap(0,3)
+        if keys[0] > keys[3] || (keys[0] == keys[3] && values[0] > values[3]) {
+            // swap(0,3)
+            {
+                let tmp_8 = keys[0]; keys[0] = keys[3]; keys[3] = tmp_8;
+                let tmp_9 = values[0]; values[0] = values[3]; values[3] = tmp_9;
+            }
+        }
+        // cmp_swap(1,2)
+        if keys[1] > keys[2] || (keys[1] == keys[2] && values[1] > values[2]) {
+            // swap(1,2)
+            {
+                let tmp_10 = keys[1]; keys[1] = keys[2]; keys[2] = tmp_10;
+                let tmp_11 = values[1]; values[1] = values[2]; values[2] = tmp_11;
+            }
+        }
+        // cmp_swap(4,7)
+        if keys[4] > keys[7] || (keys[4] == keys[7] && values[4] > values[7]) {
+            // swap(4,7)
+            {
+                let tmp_12 = keys[4]; keys[4] = keys[7]; keys[7] = tmp_12;
+                let tmp_13 = values[4]; values[4] = values[7]; values[7] = tmp_13;
+            }
+        }
+        // cmp_swap(5,6)
+        if keys[5] > keys[6] || (keys[5] == keys[6] && values[5] > values[6]) {
+            // swap(5,6)
+            {
+                let tmp_14 = keys[5]; keys[5] = keys[6]; keys[6] = tmp_14;
+                let tmp_15 = values[5]; values[5] = values[6]; values[6] = tmp_15;
+            }
+        }
     }
-    // cmp_swap(4,5)
-    if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
-    // swap(4,5) 
-    { let tmp_4 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_4;let tmp_5 = values[4]; values[4] = values[5]; values[5] = tmp_5; }
+
+    // exch_local(1,8)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_16 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_16;
+                let tmp_17 = values[0]; values[0] = values[1]; values[1] = tmp_17;
+            }
+        }
+        // cmp_swap(2,3)
+        if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
+            // swap(2,3)
+            {
+                let tmp_18 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_18;
+                let tmp_19 = values[2]; values[2] = values[3]; values[3] = tmp_19;
+            }
+        }
+        // cmp_swap(4,5)
+        if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
+            // swap(4,5)
+            {
+                let tmp_20 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_20;
+                let tmp_21 = values[4]; values[4] = values[5]; values[5] = tmp_21;
+            }
+        }
+        // cmp_swap(6,7)
+        if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
+            // swap(6,7)
+            {
+                let tmp_22 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_22;
+                let tmp_23 = values[6]; values[6] = values[7]; values[7] = tmp_23;
+            }
+        }
     }
-    // cmp_swap(6,7)
-    if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
-    // swap(6,7) 
-    { let tmp_6 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_6;let tmp_7 = values[6]; values[6] = values[7]; values[7] = tmp_7; }
+
+    // exch_local(7,8)
+    {
+        // cmp_swap(0,7)
+        if keys[0] > keys[7] || (keys[0] == keys[7] && values[0] > values[7]) {
+            // swap(0,7)
+            {
+                let tmp_24 = keys[0]; keys[0] = keys[7]; keys[7] = tmp_24;
+                let tmp_25 = values[0]; values[0] = values[7]; values[7] = tmp_25;
+            }
+        }
+        // cmp_swap(1,6)
+        if keys[1] > keys[6] || (keys[1] == keys[6] && values[1] > values[6]) {
+            // swap(1,6)
+            {
+                let tmp_26 = keys[1]; keys[1] = keys[6]; keys[6] = tmp_26;
+                let tmp_27 = values[1]; values[1] = values[6]; values[6] = tmp_27;
+            }
+        }
+        // cmp_swap(2,5)
+        if keys[2] > keys[5] || (keys[2] == keys[5] && values[2] > values[5]) {
+            // swap(2,5)
+            {
+                let tmp_28 = keys[2]; keys[2] = keys[5]; keys[5] = tmp_28;
+                let tmp_29 = values[2]; values[2] = values[5]; values[5] = tmp_29;
+            }
+        }
+        // cmp_swap(3,4)
+        if keys[3] > keys[4] || (keys[3] == keys[4] && values[3] > values[4]) {
+            // swap(3,4)
+            {
+                let tmp_30 = keys[3]; keys[3] = keys[4]; keys[4] = tmp_30;
+                let tmp_31 = values[3]; values[3] = values[4]; values[4] = tmp_31;
+            }
+        }
     }
-    // exch_local(3,8) 
-    // cmp_swap(0,3)
-    if keys[0] > keys[3] || (keys[0] == keys[3] && values[0] > values[3]) {
-    // swap(0,3) 
-    { let tmp_8 = keys[0]; keys[0] = keys[3]; keys[3] = tmp_8;let tmp_9 = values[0]; values[0] = values[3]; values[3] = tmp_9; }
+
+    // exch_local(2,8)
+    {
+        // cmp_swap(0,2)
+        if keys[0] > keys[2] || (keys[0] == keys[2] && values[0] > values[2]) {
+            // swap(0,2)
+            {
+                let tmp_32 = keys[0]; keys[0] = keys[2]; keys[2] = tmp_32;
+                let tmp_33 = values[0]; values[0] = values[2]; values[2] = tmp_33;
+            }
+        }
+        // cmp_swap(1,3)
+        if keys[1] > keys[3] || (keys[1] == keys[3] && values[1] > values[3]) {
+            // swap(1,3)
+            {
+                let tmp_34 = keys[1]; keys[1] = keys[3]; keys[3] = tmp_34;
+                let tmp_35 = values[1]; values[1] = values[3]; values[3] = tmp_35;
+            }
+        }
+        // cmp_swap(4,6)
+        if keys[4] > keys[6] || (keys[4] == keys[6] && values[4] > values[6]) {
+            // swap(4,6)
+            {
+                let tmp_36 = keys[4]; keys[4] = keys[6]; keys[6] = tmp_36;
+                let tmp_37 = values[4]; values[4] = values[6]; values[6] = tmp_37;
+            }
+        }
+        // cmp_swap(5,7)
+        if keys[5] > keys[7] || (keys[5] == keys[7] && values[5] > values[7]) {
+            // swap(5,7)
+            {
+                let tmp_38 = keys[5]; keys[5] = keys[7]; keys[7] = tmp_38;
+                let tmp_39 = values[5]; values[5] = values[7]; values[7] = tmp_39;
+            }
+        }
     }
-    // cmp_swap(1,2)
-    if keys[1] > keys[2] || (keys[1] == keys[2] && values[1] > values[2]) {
-    // swap(1,2) 
-    { let tmp_10 = keys[1]; keys[1] = keys[2]; keys[2] = tmp_10;let tmp_11 = values[1]; values[1] = values[2]; values[2] = tmp_11; }
+
+    // exch_local(1,8)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_40 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_40;
+                let tmp_41 = values[0]; values[0] = values[1]; values[1] = tmp_41;
+            }
+        }
+        // cmp_swap(2,3)
+        if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
+            // swap(2,3)
+            {
+                let tmp_42 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_42;
+                let tmp_43 = values[2]; values[2] = values[3]; values[3] = tmp_43;
+            }
+        }
+        // cmp_swap(4,5)
+        if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
+            // swap(4,5)
+            {
+                let tmp_44 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_44;
+                let tmp_45 = values[4]; values[4] = values[5]; values[5] = tmp_45;
+            }
+        }
+        // cmp_swap(6,7)
+        if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
+            // swap(6,7)
+            {
+                let tmp_46 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_46;
+                let tmp_47 = values[6]; values[6] = values[7]; values[7] = tmp_47;
+            }
+        }
     }
-    // cmp_swap(4,7)
-    if keys[4] > keys[7] || (keys[4] == keys[7] && values[4] > values[7]) {
-    // swap(4,7) 
-    { let tmp_12 = keys[4]; keys[4] = keys[7]; keys[7] = tmp_12;let tmp_13 = values[4]; values[4] = values[7]; values[7] = tmp_13; }
-    }
-    // cmp_swap(5,6)
-    if keys[5] > keys[6] || (keys[5] == keys[6] && values[5] > values[6]) {
-    // swap(5,6) 
-    { let tmp_14 = keys[5]; keys[5] = keys[6]; keys[6] = tmp_14;let tmp_15 = values[5]; values[5] = values[6]; values[6] = tmp_15; }
-    }
-    // exch_local(1,8) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_16 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_16;let tmp_17 = values[0]; values[0] = values[1]; values[1] = tmp_17; }
-    }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_18 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_18;let tmp_19 = values[2]; values[2] = values[3]; values[3] = tmp_19; }
-    }
-    // cmp_swap(4,5)
-    if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
-    // swap(4,5) 
-    { let tmp_20 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_20;let tmp_21 = values[4]; values[4] = values[5]; values[5] = tmp_21; }
-    }
-    // cmp_swap(6,7)
-    if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
-    // swap(6,7) 
-    { let tmp_22 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_22;let tmp_23 = values[6]; values[6] = values[7]; values[7] = tmp_23; }
-    }
-    // exch_local(7,8) 
-    // cmp_swap(0,7)
-    if keys[0] > keys[7] || (keys[0] == keys[7] && values[0] > values[7]) {
-    // swap(0,7) 
-    { let tmp_24 = keys[0]; keys[0] = keys[7]; keys[7] = tmp_24;let tmp_25 = values[0]; values[0] = values[7]; values[7] = tmp_25; }
-    }
-    // cmp_swap(1,6)
-    if keys[1] > keys[6] || (keys[1] == keys[6] && values[1] > values[6]) {
-    // swap(1,6) 
-    { let tmp_26 = keys[1]; keys[1] = keys[6]; keys[6] = tmp_26;let tmp_27 = values[1]; values[1] = values[6]; values[6] = tmp_27; }
-    }
-    // cmp_swap(2,5)
-    if keys[2] > keys[5] || (keys[2] == keys[5] && values[2] > values[5]) {
-    // swap(2,5) 
-    { let tmp_28 = keys[2]; keys[2] = keys[5]; keys[5] = tmp_28;let tmp_29 = values[2]; values[2] = values[5]; values[5] = tmp_29; }
-    }
-    // cmp_swap(3,4)
-    if keys[3] > keys[4] || (keys[3] == keys[4] && values[3] > values[4]) {
-    // swap(3,4) 
-    { let tmp_30 = keys[3]; keys[3] = keys[4]; keys[4] = tmp_30;let tmp_31 = values[3]; values[3] = values[4]; values[4] = tmp_31; }
-    }
-    // exch_local(2,8) 
-    // cmp_swap(0,2)
-    if keys[0] > keys[2] || (keys[0] == keys[2] && values[0] > values[2]) {
-    // swap(0,2) 
-    { let tmp_32 = keys[0]; keys[0] = keys[2]; keys[2] = tmp_32;let tmp_33 = values[0]; values[0] = values[2]; values[2] = tmp_33; }
-    }
-    // cmp_swap(1,3)
-    if keys[1] > keys[3] || (keys[1] == keys[3] && values[1] > values[3]) {
-    // swap(1,3) 
-    { let tmp_34 = keys[1]; keys[1] = keys[3]; keys[3] = tmp_34;let tmp_35 = values[1]; values[1] = values[3]; values[3] = tmp_35; }
-    }
-    // cmp_swap(4,6)
-    if keys[4] > keys[6] || (keys[4] == keys[6] && values[4] > values[6]) {
-    // swap(4,6) 
-    { let tmp_36 = keys[4]; keys[4] = keys[6]; keys[6] = tmp_36;let tmp_37 = values[4]; values[4] = values[6]; values[6] = tmp_37; }
-    }
-    // cmp_swap(5,7)
-    if keys[5] > keys[7] || (keys[5] == keys[7] && values[5] > values[7]) {
-    // swap(5,7) 
-    { let tmp_38 = keys[5]; keys[5] = keys[7]; keys[7] = tmp_38;let tmp_39 = values[5]; values[5] = values[7]; values[7] = tmp_39; }
-    }
-    // exch_local(1,8) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_40 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_40;let tmp_41 = values[0]; values[0] = values[1]; values[1] = tmp_41; }
-    }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_42 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_42;let tmp_43 = values[2]; values[2] = values[3]; values[3] = tmp_43; }
-    }
-    // cmp_swap(4,5)
-    if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
-    // swap(4,5) 
-    { let tmp_44 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_44;let tmp_45 = values[4]; values[4] = values[5]; values[5] = tmp_45; }
-    }
-    // cmp_swap(6,7)
-    if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
-    // swap(6,7) 
-    { let tmp_46 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_46;let tmp_47 = values[6]; values[6] = values[7]; values[7] = tmp_47; }
-    }
+
     // exch_intxn(tmask:1,swbit:0,wpt:8)
-    { smem_keys[tid_g * WPT + 0u] = keys[0]; smem_vals[tid_g * WPT + 0u] = values[0]; smem_keys[tid_g * WPT + 1u] = keys[1]; smem_vals[tid_g * WPT + 1u] = values[1]; smem_keys[tid_g * WPT + 2u] = keys[2]; smem_vals[tid_g * WPT + 2u] = values[2]; smem_keys[tid_g * WPT + 3u] = keys[3]; smem_vals[tid_g * WPT + 3u] = values[3]; smem_keys[tid_g * WPT + 4u] = keys[4]; smem_vals[tid_g * WPT + 4u] = values[4]; smem_keys[tid_g * WPT + 5u] = keys[5]; smem_vals[tid_g * WPT + 5u] = values[5]; smem_keys[tid_g * WPT + 6u] = keys[6]; smem_vals[tid_g * WPT + 6u] = values[6]; smem_keys[tid_g * WPT + 7u] = keys[7]; smem_vals[tid_g * WPT + 7u] = values[7]; workgroupBarrier(); let tmp_48 = extractBits(local_tid, 0u, 1u) != 0u; let tmp_49 = seg_base + (local_tid ^ 1u); let tmp_50 = smem_keys[tmp_49 * WPT + 7u]; let tmp_51 = smem_vals[tmp_49 * WPT + 7u]; let tmp_52 = keys[0] < tmp_50 || (keys[0] == tmp_50 && values[0] < tmp_51); if tmp_48 == tmp_52 { keys[0] = tmp_50; values[0] = tmp_51; } let tmp_53 = smem_keys[tmp_49 * WPT + 6u]; let tmp_54 = smem_vals[tmp_49 * WPT + 6u]; let tmp_55 = keys[1] < tmp_53 || (keys[1] == tmp_53 && values[1] < tmp_54); if tmp_48 == tmp_55 { keys[1] = tmp_53; values[1] = tmp_54; } let tmp_56 = smem_keys[tmp_49 * WPT + 5u]; let tmp_57 = smem_vals[tmp_49 * WPT + 5u]; let tmp_58 = keys[2] < tmp_56 || (keys[2] == tmp_56 && values[2] < tmp_57); if tmp_48 == tmp_58 { keys[2] = tmp_56; values[2] = tmp_57; } let tmp_59 = smem_keys[tmp_49 * WPT + 4u]; let tmp_60 = smem_vals[tmp_49 * WPT + 4u]; let tmp_61 = keys[3] < tmp_59 || (keys[3] == tmp_59 && values[3] < tmp_60); if tmp_48 == tmp_61 { keys[3] = tmp_59; values[3] = tmp_60; } let tmp_62 = smem_keys[tmp_49 * WPT + 3u]; let tmp_63 = smem_vals[tmp_49 * WPT + 3u]; let tmp_64 = keys[4] < tmp_62 || (keys[4] == tmp_62 && values[4] < tmp_63); if tmp_48 == tmp_64 { keys[4] = tmp_62; values[4] = tmp_63; } let tmp_65 = smem_keys[tmp_49 * WPT + 2u]; let tmp_66 = smem_vals[tmp_49 * WPT + 2u]; let tmp_67 = keys[5] < tmp_65 || (keys[5] == tmp_65 && values[5] < tmp_66); if tmp_48 == tmp_67 { keys[5] = tmp_65; values[5] = tmp_66; } let tmp_68 = smem_keys[tmp_49 * WPT + 1u]; let tmp_69 = smem_vals[tmp_49 * WPT + 1u]; let tmp_70 = keys[6] < tmp_68 || (keys[6] == tmp_68 && values[6] < tmp_69); if tmp_48 == tmp_70 { keys[6] = tmp_68; values[6] = tmp_69; } let tmp_71 = smem_keys[tmp_49 * WPT + 0u]; let tmp_72 = smem_vals[tmp_49 * WPT + 0u]; let tmp_73 = keys[7] < tmp_71 || (keys[7] == tmp_71 && values[7] < tmp_72); if tmp_48 == tmp_73 { keys[7] = tmp_71; values[7] = tmp_72; } workgroupBarrier(); }
-    // exch_local(4,8) 
-    // cmp_swap(0,4)
-    if keys[0] > keys[4] || (keys[0] == keys[4] && values[0] > values[4]) {
-    // swap(0,4) 
-    { let tmp_74 = keys[0]; keys[0] = keys[4]; keys[4] = tmp_74;let tmp_75 = values[0]; values[0] = values[4]; values[4] = tmp_75; }
+    {
+        // _exch_workgroup([(0, 7), (1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1), (7, 0)],1,0)
+        {
+            smem_keys[tid_g * WPT + 0u] = keys[0];
+            smem_vals[tid_g * WPT + 0u] = values[0];
+            smem_keys[tid_g * WPT + 1u] = keys[1];
+            smem_vals[tid_g * WPT + 1u] = values[1];
+            smem_keys[tid_g * WPT + 2u] = keys[2];
+            smem_vals[tid_g * WPT + 2u] = values[2];
+            smem_keys[tid_g * WPT + 3u] = keys[3];
+            smem_vals[tid_g * WPT + 3u] = values[3];
+            smem_keys[tid_g * WPT + 4u] = keys[4];
+            smem_vals[tid_g * WPT + 4u] = values[4];
+            smem_keys[tid_g * WPT + 5u] = keys[5];
+            smem_vals[tid_g * WPT + 5u] = values[5];
+            smem_keys[tid_g * WPT + 6u] = keys[6];
+            smem_vals[tid_g * WPT + 6u] = values[6];
+            smem_keys[tid_g * WPT + 7u] = keys[7];
+            smem_vals[tid_g * WPT + 7u] = values[7];
+            workgroupBarrier();
+            let tmp_48 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_49 = seg_base + (local_tid ^ 1u);
+            let tmp_50 = smem_keys[tmp_49 * WPT + 7u];
+            let tmp_51 = smem_vals[tmp_49 * WPT + 7u];
+            let tmp_52 = keys[0] < tmp_50 || (keys[0] == tmp_50 && values[0] < tmp_51);
+            if tmp_48 == tmp_52 { keys[0] = tmp_50; values[0] = tmp_51; }
+            let tmp_53 = smem_keys[tmp_49 * WPT + 6u];
+            let tmp_54 = smem_vals[tmp_49 * WPT + 6u];
+            let tmp_55 = keys[1] < tmp_53 || (keys[1] == tmp_53 && values[1] < tmp_54);
+            if tmp_48 == tmp_55 { keys[1] = tmp_53; values[1] = tmp_54; }
+            let tmp_56 = smem_keys[tmp_49 * WPT + 5u];
+            let tmp_57 = smem_vals[tmp_49 * WPT + 5u];
+            let tmp_58 = keys[2] < tmp_56 || (keys[2] == tmp_56 && values[2] < tmp_57);
+            if tmp_48 == tmp_58 { keys[2] = tmp_56; values[2] = tmp_57; }
+            let tmp_59 = smem_keys[tmp_49 * WPT + 4u];
+            let tmp_60 = smem_vals[tmp_49 * WPT + 4u];
+            let tmp_61 = keys[3] < tmp_59 || (keys[3] == tmp_59 && values[3] < tmp_60);
+            if tmp_48 == tmp_61 { keys[3] = tmp_59; values[3] = tmp_60; }
+            let tmp_62 = smem_keys[tmp_49 * WPT + 3u];
+            let tmp_63 = smem_vals[tmp_49 * WPT + 3u];
+            let tmp_64 = keys[4] < tmp_62 || (keys[4] == tmp_62 && values[4] < tmp_63);
+            if tmp_48 == tmp_64 { keys[4] = tmp_62; values[4] = tmp_63; }
+            let tmp_65 = smem_keys[tmp_49 * WPT + 2u];
+            let tmp_66 = smem_vals[tmp_49 * WPT + 2u];
+            let tmp_67 = keys[5] < tmp_65 || (keys[5] == tmp_65 && values[5] < tmp_66);
+            if tmp_48 == tmp_67 { keys[5] = tmp_65; values[5] = tmp_66; }
+            let tmp_68 = smem_keys[tmp_49 * WPT + 1u];
+            let tmp_69 = smem_vals[tmp_49 * WPT + 1u];
+            let tmp_70 = keys[6] < tmp_68 || (keys[6] == tmp_68 && values[6] < tmp_69);
+            if tmp_48 == tmp_70 { keys[6] = tmp_68; values[6] = tmp_69; }
+            let tmp_71 = smem_keys[tmp_49 * WPT + 0u];
+            let tmp_72 = smem_vals[tmp_49 * WPT + 0u];
+            let tmp_73 = keys[7] < tmp_71 || (keys[7] == tmp_71 && values[7] < tmp_72);
+            if tmp_48 == tmp_73 { keys[7] = tmp_71; values[7] = tmp_72; }
+            workgroupBarrier();
+        }
     }
-    // cmp_swap(1,5)
-    if keys[1] > keys[5] || (keys[1] == keys[5] && values[1] > values[5]) {
-    // swap(1,5) 
-    { let tmp_76 = keys[1]; keys[1] = keys[5]; keys[5] = tmp_76;let tmp_77 = values[1]; values[1] = values[5]; values[5] = tmp_77; }
+
+    // exch_local(4,8)
+    {
+        // cmp_swap(0,4)
+        if keys[0] > keys[4] || (keys[0] == keys[4] && values[0] > values[4]) {
+            // swap(0,4)
+            {
+                let tmp_74 = keys[0]; keys[0] = keys[4]; keys[4] = tmp_74;
+                let tmp_75 = values[0]; values[0] = values[4]; values[4] = tmp_75;
+            }
+        }
+        // cmp_swap(1,5)
+        if keys[1] > keys[5] || (keys[1] == keys[5] && values[1] > values[5]) {
+            // swap(1,5)
+            {
+                let tmp_76 = keys[1]; keys[1] = keys[5]; keys[5] = tmp_76;
+                let tmp_77 = values[1]; values[1] = values[5]; values[5] = tmp_77;
+            }
+        }
+        // cmp_swap(2,6)
+        if keys[2] > keys[6] || (keys[2] == keys[6] && values[2] > values[6]) {
+            // swap(2,6)
+            {
+                let tmp_78 = keys[2]; keys[2] = keys[6]; keys[6] = tmp_78;
+                let tmp_79 = values[2]; values[2] = values[6]; values[6] = tmp_79;
+            }
+        }
+        // cmp_swap(3,7)
+        if keys[3] > keys[7] || (keys[3] == keys[7] && values[3] > values[7]) {
+            // swap(3,7)
+            {
+                let tmp_80 = keys[3]; keys[3] = keys[7]; keys[7] = tmp_80;
+                let tmp_81 = values[3]; values[3] = values[7]; values[7] = tmp_81;
+            }
+        }
     }
-    // cmp_swap(2,6)
-    if keys[2] > keys[6] || (keys[2] == keys[6] && values[2] > values[6]) {
-    // swap(2,6) 
-    { let tmp_78 = keys[2]; keys[2] = keys[6]; keys[6] = tmp_78;let tmp_79 = values[2]; values[2] = values[6]; values[6] = tmp_79; }
+
+    // exch_local(2,8)
+    {
+        // cmp_swap(0,2)
+        if keys[0] > keys[2] || (keys[0] == keys[2] && values[0] > values[2]) {
+            // swap(0,2)
+            {
+                let tmp_82 = keys[0]; keys[0] = keys[2]; keys[2] = tmp_82;
+                let tmp_83 = values[0]; values[0] = values[2]; values[2] = tmp_83;
+            }
+        }
+        // cmp_swap(1,3)
+        if keys[1] > keys[3] || (keys[1] == keys[3] && values[1] > values[3]) {
+            // swap(1,3)
+            {
+                let tmp_84 = keys[1]; keys[1] = keys[3]; keys[3] = tmp_84;
+                let tmp_85 = values[1]; values[1] = values[3]; values[3] = tmp_85;
+            }
+        }
+        // cmp_swap(4,6)
+        if keys[4] > keys[6] || (keys[4] == keys[6] && values[4] > values[6]) {
+            // swap(4,6)
+            {
+                let tmp_86 = keys[4]; keys[4] = keys[6]; keys[6] = tmp_86;
+                let tmp_87 = values[4]; values[4] = values[6]; values[6] = tmp_87;
+            }
+        }
+        // cmp_swap(5,7)
+        if keys[5] > keys[7] || (keys[5] == keys[7] && values[5] > values[7]) {
+            // swap(5,7)
+            {
+                let tmp_88 = keys[5]; keys[5] = keys[7]; keys[7] = tmp_88;
+                let tmp_89 = values[5]; values[5] = values[7]; values[7] = tmp_89;
+            }
+        }
     }
-    // cmp_swap(3,7)
-    if keys[3] > keys[7] || (keys[3] == keys[7] && values[3] > values[7]) {
-    // swap(3,7) 
-    { let tmp_80 = keys[3]; keys[3] = keys[7]; keys[7] = tmp_80;let tmp_81 = values[3]; values[3] = values[7]; values[7] = tmp_81; }
-    }
-    // exch_local(2,8) 
-    // cmp_swap(0,2)
-    if keys[0] > keys[2] || (keys[0] == keys[2] && values[0] > values[2]) {
-    // swap(0,2) 
-    { let tmp_82 = keys[0]; keys[0] = keys[2]; keys[2] = tmp_82;let tmp_83 = values[0]; values[0] = values[2]; values[2] = tmp_83; }
-    }
-    // cmp_swap(1,3)
-    if keys[1] > keys[3] || (keys[1] == keys[3] && values[1] > values[3]) {
-    // swap(1,3) 
-    { let tmp_84 = keys[1]; keys[1] = keys[3]; keys[3] = tmp_84;let tmp_85 = values[1]; values[1] = values[3]; values[3] = tmp_85; }
-    }
-    // cmp_swap(4,6)
-    if keys[4] > keys[6] || (keys[4] == keys[6] && values[4] > values[6]) {
-    // swap(4,6) 
-    { let tmp_86 = keys[4]; keys[4] = keys[6]; keys[6] = tmp_86;let tmp_87 = values[4]; values[4] = values[6]; values[6] = tmp_87; }
-    }
-    // cmp_swap(5,7)
-    if keys[5] > keys[7] || (keys[5] == keys[7] && values[5] > values[7]) {
-    // swap(5,7) 
-    { let tmp_88 = keys[5]; keys[5] = keys[7]; keys[7] = tmp_88;let tmp_89 = values[5]; values[5] = values[7]; values[7] = tmp_89; }
-    }
-    // exch_local(1,8) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_90 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_90;let tmp_91 = values[0]; values[0] = values[1]; values[1] = tmp_91; }
-    }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_92 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_92;let tmp_93 = values[2]; values[2] = values[3]; values[3] = tmp_93; }
-    }
-    // cmp_swap(4,5)
-    if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
-    // swap(4,5) 
-    { let tmp_94 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_94;let tmp_95 = values[4]; values[4] = values[5]; values[5] = tmp_95; }
-    }
-    // cmp_swap(6,7)
-    if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
-    // swap(6,7) 
-    { let tmp_96 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_96;let tmp_97 = values[6]; values[6] = values[7]; values[7] = tmp_97; }
+
+    // exch_local(1,8)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_90 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_90;
+                let tmp_91 = values[0]; values[0] = values[1]; values[1] = tmp_91;
+            }
+        }
+        // cmp_swap(2,3)
+        if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
+            // swap(2,3)
+            {
+                let tmp_92 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_92;
+                let tmp_93 = values[2]; values[2] = values[3]; values[3] = tmp_93;
+            }
+        }
+        // cmp_swap(4,5)
+        if keys[4] > keys[5] || (keys[4] == keys[5] && values[4] > values[5]) {
+            // swap(4,5)
+            {
+                let tmp_94 = keys[4]; keys[4] = keys[5]; keys[5] = tmp_94;
+                let tmp_95 = values[4]; values[4] = values[5]; values[5] = tmp_95;
+            }
+        }
+        // cmp_swap(6,7)
+        if keys[6] > keys[7] || (keys[6] == keys[7] && values[6] > values[7]) {
+            // swap(6,7)
+            {
+                let tmp_96 = keys[6]; keys[6] = keys[7]; keys[7] = tmp_96;
+                let tmp_97 = values[6]; values[6] = values[7]; values[7] = tmp_97;
+            }
+        }
     }
 
     // striped (coalesced) store via shared memory

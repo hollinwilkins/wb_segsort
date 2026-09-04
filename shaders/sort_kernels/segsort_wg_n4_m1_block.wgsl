@@ -51,38 +51,64 @@ fn segsort_wg_n4_m1_block(
         }
     }
 
-    // exch_local(1,4) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1; }
+    // exch_local(1,4)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;
+                let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1;
+            }
+        }
+        // cmp_swap(2,3)
+        if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
+            // swap(2,3)
+            {
+                let tmp_2 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_2;
+                let tmp_3 = values[2]; values[2] = values[3]; values[3] = tmp_3;
+            }
+        }
     }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_2 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_2;let tmp_3 = values[2]; values[2] = values[3]; values[3] = tmp_3; }
+
+    // exch_local(3,4)
+    {
+        // cmp_swap(0,3)
+        if keys[0] > keys[3] || (keys[0] == keys[3] && values[0] > values[3]) {
+            // swap(0,3)
+            {
+                let tmp_4 = keys[0]; keys[0] = keys[3]; keys[3] = tmp_4;
+                let tmp_5 = values[0]; values[0] = values[3]; values[3] = tmp_5;
+            }
+        }
+        // cmp_swap(1,2)
+        if keys[1] > keys[2] || (keys[1] == keys[2] && values[1] > values[2]) {
+            // swap(1,2)
+            {
+                let tmp_6 = keys[1]; keys[1] = keys[2]; keys[2] = tmp_6;
+                let tmp_7 = values[1]; values[1] = values[2]; values[2] = tmp_7;
+            }
+        }
     }
-    // exch_local(3,4) 
-    // cmp_swap(0,3)
-    if keys[0] > keys[3] || (keys[0] == keys[3] && values[0] > values[3]) {
-    // swap(0,3) 
-    { let tmp_4 = keys[0]; keys[0] = keys[3]; keys[3] = tmp_4;let tmp_5 = values[0]; values[0] = values[3]; values[3] = tmp_5; }
-    }
-    // cmp_swap(1,2)
-    if keys[1] > keys[2] || (keys[1] == keys[2] && values[1] > values[2]) {
-    // swap(1,2) 
-    { let tmp_6 = keys[1]; keys[1] = keys[2]; keys[2] = tmp_6;let tmp_7 = values[1]; values[1] = values[2]; values[2] = tmp_7; }
-    }
-    // exch_local(1,4) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_8 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_8;let tmp_9 = values[0]; values[0] = values[1]; values[1] = tmp_9; }
-    }
-    // cmp_swap(2,3)
-    if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
-    // swap(2,3) 
-    { let tmp_10 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_10;let tmp_11 = values[2]; values[2] = values[3]; values[3] = tmp_11; }
+
+    // exch_local(1,4)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_8 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_8;
+                let tmp_9 = values[0]; values[0] = values[1]; values[1] = tmp_9;
+            }
+        }
+        // cmp_swap(2,3)
+        if keys[2] > keys[3] || (keys[2] == keys[3] && values[2] > values[3]) {
+            // swap(2,3)
+            {
+                let tmp_10 = keys[2]; keys[2] = keys[3]; keys[3] = tmp_10;
+                let tmp_11 = values[2]; values[2] = values[3]; values[3] = tmp_11;
+            }
+        }
     }
 
     // block store

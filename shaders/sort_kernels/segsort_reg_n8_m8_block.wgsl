@@ -52,51 +52,74 @@ fn segsort_reg_n8_m8_block(
 
     // exch_intxn(tmask:1,swbit:0,wpt:1)
     {
-    let tmp_0 = subgroupShuffleXor(keys[0], 1u);
-    let tmp_1 = subgroupShuffleXor(values[0], 1u);
-    let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
-    let tmp_3 = keys[0] < tmp_0 || (keys[0] == tmp_0 && values[0] < tmp_1);
-    if tmp_2 == tmp_3 { keys[0] = tmp_0; values[0] = tmp_1; }
+        // _exch_subgroup([(0, 0)],1,0)
+        {
+            let tmp_0 = subgroupShuffleXor(keys[0], 1u);
+            let tmp_1 = subgroupShuffleXor(values[0], 1u);
+            let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_3 = keys[0] < tmp_0 || (keys[0] == tmp_0 && values[0] < tmp_1);
+            if tmp_2 == tmp_3 { keys[0] = tmp_0; values[0] = tmp_1; }
+        }
     }
+
     // exch_intxn(tmask:3,swbit:1,wpt:1)
     {
-    let tmp_4 = subgroupShuffleXor(keys[0], 3u);
-    let tmp_5 = subgroupShuffleXor(values[0], 3u);
-    let tmp_6 = extractBits(local_tid, 1u, 1u) != 0u;
-    let tmp_7 = keys[0] < tmp_4 || (keys[0] == tmp_4 && values[0] < tmp_5);
-    if tmp_6 == tmp_7 { keys[0] = tmp_4; values[0] = tmp_5; }
+        // _exch_subgroup([(0, 0)],3,1)
+        {
+            let tmp_4 = subgroupShuffleXor(keys[0], 3u);
+            let tmp_5 = subgroupShuffleXor(values[0], 3u);
+            let tmp_6 = extractBits(local_tid, 1u, 1u) != 0u;
+            let tmp_7 = keys[0] < tmp_4 || (keys[0] == tmp_4 && values[0] < tmp_5);
+            if tmp_6 == tmp_7 { keys[0] = tmp_4; values[0] = tmp_5; }
+        }
     }
-    // exch_paral(tmask:1,swbit:0,wpt:1) 
+
+    // exch_paral(tmask:1,swbit:0,wpt:1)
     {
-    let tmp_8 = subgroupShuffleXor(keys[0], 1u);
-    let tmp_9 = subgroupShuffleXor(values[0], 1u);
-    let tmp_10 = extractBits(local_tid, 0u, 1u) != 0u;
-    let tmp_11 = keys[0] < tmp_8 || (keys[0] == tmp_8 && values[0] < tmp_9);
-    if tmp_10 == tmp_11 { keys[0] = tmp_8; values[0] = tmp_9; }
+        // _exch_subgroup([(0, 0)],1,0)
+        {
+            let tmp_8 = subgroupShuffleXor(keys[0], 1u);
+            let tmp_9 = subgroupShuffleXor(values[0], 1u);
+            let tmp_10 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_11 = keys[0] < tmp_8 || (keys[0] == tmp_8 && values[0] < tmp_9);
+            if tmp_10 == tmp_11 { keys[0] = tmp_8; values[0] = tmp_9; }
+        }
     }
+
     // exch_intxn(tmask:7,swbit:2,wpt:1)
     {
-    let tmp_12 = subgroupShuffleXor(keys[0], 7u);
-    let tmp_13 = subgroupShuffleXor(values[0], 7u);
-    let tmp_14 = extractBits(local_tid, 2u, 1u) != 0u;
-    let tmp_15 = keys[0] < tmp_12 || (keys[0] == tmp_12 && values[0] < tmp_13);
-    if tmp_14 == tmp_15 { keys[0] = tmp_12; values[0] = tmp_13; }
+        // _exch_subgroup([(0, 0)],7,2)
+        {
+            let tmp_12 = subgroupShuffleXor(keys[0], 7u);
+            let tmp_13 = subgroupShuffleXor(values[0], 7u);
+            let tmp_14 = extractBits(local_tid, 2u, 1u) != 0u;
+            let tmp_15 = keys[0] < tmp_12 || (keys[0] == tmp_12 && values[0] < tmp_13);
+            if tmp_14 == tmp_15 { keys[0] = tmp_12; values[0] = tmp_13; }
+        }
     }
-    // exch_paral(tmask:2,swbit:1,wpt:1) 
+
+    // exch_paral(tmask:2,swbit:1,wpt:1)
     {
-    let tmp_16 = subgroupShuffleXor(keys[0], 2u);
-    let tmp_17 = subgroupShuffleXor(values[0], 2u);
-    let tmp_18 = extractBits(local_tid, 1u, 1u) != 0u;
-    let tmp_19 = keys[0] < tmp_16 || (keys[0] == tmp_16 && values[0] < tmp_17);
-    if tmp_18 == tmp_19 { keys[0] = tmp_16; values[0] = tmp_17; }
+        // _exch_subgroup([(0, 0)],2,1)
+        {
+            let tmp_16 = subgroupShuffleXor(keys[0], 2u);
+            let tmp_17 = subgroupShuffleXor(values[0], 2u);
+            let tmp_18 = extractBits(local_tid, 1u, 1u) != 0u;
+            let tmp_19 = keys[0] < tmp_16 || (keys[0] == tmp_16 && values[0] < tmp_17);
+            if tmp_18 == tmp_19 { keys[0] = tmp_16; values[0] = tmp_17; }
+        }
     }
-    // exch_paral(tmask:1,swbit:0,wpt:1) 
+
+    // exch_paral(tmask:1,swbit:0,wpt:1)
     {
-    let tmp_20 = subgroupShuffleXor(keys[0], 1u);
-    let tmp_21 = subgroupShuffleXor(values[0], 1u);
-    let tmp_22 = extractBits(local_tid, 0u, 1u) != 0u;
-    let tmp_23 = keys[0] < tmp_20 || (keys[0] == tmp_20 && values[0] < tmp_21);
-    if tmp_22 == tmp_23 { keys[0] = tmp_20; values[0] = tmp_21; }
+        // _exch_subgroup([(0, 0)],1,0)
+        {
+            let tmp_20 = subgroupShuffleXor(keys[0], 1u);
+            let tmp_21 = subgroupShuffleXor(values[0], 1u);
+            let tmp_22 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_23 = keys[0] < tmp_20 || (keys[0] == tmp_20 && values[0] < tmp_21);
+            if tmp_22 == tmp_23 { keys[0] = tmp_20; values[0] = tmp_21; }
+        }
     }
 
     // block store

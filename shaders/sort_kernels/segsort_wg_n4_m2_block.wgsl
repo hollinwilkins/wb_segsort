@@ -51,19 +51,51 @@ fn segsort_wg_n4_m2_block(
         }
     }
 
-    // exch_local(1,2) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1; }
+    // exch_local(1,2)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_0 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_0;
+                let tmp_1 = values[0]; values[0] = values[1]; values[1] = tmp_1;
+            }
+        }
     }
+
     // exch_intxn(tmask:1,swbit:0,wpt:2)
-    { smem_keys[tid_g * WPT + 0u] = keys[0]; smem_vals[tid_g * WPT + 0u] = values[0]; smem_keys[tid_g * WPT + 1u] = keys[1]; smem_vals[tid_g * WPT + 1u] = values[1]; workgroupBarrier(); let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u; let tmp_3 = seg_base + (local_tid ^ 1u); let tmp_4 = smem_keys[tmp_3 * WPT + 1u]; let tmp_5 = smem_vals[tmp_3 * WPT + 1u]; let tmp_6 = keys[0] < tmp_4 || (keys[0] == tmp_4 && values[0] < tmp_5); if tmp_2 == tmp_6 { keys[0] = tmp_4; values[0] = tmp_5; } let tmp_7 = smem_keys[tmp_3 * WPT + 0u]; let tmp_8 = smem_vals[tmp_3 * WPT + 0u]; let tmp_9 = keys[1] < tmp_7 || (keys[1] == tmp_7 && values[1] < tmp_8); if tmp_2 == tmp_9 { keys[1] = tmp_7; values[1] = tmp_8; } workgroupBarrier(); }
-    // exch_local(1,2) 
-    // cmp_swap(0,1)
-    if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
-    // swap(0,1) 
-    { let tmp_10 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_10;let tmp_11 = values[0]; values[0] = values[1]; values[1] = tmp_11; }
+    {
+        // _exch_workgroup([(0, 1), (1, 0)],1,0)
+        {
+            smem_keys[tid_g * WPT + 0u] = keys[0];
+            smem_vals[tid_g * WPT + 0u] = values[0];
+            smem_keys[tid_g * WPT + 1u] = keys[1];
+            smem_vals[tid_g * WPT + 1u] = values[1];
+            workgroupBarrier();
+            let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_3 = seg_base + (local_tid ^ 1u);
+            let tmp_4 = smem_keys[tmp_3 * WPT + 1u];
+            let tmp_5 = smem_vals[tmp_3 * WPT + 1u];
+            let tmp_6 = keys[0] < tmp_4 || (keys[0] == tmp_4 && values[0] < tmp_5);
+            if tmp_2 == tmp_6 { keys[0] = tmp_4; values[0] = tmp_5; }
+            let tmp_7 = smem_keys[tmp_3 * WPT + 0u];
+            let tmp_8 = smem_vals[tmp_3 * WPT + 0u];
+            let tmp_9 = keys[1] < tmp_7 || (keys[1] == tmp_7 && values[1] < tmp_8);
+            if tmp_2 == tmp_9 { keys[1] = tmp_7; values[1] = tmp_8; }
+            workgroupBarrier();
+        }
+    }
+
+    // exch_local(1,2)
+    {
+        // cmp_swap(0,1)
+        if keys[0] > keys[1] || (keys[0] == keys[1] && values[0] > values[1]) {
+            // swap(0,1)
+            {
+                let tmp_10 = keys[0]; keys[0] = keys[1]; keys[1] = tmp_10;
+                let tmp_11 = values[0]; values[0] = values[1]; values[1] = tmp_11;
+            }
+        }
     }
 
     // block store

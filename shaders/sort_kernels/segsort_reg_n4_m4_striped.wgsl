@@ -52,27 +52,38 @@ fn segsort_reg_n4_m4_striped(
 
     // exch_intxn(tmask:1,swbit:0,wpt:1)
     {
-    let tmp_0 = subgroupShuffleXor(keys[0], 1u);
-    let tmp_1 = subgroupShuffleXor(values[0], 1u);
-    let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
-    let tmp_3 = keys[0] < tmp_0 || (keys[0] == tmp_0 && values[0] < tmp_1);
-    if tmp_2 == tmp_3 { keys[0] = tmp_0; values[0] = tmp_1; }
+        // _exch_subgroup([(0, 0)],1,0)
+        {
+            let tmp_0 = subgroupShuffleXor(keys[0], 1u);
+            let tmp_1 = subgroupShuffleXor(values[0], 1u);
+            let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_3 = keys[0] < tmp_0 || (keys[0] == tmp_0 && values[0] < tmp_1);
+            if tmp_2 == tmp_3 { keys[0] = tmp_0; values[0] = tmp_1; }
+        }
     }
+
     // exch_intxn(tmask:3,swbit:1,wpt:1)
     {
-    let tmp_4 = subgroupShuffleXor(keys[0], 3u);
-    let tmp_5 = subgroupShuffleXor(values[0], 3u);
-    let tmp_6 = extractBits(local_tid, 1u, 1u) != 0u;
-    let tmp_7 = keys[0] < tmp_4 || (keys[0] == tmp_4 && values[0] < tmp_5);
-    if tmp_6 == tmp_7 { keys[0] = tmp_4; values[0] = tmp_5; }
+        // _exch_subgroup([(0, 0)],3,1)
+        {
+            let tmp_4 = subgroupShuffleXor(keys[0], 3u);
+            let tmp_5 = subgroupShuffleXor(values[0], 3u);
+            let tmp_6 = extractBits(local_tid, 1u, 1u) != 0u;
+            let tmp_7 = keys[0] < tmp_4 || (keys[0] == tmp_4 && values[0] < tmp_5);
+            if tmp_6 == tmp_7 { keys[0] = tmp_4; values[0] = tmp_5; }
+        }
     }
-    // exch_paral(tmask:1,swbit:0,wpt:1) 
+
+    // exch_paral(tmask:1,swbit:0,wpt:1)
     {
-    let tmp_8 = subgroupShuffleXor(keys[0], 1u);
-    let tmp_9 = subgroupShuffleXor(values[0], 1u);
-    let tmp_10 = extractBits(local_tid, 0u, 1u) != 0u;
-    let tmp_11 = keys[0] < tmp_8 || (keys[0] == tmp_8 && values[0] < tmp_9);
-    if tmp_10 == tmp_11 { keys[0] = tmp_8; values[0] = tmp_9; }
+        // _exch_subgroup([(0, 0)],1,0)
+        {
+            let tmp_8 = subgroupShuffleXor(keys[0], 1u);
+            let tmp_9 = subgroupShuffleXor(values[0], 1u);
+            let tmp_10 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_11 = keys[0] < tmp_8 || (keys[0] == tmp_8 && values[0] < tmp_9);
+            if tmp_10 == tmp_11 { keys[0] = tmp_8; values[0] = tmp_9; }
+        }
     }
 
     // striped (coalesced) store (WPT==1, no transpose)

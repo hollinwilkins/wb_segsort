@@ -52,11 +52,14 @@ fn segsort_reg_n2_m2_striped(
 
     // exch_intxn(tmask:1,swbit:0,wpt:1)
     {
-    let tmp_0 = subgroupShuffleXor(keys[0], 1u);
-    let tmp_1 = subgroupShuffleXor(values[0], 1u);
-    let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
-    let tmp_3 = keys[0] < tmp_0 || (keys[0] == tmp_0 && values[0] < tmp_1);
-    if tmp_2 == tmp_3 { keys[0] = tmp_0; values[0] = tmp_1; }
+        // _exch_subgroup([(0, 0)],1,0)
+        {
+            let tmp_0 = subgroupShuffleXor(keys[0], 1u);
+            let tmp_1 = subgroupShuffleXor(values[0], 1u);
+            let tmp_2 = extractBits(local_tid, 0u, 1u) != 0u;
+            let tmp_3 = keys[0] < tmp_0 || (keys[0] == tmp_0 && values[0] < tmp_1);
+            if tmp_2 == tmp_3 { keys[0] = tmp_0; values[0] = tmp_1; }
+        }
     }
 
     // striped (coalesced) store (WPT==1, no transpose)
