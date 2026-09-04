@@ -2,6 +2,7 @@ import sys
 from math import log2
 from dataclasses import dataclass
 from pathlib import Path
+from transposer import Transposer
 
 
 SUBGROUP_SIZES = [
@@ -319,41 +320,9 @@ for (var c = 0u; c < WPT; c = c + 1u) {{
 }}"""
         return self._indent(body, indent)
 
-    @staticmethod
-    def _transpose_plan(M: int, WPT: int):
-        m = M.bit_length() - 1
-        w = WPT.bit_length() - 1
-        lane_bits = [w + j for j in range(m)]
-        reg_bits = [i for i in range(w)]
-        ops = []
-
-        def do(a, b):
-            ops.append((a, b))
-            lane_bits[a], reg_bits[b] = reg_bits[b], lane_bits[a]
-
-        for j in range(m):
-            if lane_bits[j] == j:
-                continue
-            if j in reg_bits:
-                do(j, reg_bits.index(j))
-            else:
-                j2 = lane_bits.index(j)
-                do(j2, 0)
-                do(j, 0)
-
-        remap = []
-        for r in range(WPT):
-            rp = 0
-            for i, ebit in enumerate(reg_bits):
-                if (r >> i) & 1:
-                    rp |= 1 << (ebit - m)
-            remap.append(rp)
-        return ops, remap
-
     def _striped_store_shuffle(self, base: str, length: str, active: str | None,
                                N: int, M: int, indent: int) -> str:
         wpt = N // M
-        guard = f"{active} && j < {length}" if active else f"j < {length}"
 
         if wpt == 1:
             g = f"{active} && local_tid < {length}" if active else f"local_tid < {length}"
@@ -364,39 +333,44 @@ if {g} {{
 }}"""
             return self._indent(body, indent)
 
-        ops, remap = self._transpose_plan(M, wpt)
+        transposer = Transposer(N, M)
+        swaps, remap = transposer.build()
 
-        lines = ["// striped (coalesced) store via shfl_xor transpose",
-                 "{"]
-        for (a_bit, b_bit) in ops:
-            mask = 1 << a_bit
-            for r0 in range(wpt):
-                if r0 & (1 << b_bit):
-                    continue
-                r1 = r0 | (1 << b_bit)
-                lines += [
-                    f"    {{ let ex_k = subgroupShuffleXor(keys[{r1}], {mask}u);",
-                    f"      let ex_v = subgroupShuffleXor(values[{r1}], {mask}u);",
-                    "      var t_k = ex_k; var t_v = ex_v;",
-                    f"      if ((local_tid & {mask}u) != 0u) {{",
-                    f"          t_k = keys[{r0}]; t_v = values[{r0}];",
-                    f"          keys[{r0}] = ex_k; values[{r0}] = ex_v;",
-                    "      }",
-                    f"      keys[{r1}] = subgroupShuffleXor(t_k, {mask}u);",
-                    f"      values[{r1}] = subgroupShuffleXor(t_v, {mask}u); }}",
-                ]
-        remap_lit = ", ".join(f"{v}u" for v in remap)
-        lines += [
-            f"    var out_reg = array<u32, WPT>({remap_lit});",
-            "    for (var r = 0u; r < WPT; r = r + 1u) {",
-            "        let j = out_reg[r] * M + local_tid;",
-            f"        if {guard} {{",
-            f"            global_keys[{base} + j] = keys[r];",
-            f"            global_value_indices[{base} + j] = values[r];",
-            "        }",
-            "    }",
-            "}",
-        ]
+        lines = []
+        for (lane_bit, register_bit) in swaps:
+            mask = 1 << lane_bit
+            for hi_register_index in range(wpt):
+                if (hi_register_index & (1 << register_bit)) == 0: continue # check if register_bit is 1, this is the right-side of the transpose
+                lo_register_index = hi_register_index ^ pow(2, register_bit)
+
+                lines += f"""// swap(lane_bit:{lane_bit},register_bit:{register_bit},hi_register_index:{hi_register_index})
+    {{
+        let lo_ex_k = subgroupShuffleXor(keys[{lo_register_index}], {mask}u);
+        let lo_ex_v = subgroupShuffleXor(values[{lo_register_index}], {mask}u);
+        let hi_ex_k = subgroupShuffleXor(keys[{hi_register_index}], {mask}u);
+        let hi_ex_v = subgroupShuffleXor(values[{hi_register_index}], {mask}u);
+        if ((local_tid & {mask}u) == 0u) {{
+            // lo lane: swap self hi register with pair lo register
+            keys[{hi_register_index}] = lo_ex_k;
+            values[{hi_register_index}] = lo_ex_v;
+        }} else {{
+            // hi lane: swap self lo register with pair hi register
+            keys[{lo_register_index}] = hi_ex_k;
+            values[{lo_register_index}] = hi_ex_v;
+        }}
+    }}""".split("\n")
+
+        if active:
+            lines.append(f"    if {active} {{")
+        else:
+            lines.append("    {")
+        for i in range(wpt):
+            lines.append(f"        {{ let global_offset = {remap[i]} * M + local_tid;")
+            lines.append(f"            if global_offset < {length} {{")
+            lines.append(f"        global_keys[{base} + global_offset] = keys[{i}];")
+            lines.append(f"        global_value_indices[{base} + global_offset] = values[{i}]; }} }}")
+        lines.append("    }")
+
         return self._indent("\n".join(lines), indent)
 
     # create a register-based sorting kernel

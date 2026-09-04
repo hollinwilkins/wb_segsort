@@ -88,7 +88,7 @@ def test_transpose(N: int, M: int):
             lane_pair = lane ^ pow(2, lane_bit)
 
             for r in range(t.WPT):
-                # fine the right-side register
+                # find the right-side register
                 if r & (1 << register_bit) == 0: continue # skip registers without bit set
 
                 register_index = r # right-side for lo lane

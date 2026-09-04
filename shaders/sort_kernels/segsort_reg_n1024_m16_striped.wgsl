@@ -14390,1167 +14390,2310 @@ fn segsort_reg_n1024_m16_striped(
         }
     }
 
-    // striped (coalesced) store via shfl_xor transpose
-    {
-        { let ex_k = subgroupShuffleXor(keys[1], 1u);
-          let ex_v = subgroupShuffleXor(values[1], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[0]; t_v = values[0];
-              keys[0] = ex_k; values[0] = ex_v;
-          }
-          keys[1] = subgroupShuffleXor(t_k, 1u);
-          values[1] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[3], 1u);
-          let ex_v = subgroupShuffleXor(values[3], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[2]; t_v = values[2];
-              keys[2] = ex_k; values[2] = ex_v;
-          }
-          keys[3] = subgroupShuffleXor(t_k, 1u);
-          values[3] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[5], 1u);
-          let ex_v = subgroupShuffleXor(values[5], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[4]; t_v = values[4];
-              keys[4] = ex_k; values[4] = ex_v;
-          }
-          keys[5] = subgroupShuffleXor(t_k, 1u);
-          values[5] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[7], 1u);
-          let ex_v = subgroupShuffleXor(values[7], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[6]; t_v = values[6];
-              keys[6] = ex_k; values[6] = ex_v;
-          }
-          keys[7] = subgroupShuffleXor(t_k, 1u);
-          values[7] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[9], 1u);
-          let ex_v = subgroupShuffleXor(values[9], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[8]; t_v = values[8];
-              keys[8] = ex_k; values[8] = ex_v;
-          }
-          keys[9] = subgroupShuffleXor(t_k, 1u);
-          values[9] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[11], 1u);
-          let ex_v = subgroupShuffleXor(values[11], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[10]; t_v = values[10];
-              keys[10] = ex_k; values[10] = ex_v;
-          }
-          keys[11] = subgroupShuffleXor(t_k, 1u);
-          values[11] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[13], 1u);
-          let ex_v = subgroupShuffleXor(values[13], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[12]; t_v = values[12];
-              keys[12] = ex_k; values[12] = ex_v;
-          }
-          keys[13] = subgroupShuffleXor(t_k, 1u);
-          values[13] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[15], 1u);
-          let ex_v = subgroupShuffleXor(values[15], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[14]; t_v = values[14];
-              keys[14] = ex_k; values[14] = ex_v;
-          }
-          keys[15] = subgroupShuffleXor(t_k, 1u);
-          values[15] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[17], 1u);
-          let ex_v = subgroupShuffleXor(values[17], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[16]; t_v = values[16];
-              keys[16] = ex_k; values[16] = ex_v;
-          }
-          keys[17] = subgroupShuffleXor(t_k, 1u);
-          values[17] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[19], 1u);
-          let ex_v = subgroupShuffleXor(values[19], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[18]; t_v = values[18];
-              keys[18] = ex_k; values[18] = ex_v;
-          }
-          keys[19] = subgroupShuffleXor(t_k, 1u);
-          values[19] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[21], 1u);
-          let ex_v = subgroupShuffleXor(values[21], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[20]; t_v = values[20];
-              keys[20] = ex_k; values[20] = ex_v;
-          }
-          keys[21] = subgroupShuffleXor(t_k, 1u);
-          values[21] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[23], 1u);
-          let ex_v = subgroupShuffleXor(values[23], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[22]; t_v = values[22];
-              keys[22] = ex_k; values[22] = ex_v;
-          }
-          keys[23] = subgroupShuffleXor(t_k, 1u);
-          values[23] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[25], 1u);
-          let ex_v = subgroupShuffleXor(values[25], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[24]; t_v = values[24];
-              keys[24] = ex_k; values[24] = ex_v;
-          }
-          keys[25] = subgroupShuffleXor(t_k, 1u);
-          values[25] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[27], 1u);
-          let ex_v = subgroupShuffleXor(values[27], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[26]; t_v = values[26];
-              keys[26] = ex_k; values[26] = ex_v;
-          }
-          keys[27] = subgroupShuffleXor(t_k, 1u);
-          values[27] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[29], 1u);
-          let ex_v = subgroupShuffleXor(values[29], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[28]; t_v = values[28];
-              keys[28] = ex_k; values[28] = ex_v;
-          }
-          keys[29] = subgroupShuffleXor(t_k, 1u);
-          values[29] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[31], 1u);
-          let ex_v = subgroupShuffleXor(values[31], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[30]; t_v = values[30];
-              keys[30] = ex_k; values[30] = ex_v;
-          }
-          keys[31] = subgroupShuffleXor(t_k, 1u);
-          values[31] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[33], 1u);
-          let ex_v = subgroupShuffleXor(values[33], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[32]; t_v = values[32];
-              keys[32] = ex_k; values[32] = ex_v;
-          }
-          keys[33] = subgroupShuffleXor(t_k, 1u);
-          values[33] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[35], 1u);
-          let ex_v = subgroupShuffleXor(values[35], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[34]; t_v = values[34];
-              keys[34] = ex_k; values[34] = ex_v;
-          }
-          keys[35] = subgroupShuffleXor(t_k, 1u);
-          values[35] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[37], 1u);
-          let ex_v = subgroupShuffleXor(values[37], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[36]; t_v = values[36];
-              keys[36] = ex_k; values[36] = ex_v;
-          }
-          keys[37] = subgroupShuffleXor(t_k, 1u);
-          values[37] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[39], 1u);
-          let ex_v = subgroupShuffleXor(values[39], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[38]; t_v = values[38];
-              keys[38] = ex_k; values[38] = ex_v;
-          }
-          keys[39] = subgroupShuffleXor(t_k, 1u);
-          values[39] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[41], 1u);
-          let ex_v = subgroupShuffleXor(values[41], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[40]; t_v = values[40];
-              keys[40] = ex_k; values[40] = ex_v;
-          }
-          keys[41] = subgroupShuffleXor(t_k, 1u);
-          values[41] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[43], 1u);
-          let ex_v = subgroupShuffleXor(values[43], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[42]; t_v = values[42];
-              keys[42] = ex_k; values[42] = ex_v;
-          }
-          keys[43] = subgroupShuffleXor(t_k, 1u);
-          values[43] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[45], 1u);
-          let ex_v = subgroupShuffleXor(values[45], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[44]; t_v = values[44];
-              keys[44] = ex_k; values[44] = ex_v;
-          }
-          keys[45] = subgroupShuffleXor(t_k, 1u);
-          values[45] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[47], 1u);
-          let ex_v = subgroupShuffleXor(values[47], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[46]; t_v = values[46];
-              keys[46] = ex_k; values[46] = ex_v;
-          }
-          keys[47] = subgroupShuffleXor(t_k, 1u);
-          values[47] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[49], 1u);
-          let ex_v = subgroupShuffleXor(values[49], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[48]; t_v = values[48];
-              keys[48] = ex_k; values[48] = ex_v;
-          }
-          keys[49] = subgroupShuffleXor(t_k, 1u);
-          values[49] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[51], 1u);
-          let ex_v = subgroupShuffleXor(values[51], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[50]; t_v = values[50];
-              keys[50] = ex_k; values[50] = ex_v;
-          }
-          keys[51] = subgroupShuffleXor(t_k, 1u);
-          values[51] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[53], 1u);
-          let ex_v = subgroupShuffleXor(values[53], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[52]; t_v = values[52];
-              keys[52] = ex_k; values[52] = ex_v;
-          }
-          keys[53] = subgroupShuffleXor(t_k, 1u);
-          values[53] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[55], 1u);
-          let ex_v = subgroupShuffleXor(values[55], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[54]; t_v = values[54];
-              keys[54] = ex_k; values[54] = ex_v;
-          }
-          keys[55] = subgroupShuffleXor(t_k, 1u);
-          values[55] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[57], 1u);
-          let ex_v = subgroupShuffleXor(values[57], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[56]; t_v = values[56];
-              keys[56] = ex_k; values[56] = ex_v;
-          }
-          keys[57] = subgroupShuffleXor(t_k, 1u);
-          values[57] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[59], 1u);
-          let ex_v = subgroupShuffleXor(values[59], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[58]; t_v = values[58];
-              keys[58] = ex_k; values[58] = ex_v;
-          }
-          keys[59] = subgroupShuffleXor(t_k, 1u);
-          values[59] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[61], 1u);
-          let ex_v = subgroupShuffleXor(values[61], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[60]; t_v = values[60];
-              keys[60] = ex_k; values[60] = ex_v;
-          }
-          keys[61] = subgroupShuffleXor(t_k, 1u);
-          values[61] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[63], 1u);
-          let ex_v = subgroupShuffleXor(values[63], 1u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 1u) != 0u) {
-              t_k = keys[62]; t_v = values[62];
-              keys[62] = ex_k; values[62] = ex_v;
-          }
-          keys[63] = subgroupShuffleXor(t_k, 1u);
-          values[63] = subgroupShuffleXor(t_v, 1u); }
-        { let ex_k = subgroupShuffleXor(keys[2], 2u);
-          let ex_v = subgroupShuffleXor(values[2], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[0]; t_v = values[0];
-              keys[0] = ex_k; values[0] = ex_v;
-          }
-          keys[2] = subgroupShuffleXor(t_k, 2u);
-          values[2] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[3], 2u);
-          let ex_v = subgroupShuffleXor(values[3], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[1]; t_v = values[1];
-              keys[1] = ex_k; values[1] = ex_v;
-          }
-          keys[3] = subgroupShuffleXor(t_k, 2u);
-          values[3] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[6], 2u);
-          let ex_v = subgroupShuffleXor(values[6], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[4]; t_v = values[4];
-              keys[4] = ex_k; values[4] = ex_v;
-          }
-          keys[6] = subgroupShuffleXor(t_k, 2u);
-          values[6] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[7], 2u);
-          let ex_v = subgroupShuffleXor(values[7], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[5]; t_v = values[5];
-              keys[5] = ex_k; values[5] = ex_v;
-          }
-          keys[7] = subgroupShuffleXor(t_k, 2u);
-          values[7] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[10], 2u);
-          let ex_v = subgroupShuffleXor(values[10], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[8]; t_v = values[8];
-              keys[8] = ex_k; values[8] = ex_v;
-          }
-          keys[10] = subgroupShuffleXor(t_k, 2u);
-          values[10] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[11], 2u);
-          let ex_v = subgroupShuffleXor(values[11], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[9]; t_v = values[9];
-              keys[9] = ex_k; values[9] = ex_v;
-          }
-          keys[11] = subgroupShuffleXor(t_k, 2u);
-          values[11] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[14], 2u);
-          let ex_v = subgroupShuffleXor(values[14], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[12]; t_v = values[12];
-              keys[12] = ex_k; values[12] = ex_v;
-          }
-          keys[14] = subgroupShuffleXor(t_k, 2u);
-          values[14] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[15], 2u);
-          let ex_v = subgroupShuffleXor(values[15], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[13]; t_v = values[13];
-              keys[13] = ex_k; values[13] = ex_v;
-          }
-          keys[15] = subgroupShuffleXor(t_k, 2u);
-          values[15] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[18], 2u);
-          let ex_v = subgroupShuffleXor(values[18], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[16]; t_v = values[16];
-              keys[16] = ex_k; values[16] = ex_v;
-          }
-          keys[18] = subgroupShuffleXor(t_k, 2u);
-          values[18] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[19], 2u);
-          let ex_v = subgroupShuffleXor(values[19], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[17]; t_v = values[17];
-              keys[17] = ex_k; values[17] = ex_v;
-          }
-          keys[19] = subgroupShuffleXor(t_k, 2u);
-          values[19] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[22], 2u);
-          let ex_v = subgroupShuffleXor(values[22], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[20]; t_v = values[20];
-              keys[20] = ex_k; values[20] = ex_v;
-          }
-          keys[22] = subgroupShuffleXor(t_k, 2u);
-          values[22] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[23], 2u);
-          let ex_v = subgroupShuffleXor(values[23], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[21]; t_v = values[21];
-              keys[21] = ex_k; values[21] = ex_v;
-          }
-          keys[23] = subgroupShuffleXor(t_k, 2u);
-          values[23] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[26], 2u);
-          let ex_v = subgroupShuffleXor(values[26], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[24]; t_v = values[24];
-              keys[24] = ex_k; values[24] = ex_v;
-          }
-          keys[26] = subgroupShuffleXor(t_k, 2u);
-          values[26] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[27], 2u);
-          let ex_v = subgroupShuffleXor(values[27], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[25]; t_v = values[25];
-              keys[25] = ex_k; values[25] = ex_v;
-          }
-          keys[27] = subgroupShuffleXor(t_k, 2u);
-          values[27] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[30], 2u);
-          let ex_v = subgroupShuffleXor(values[30], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[28]; t_v = values[28];
-              keys[28] = ex_k; values[28] = ex_v;
-          }
-          keys[30] = subgroupShuffleXor(t_k, 2u);
-          values[30] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[31], 2u);
-          let ex_v = subgroupShuffleXor(values[31], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[29]; t_v = values[29];
-              keys[29] = ex_k; values[29] = ex_v;
-          }
-          keys[31] = subgroupShuffleXor(t_k, 2u);
-          values[31] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[34], 2u);
-          let ex_v = subgroupShuffleXor(values[34], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[32]; t_v = values[32];
-              keys[32] = ex_k; values[32] = ex_v;
-          }
-          keys[34] = subgroupShuffleXor(t_k, 2u);
-          values[34] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[35], 2u);
-          let ex_v = subgroupShuffleXor(values[35], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[33]; t_v = values[33];
-              keys[33] = ex_k; values[33] = ex_v;
-          }
-          keys[35] = subgroupShuffleXor(t_k, 2u);
-          values[35] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[38], 2u);
-          let ex_v = subgroupShuffleXor(values[38], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[36]; t_v = values[36];
-              keys[36] = ex_k; values[36] = ex_v;
-          }
-          keys[38] = subgroupShuffleXor(t_k, 2u);
-          values[38] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[39], 2u);
-          let ex_v = subgroupShuffleXor(values[39], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[37]; t_v = values[37];
-              keys[37] = ex_k; values[37] = ex_v;
-          }
-          keys[39] = subgroupShuffleXor(t_k, 2u);
-          values[39] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[42], 2u);
-          let ex_v = subgroupShuffleXor(values[42], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[40]; t_v = values[40];
-              keys[40] = ex_k; values[40] = ex_v;
-          }
-          keys[42] = subgroupShuffleXor(t_k, 2u);
-          values[42] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[43], 2u);
-          let ex_v = subgroupShuffleXor(values[43], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[41]; t_v = values[41];
-              keys[41] = ex_k; values[41] = ex_v;
-          }
-          keys[43] = subgroupShuffleXor(t_k, 2u);
-          values[43] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[46], 2u);
-          let ex_v = subgroupShuffleXor(values[46], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[44]; t_v = values[44];
-              keys[44] = ex_k; values[44] = ex_v;
-          }
-          keys[46] = subgroupShuffleXor(t_k, 2u);
-          values[46] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[47], 2u);
-          let ex_v = subgroupShuffleXor(values[47], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[45]; t_v = values[45];
-              keys[45] = ex_k; values[45] = ex_v;
-          }
-          keys[47] = subgroupShuffleXor(t_k, 2u);
-          values[47] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[50], 2u);
-          let ex_v = subgroupShuffleXor(values[50], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[48]; t_v = values[48];
-              keys[48] = ex_k; values[48] = ex_v;
-          }
-          keys[50] = subgroupShuffleXor(t_k, 2u);
-          values[50] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[51], 2u);
-          let ex_v = subgroupShuffleXor(values[51], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[49]; t_v = values[49];
-              keys[49] = ex_k; values[49] = ex_v;
-          }
-          keys[51] = subgroupShuffleXor(t_k, 2u);
-          values[51] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[54], 2u);
-          let ex_v = subgroupShuffleXor(values[54], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[52]; t_v = values[52];
-              keys[52] = ex_k; values[52] = ex_v;
-          }
-          keys[54] = subgroupShuffleXor(t_k, 2u);
-          values[54] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[55], 2u);
-          let ex_v = subgroupShuffleXor(values[55], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[53]; t_v = values[53];
-              keys[53] = ex_k; values[53] = ex_v;
-          }
-          keys[55] = subgroupShuffleXor(t_k, 2u);
-          values[55] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[58], 2u);
-          let ex_v = subgroupShuffleXor(values[58], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[56]; t_v = values[56];
-              keys[56] = ex_k; values[56] = ex_v;
-          }
-          keys[58] = subgroupShuffleXor(t_k, 2u);
-          values[58] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[59], 2u);
-          let ex_v = subgroupShuffleXor(values[59], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[57]; t_v = values[57];
-              keys[57] = ex_k; values[57] = ex_v;
-          }
-          keys[59] = subgroupShuffleXor(t_k, 2u);
-          values[59] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[62], 2u);
-          let ex_v = subgroupShuffleXor(values[62], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[60]; t_v = values[60];
-              keys[60] = ex_k; values[60] = ex_v;
-          }
-          keys[62] = subgroupShuffleXor(t_k, 2u);
-          values[62] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[63], 2u);
-          let ex_v = subgroupShuffleXor(values[63], 2u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 2u) != 0u) {
-              t_k = keys[61]; t_v = values[61];
-              keys[61] = ex_k; values[61] = ex_v;
-          }
-          keys[63] = subgroupShuffleXor(t_k, 2u);
-          values[63] = subgroupShuffleXor(t_v, 2u); }
-        { let ex_k = subgroupShuffleXor(keys[4], 4u);
-          let ex_v = subgroupShuffleXor(values[4], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[0]; t_v = values[0];
-              keys[0] = ex_k; values[0] = ex_v;
-          }
-          keys[4] = subgroupShuffleXor(t_k, 4u);
-          values[4] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[5], 4u);
-          let ex_v = subgroupShuffleXor(values[5], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[1]; t_v = values[1];
-              keys[1] = ex_k; values[1] = ex_v;
-          }
-          keys[5] = subgroupShuffleXor(t_k, 4u);
-          values[5] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[6], 4u);
-          let ex_v = subgroupShuffleXor(values[6], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[2]; t_v = values[2];
-              keys[2] = ex_k; values[2] = ex_v;
-          }
-          keys[6] = subgroupShuffleXor(t_k, 4u);
-          values[6] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[7], 4u);
-          let ex_v = subgroupShuffleXor(values[7], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[3]; t_v = values[3];
-              keys[3] = ex_k; values[3] = ex_v;
-          }
-          keys[7] = subgroupShuffleXor(t_k, 4u);
-          values[7] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[12], 4u);
-          let ex_v = subgroupShuffleXor(values[12], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[8]; t_v = values[8];
-              keys[8] = ex_k; values[8] = ex_v;
-          }
-          keys[12] = subgroupShuffleXor(t_k, 4u);
-          values[12] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[13], 4u);
-          let ex_v = subgroupShuffleXor(values[13], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[9]; t_v = values[9];
-              keys[9] = ex_k; values[9] = ex_v;
-          }
-          keys[13] = subgroupShuffleXor(t_k, 4u);
-          values[13] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[14], 4u);
-          let ex_v = subgroupShuffleXor(values[14], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[10]; t_v = values[10];
-              keys[10] = ex_k; values[10] = ex_v;
-          }
-          keys[14] = subgroupShuffleXor(t_k, 4u);
-          values[14] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[15], 4u);
-          let ex_v = subgroupShuffleXor(values[15], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[11]; t_v = values[11];
-              keys[11] = ex_k; values[11] = ex_v;
-          }
-          keys[15] = subgroupShuffleXor(t_k, 4u);
-          values[15] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[20], 4u);
-          let ex_v = subgroupShuffleXor(values[20], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[16]; t_v = values[16];
-              keys[16] = ex_k; values[16] = ex_v;
-          }
-          keys[20] = subgroupShuffleXor(t_k, 4u);
-          values[20] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[21], 4u);
-          let ex_v = subgroupShuffleXor(values[21], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[17]; t_v = values[17];
-              keys[17] = ex_k; values[17] = ex_v;
-          }
-          keys[21] = subgroupShuffleXor(t_k, 4u);
-          values[21] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[22], 4u);
-          let ex_v = subgroupShuffleXor(values[22], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[18]; t_v = values[18];
-              keys[18] = ex_k; values[18] = ex_v;
-          }
-          keys[22] = subgroupShuffleXor(t_k, 4u);
-          values[22] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[23], 4u);
-          let ex_v = subgroupShuffleXor(values[23], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[19]; t_v = values[19];
-              keys[19] = ex_k; values[19] = ex_v;
-          }
-          keys[23] = subgroupShuffleXor(t_k, 4u);
-          values[23] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[28], 4u);
-          let ex_v = subgroupShuffleXor(values[28], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[24]; t_v = values[24];
-              keys[24] = ex_k; values[24] = ex_v;
-          }
-          keys[28] = subgroupShuffleXor(t_k, 4u);
-          values[28] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[29], 4u);
-          let ex_v = subgroupShuffleXor(values[29], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[25]; t_v = values[25];
-              keys[25] = ex_k; values[25] = ex_v;
-          }
-          keys[29] = subgroupShuffleXor(t_k, 4u);
-          values[29] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[30], 4u);
-          let ex_v = subgroupShuffleXor(values[30], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[26]; t_v = values[26];
-              keys[26] = ex_k; values[26] = ex_v;
-          }
-          keys[30] = subgroupShuffleXor(t_k, 4u);
-          values[30] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[31], 4u);
-          let ex_v = subgroupShuffleXor(values[31], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[27]; t_v = values[27];
-              keys[27] = ex_k; values[27] = ex_v;
-          }
-          keys[31] = subgroupShuffleXor(t_k, 4u);
-          values[31] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[36], 4u);
-          let ex_v = subgroupShuffleXor(values[36], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[32]; t_v = values[32];
-              keys[32] = ex_k; values[32] = ex_v;
-          }
-          keys[36] = subgroupShuffleXor(t_k, 4u);
-          values[36] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[37], 4u);
-          let ex_v = subgroupShuffleXor(values[37], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[33]; t_v = values[33];
-              keys[33] = ex_k; values[33] = ex_v;
-          }
-          keys[37] = subgroupShuffleXor(t_k, 4u);
-          values[37] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[38], 4u);
-          let ex_v = subgroupShuffleXor(values[38], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[34]; t_v = values[34];
-              keys[34] = ex_k; values[34] = ex_v;
-          }
-          keys[38] = subgroupShuffleXor(t_k, 4u);
-          values[38] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[39], 4u);
-          let ex_v = subgroupShuffleXor(values[39], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[35]; t_v = values[35];
-              keys[35] = ex_k; values[35] = ex_v;
-          }
-          keys[39] = subgroupShuffleXor(t_k, 4u);
-          values[39] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[44], 4u);
-          let ex_v = subgroupShuffleXor(values[44], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[40]; t_v = values[40];
-              keys[40] = ex_k; values[40] = ex_v;
-          }
-          keys[44] = subgroupShuffleXor(t_k, 4u);
-          values[44] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[45], 4u);
-          let ex_v = subgroupShuffleXor(values[45], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[41]; t_v = values[41];
-              keys[41] = ex_k; values[41] = ex_v;
-          }
-          keys[45] = subgroupShuffleXor(t_k, 4u);
-          values[45] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[46], 4u);
-          let ex_v = subgroupShuffleXor(values[46], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[42]; t_v = values[42];
-              keys[42] = ex_k; values[42] = ex_v;
-          }
-          keys[46] = subgroupShuffleXor(t_k, 4u);
-          values[46] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[47], 4u);
-          let ex_v = subgroupShuffleXor(values[47], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[43]; t_v = values[43];
-              keys[43] = ex_k; values[43] = ex_v;
-          }
-          keys[47] = subgroupShuffleXor(t_k, 4u);
-          values[47] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[52], 4u);
-          let ex_v = subgroupShuffleXor(values[52], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[48]; t_v = values[48];
-              keys[48] = ex_k; values[48] = ex_v;
-          }
-          keys[52] = subgroupShuffleXor(t_k, 4u);
-          values[52] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[53], 4u);
-          let ex_v = subgroupShuffleXor(values[53], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[49]; t_v = values[49];
-              keys[49] = ex_k; values[49] = ex_v;
-          }
-          keys[53] = subgroupShuffleXor(t_k, 4u);
-          values[53] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[54], 4u);
-          let ex_v = subgroupShuffleXor(values[54], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[50]; t_v = values[50];
-              keys[50] = ex_k; values[50] = ex_v;
-          }
-          keys[54] = subgroupShuffleXor(t_k, 4u);
-          values[54] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[55], 4u);
-          let ex_v = subgroupShuffleXor(values[55], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[51]; t_v = values[51];
-              keys[51] = ex_k; values[51] = ex_v;
-          }
-          keys[55] = subgroupShuffleXor(t_k, 4u);
-          values[55] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[60], 4u);
-          let ex_v = subgroupShuffleXor(values[60], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[56]; t_v = values[56];
-              keys[56] = ex_k; values[56] = ex_v;
-          }
-          keys[60] = subgroupShuffleXor(t_k, 4u);
-          values[60] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[61], 4u);
-          let ex_v = subgroupShuffleXor(values[61], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[57]; t_v = values[57];
-              keys[57] = ex_k; values[57] = ex_v;
-          }
-          keys[61] = subgroupShuffleXor(t_k, 4u);
-          values[61] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[62], 4u);
-          let ex_v = subgroupShuffleXor(values[62], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[58]; t_v = values[58];
-              keys[58] = ex_k; values[58] = ex_v;
-          }
-          keys[62] = subgroupShuffleXor(t_k, 4u);
-          values[62] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[63], 4u);
-          let ex_v = subgroupShuffleXor(values[63], 4u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 4u) != 0u) {
-              t_k = keys[59]; t_v = values[59];
-              keys[59] = ex_k; values[59] = ex_v;
-          }
-          keys[63] = subgroupShuffleXor(t_k, 4u);
-          values[63] = subgroupShuffleXor(t_v, 4u); }
-        { let ex_k = subgroupShuffleXor(keys[8], 8u);
-          let ex_v = subgroupShuffleXor(values[8], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[0]; t_v = values[0];
-              keys[0] = ex_k; values[0] = ex_v;
-          }
-          keys[8] = subgroupShuffleXor(t_k, 8u);
-          values[8] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[9], 8u);
-          let ex_v = subgroupShuffleXor(values[9], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[1]; t_v = values[1];
-              keys[1] = ex_k; values[1] = ex_v;
-          }
-          keys[9] = subgroupShuffleXor(t_k, 8u);
-          values[9] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[10], 8u);
-          let ex_v = subgroupShuffleXor(values[10], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[2]; t_v = values[2];
-              keys[2] = ex_k; values[2] = ex_v;
-          }
-          keys[10] = subgroupShuffleXor(t_k, 8u);
-          values[10] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[11], 8u);
-          let ex_v = subgroupShuffleXor(values[11], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[3]; t_v = values[3];
-              keys[3] = ex_k; values[3] = ex_v;
-          }
-          keys[11] = subgroupShuffleXor(t_k, 8u);
-          values[11] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[12], 8u);
-          let ex_v = subgroupShuffleXor(values[12], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[4]; t_v = values[4];
-              keys[4] = ex_k; values[4] = ex_v;
-          }
-          keys[12] = subgroupShuffleXor(t_k, 8u);
-          values[12] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[13], 8u);
-          let ex_v = subgroupShuffleXor(values[13], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[5]; t_v = values[5];
-              keys[5] = ex_k; values[5] = ex_v;
-          }
-          keys[13] = subgroupShuffleXor(t_k, 8u);
-          values[13] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[14], 8u);
-          let ex_v = subgroupShuffleXor(values[14], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[6]; t_v = values[6];
-              keys[6] = ex_k; values[6] = ex_v;
-          }
-          keys[14] = subgroupShuffleXor(t_k, 8u);
-          values[14] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[15], 8u);
-          let ex_v = subgroupShuffleXor(values[15], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[7]; t_v = values[7];
-              keys[7] = ex_k; values[7] = ex_v;
-          }
-          keys[15] = subgroupShuffleXor(t_k, 8u);
-          values[15] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[24], 8u);
-          let ex_v = subgroupShuffleXor(values[24], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[16]; t_v = values[16];
-              keys[16] = ex_k; values[16] = ex_v;
-          }
-          keys[24] = subgroupShuffleXor(t_k, 8u);
-          values[24] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[25], 8u);
-          let ex_v = subgroupShuffleXor(values[25], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[17]; t_v = values[17];
-              keys[17] = ex_k; values[17] = ex_v;
-          }
-          keys[25] = subgroupShuffleXor(t_k, 8u);
-          values[25] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[26], 8u);
-          let ex_v = subgroupShuffleXor(values[26], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[18]; t_v = values[18];
-              keys[18] = ex_k; values[18] = ex_v;
-          }
-          keys[26] = subgroupShuffleXor(t_k, 8u);
-          values[26] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[27], 8u);
-          let ex_v = subgroupShuffleXor(values[27], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[19]; t_v = values[19];
-              keys[19] = ex_k; values[19] = ex_v;
-          }
-          keys[27] = subgroupShuffleXor(t_k, 8u);
-          values[27] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[28], 8u);
-          let ex_v = subgroupShuffleXor(values[28], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[20]; t_v = values[20];
-              keys[20] = ex_k; values[20] = ex_v;
-          }
-          keys[28] = subgroupShuffleXor(t_k, 8u);
-          values[28] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[29], 8u);
-          let ex_v = subgroupShuffleXor(values[29], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[21]; t_v = values[21];
-              keys[21] = ex_k; values[21] = ex_v;
-          }
-          keys[29] = subgroupShuffleXor(t_k, 8u);
-          values[29] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[30], 8u);
-          let ex_v = subgroupShuffleXor(values[30], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[22]; t_v = values[22];
-              keys[22] = ex_k; values[22] = ex_v;
-          }
-          keys[30] = subgroupShuffleXor(t_k, 8u);
-          values[30] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[31], 8u);
-          let ex_v = subgroupShuffleXor(values[31], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[23]; t_v = values[23];
-              keys[23] = ex_k; values[23] = ex_v;
-          }
-          keys[31] = subgroupShuffleXor(t_k, 8u);
-          values[31] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[40], 8u);
-          let ex_v = subgroupShuffleXor(values[40], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[32]; t_v = values[32];
-              keys[32] = ex_k; values[32] = ex_v;
-          }
-          keys[40] = subgroupShuffleXor(t_k, 8u);
-          values[40] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[41], 8u);
-          let ex_v = subgroupShuffleXor(values[41], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[33]; t_v = values[33];
-              keys[33] = ex_k; values[33] = ex_v;
-          }
-          keys[41] = subgroupShuffleXor(t_k, 8u);
-          values[41] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[42], 8u);
-          let ex_v = subgroupShuffleXor(values[42], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[34]; t_v = values[34];
-              keys[34] = ex_k; values[34] = ex_v;
-          }
-          keys[42] = subgroupShuffleXor(t_k, 8u);
-          values[42] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[43], 8u);
-          let ex_v = subgroupShuffleXor(values[43], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[35]; t_v = values[35];
-              keys[35] = ex_k; values[35] = ex_v;
-          }
-          keys[43] = subgroupShuffleXor(t_k, 8u);
-          values[43] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[44], 8u);
-          let ex_v = subgroupShuffleXor(values[44], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[36]; t_v = values[36];
-              keys[36] = ex_k; values[36] = ex_v;
-          }
-          keys[44] = subgroupShuffleXor(t_k, 8u);
-          values[44] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[45], 8u);
-          let ex_v = subgroupShuffleXor(values[45], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[37]; t_v = values[37];
-              keys[37] = ex_k; values[37] = ex_v;
-          }
-          keys[45] = subgroupShuffleXor(t_k, 8u);
-          values[45] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[46], 8u);
-          let ex_v = subgroupShuffleXor(values[46], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[38]; t_v = values[38];
-              keys[38] = ex_k; values[38] = ex_v;
-          }
-          keys[46] = subgroupShuffleXor(t_k, 8u);
-          values[46] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[47], 8u);
-          let ex_v = subgroupShuffleXor(values[47], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[39]; t_v = values[39];
-              keys[39] = ex_k; values[39] = ex_v;
-          }
-          keys[47] = subgroupShuffleXor(t_k, 8u);
-          values[47] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[56], 8u);
-          let ex_v = subgroupShuffleXor(values[56], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[48]; t_v = values[48];
-              keys[48] = ex_k; values[48] = ex_v;
-          }
-          keys[56] = subgroupShuffleXor(t_k, 8u);
-          values[56] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[57], 8u);
-          let ex_v = subgroupShuffleXor(values[57], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[49]; t_v = values[49];
-              keys[49] = ex_k; values[49] = ex_v;
-          }
-          keys[57] = subgroupShuffleXor(t_k, 8u);
-          values[57] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[58], 8u);
-          let ex_v = subgroupShuffleXor(values[58], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[50]; t_v = values[50];
-              keys[50] = ex_k; values[50] = ex_v;
-          }
-          keys[58] = subgroupShuffleXor(t_k, 8u);
-          values[58] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[59], 8u);
-          let ex_v = subgroupShuffleXor(values[59], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[51]; t_v = values[51];
-              keys[51] = ex_k; values[51] = ex_v;
-          }
-          keys[59] = subgroupShuffleXor(t_k, 8u);
-          values[59] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[60], 8u);
-          let ex_v = subgroupShuffleXor(values[60], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[52]; t_v = values[52];
-              keys[52] = ex_k; values[52] = ex_v;
-          }
-          keys[60] = subgroupShuffleXor(t_k, 8u);
-          values[60] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[61], 8u);
-          let ex_v = subgroupShuffleXor(values[61], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[53]; t_v = values[53];
-              keys[53] = ex_k; values[53] = ex_v;
-          }
-          keys[61] = subgroupShuffleXor(t_k, 8u);
-          values[61] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[62], 8u);
-          let ex_v = subgroupShuffleXor(values[62], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[54]; t_v = values[54];
-              keys[54] = ex_k; values[54] = ex_v;
-          }
-          keys[62] = subgroupShuffleXor(t_k, 8u);
-          values[62] = subgroupShuffleXor(t_v, 8u); }
-        { let ex_k = subgroupShuffleXor(keys[63], 8u);
-          let ex_v = subgroupShuffleXor(values[63], 8u);
-          var t_k = ex_k; var t_v = ex_v;
-          if ((local_tid & 8u) != 0u) {
-              t_k = keys[55]; t_v = values[55];
-              keys[55] = ex_k; values[55] = ex_v;
-          }
-          keys[63] = subgroupShuffleXor(t_k, 8u);
-          values[63] = subgroupShuffleXor(t_v, 8u); }
-        var out_reg = array<u32, WPT>(0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u, 32u, 36u, 40u, 44u, 48u, 52u, 56u, 60u, 1u, 5u, 9u, 13u, 17u, 21u, 25u, 29u, 33u, 37u, 41u, 45u, 49u, 53u, 57u, 61u, 2u, 6u, 10u, 14u, 18u, 22u, 26u, 30u, 34u, 38u, 42u, 46u, 50u, 54u, 58u, 62u, 3u, 7u, 11u, 15u, 19u, 23u, 27u, 31u, 35u, 39u, 43u, 47u, 51u, 55u, 59u, 63u);
-        for (var r = 0u; r < WPT; r = r + 1u) {
-            let j = out_reg[r] * M + local_tid;
-            if is_active && j < seg_size {
-                global_keys[seg_start + j] = keys[r];
-                global_value_indices[seg_start + j] = values[r];
+    // swap(lane_bit:0,register_bit:0,hi_register_index:1)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[0], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[0], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[1], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[1], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[1] = lo_ex_k;
+                values[1] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[0] = hi_ex_k;
+                values[0] = hi_ex_v;
             }
         }
-    }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:3)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[2], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[2], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[3], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[3], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[3] = lo_ex_k;
+                values[3] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[2] = hi_ex_k;
+                values[2] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:5)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[4], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[4], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[5], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[5], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[5] = lo_ex_k;
+                values[5] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[4] = hi_ex_k;
+                values[4] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:7)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[6], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[6], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[7], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[7], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[7] = lo_ex_k;
+                values[7] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[6] = hi_ex_k;
+                values[6] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:9)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[8], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[8], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[9], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[9], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[9] = lo_ex_k;
+                values[9] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[8] = hi_ex_k;
+                values[8] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:11)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[10], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[10], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[11], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[11], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[11] = lo_ex_k;
+                values[11] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[10] = hi_ex_k;
+                values[10] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:13)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[12], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[12], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[13], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[13], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[13] = lo_ex_k;
+                values[13] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[12] = hi_ex_k;
+                values[12] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:15)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[14], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[14], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[15], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[15], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[15] = lo_ex_k;
+                values[15] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[14] = hi_ex_k;
+                values[14] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:17)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[16], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[16], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[17], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[17], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[17] = lo_ex_k;
+                values[17] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[16] = hi_ex_k;
+                values[16] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:19)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[18], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[18], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[19], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[19], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[19] = lo_ex_k;
+                values[19] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[18] = hi_ex_k;
+                values[18] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:21)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[20], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[20], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[21], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[21], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[21] = lo_ex_k;
+                values[21] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[20] = hi_ex_k;
+                values[20] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:23)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[22], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[22], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[23], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[23], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[23] = lo_ex_k;
+                values[23] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[22] = hi_ex_k;
+                values[22] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:25)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[24], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[24], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[25], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[25], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[25] = lo_ex_k;
+                values[25] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[24] = hi_ex_k;
+                values[24] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:27)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[26], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[26], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[27], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[27], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[27] = lo_ex_k;
+                values[27] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[26] = hi_ex_k;
+                values[26] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:29)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[28], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[28], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[29], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[29], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[29] = lo_ex_k;
+                values[29] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[28] = hi_ex_k;
+                values[28] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:31)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[30], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[30], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[31], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[31], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[31] = lo_ex_k;
+                values[31] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[30] = hi_ex_k;
+                values[30] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:33)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[32], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[32], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[33], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[33], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[33] = lo_ex_k;
+                values[33] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[32] = hi_ex_k;
+                values[32] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:35)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[34], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[34], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[35], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[35], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[35] = lo_ex_k;
+                values[35] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[34] = hi_ex_k;
+                values[34] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:37)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[36], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[36], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[37], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[37], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[37] = lo_ex_k;
+                values[37] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[36] = hi_ex_k;
+                values[36] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:39)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[38], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[38], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[39], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[39], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[39] = lo_ex_k;
+                values[39] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[38] = hi_ex_k;
+                values[38] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:41)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[40], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[40], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[41], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[41], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[41] = lo_ex_k;
+                values[41] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[40] = hi_ex_k;
+                values[40] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:43)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[42], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[42], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[43], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[43], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[43] = lo_ex_k;
+                values[43] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[42] = hi_ex_k;
+                values[42] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:45)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[44], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[44], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[45], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[45], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[45] = lo_ex_k;
+                values[45] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[44] = hi_ex_k;
+                values[44] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:47)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[46], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[46], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[47], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[47], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[47] = lo_ex_k;
+                values[47] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[46] = hi_ex_k;
+                values[46] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:49)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[48], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[48], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[49], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[49], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[49] = lo_ex_k;
+                values[49] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[48] = hi_ex_k;
+                values[48] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:51)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[50], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[50], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[51], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[51], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[51] = lo_ex_k;
+                values[51] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[50] = hi_ex_k;
+                values[50] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:53)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[52], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[52], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[53], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[53], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[53] = lo_ex_k;
+                values[53] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[52] = hi_ex_k;
+                values[52] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:55)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[54], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[54], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[55], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[55], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[55] = lo_ex_k;
+                values[55] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[54] = hi_ex_k;
+                values[54] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:57)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[56], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[56], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[57], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[57], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[57] = lo_ex_k;
+                values[57] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[56] = hi_ex_k;
+                values[56] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:59)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[58], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[58], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[59], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[59], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[59] = lo_ex_k;
+                values[59] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[58] = hi_ex_k;
+                values[58] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:61)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[60], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[60], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[61], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[61], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[61] = lo_ex_k;
+                values[61] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[60] = hi_ex_k;
+                values[60] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:0,register_bit:0,hi_register_index:63)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[62], 1u);
+            let lo_ex_v = subgroupShuffleXor(values[62], 1u);
+            let hi_ex_k = subgroupShuffleXor(keys[63], 1u);
+            let hi_ex_v = subgroupShuffleXor(values[63], 1u);
+            if ((local_tid & 1u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[63] = lo_ex_k;
+                values[63] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[62] = hi_ex_k;
+                values[62] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:2)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[0], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[0], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[2], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[2], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[2] = lo_ex_k;
+                values[2] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[0] = hi_ex_k;
+                values[0] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:3)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[1], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[1], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[3], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[3], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[3] = lo_ex_k;
+                values[3] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[1] = hi_ex_k;
+                values[1] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:6)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[4], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[4], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[6], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[6], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[6] = lo_ex_k;
+                values[6] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[4] = hi_ex_k;
+                values[4] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:7)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[5], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[5], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[7], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[7], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[7] = lo_ex_k;
+                values[7] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[5] = hi_ex_k;
+                values[5] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:10)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[8], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[8], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[10], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[10], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[10] = lo_ex_k;
+                values[10] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[8] = hi_ex_k;
+                values[8] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:11)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[9], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[9], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[11], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[11], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[11] = lo_ex_k;
+                values[11] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[9] = hi_ex_k;
+                values[9] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:14)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[12], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[12], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[14], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[14], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[14] = lo_ex_k;
+                values[14] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[12] = hi_ex_k;
+                values[12] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:15)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[13], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[13], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[15], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[15], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[15] = lo_ex_k;
+                values[15] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[13] = hi_ex_k;
+                values[13] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:18)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[16], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[16], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[18], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[18], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[18] = lo_ex_k;
+                values[18] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[16] = hi_ex_k;
+                values[16] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:19)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[17], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[17], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[19], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[19], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[19] = lo_ex_k;
+                values[19] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[17] = hi_ex_k;
+                values[17] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:22)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[20], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[20], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[22], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[22], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[22] = lo_ex_k;
+                values[22] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[20] = hi_ex_k;
+                values[20] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:23)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[21], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[21], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[23], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[23], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[23] = lo_ex_k;
+                values[23] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[21] = hi_ex_k;
+                values[21] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:26)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[24], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[24], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[26], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[26], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[26] = lo_ex_k;
+                values[26] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[24] = hi_ex_k;
+                values[24] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:27)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[25], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[25], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[27], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[27], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[27] = lo_ex_k;
+                values[27] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[25] = hi_ex_k;
+                values[25] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:30)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[28], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[28], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[30], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[30], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[30] = lo_ex_k;
+                values[30] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[28] = hi_ex_k;
+                values[28] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:31)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[29], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[29], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[31], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[31], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[31] = lo_ex_k;
+                values[31] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[29] = hi_ex_k;
+                values[29] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:34)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[32], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[32], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[34], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[34], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[34] = lo_ex_k;
+                values[34] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[32] = hi_ex_k;
+                values[32] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:35)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[33], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[33], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[35], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[35], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[35] = lo_ex_k;
+                values[35] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[33] = hi_ex_k;
+                values[33] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:38)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[36], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[36], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[38], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[38], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[38] = lo_ex_k;
+                values[38] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[36] = hi_ex_k;
+                values[36] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:39)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[37], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[37], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[39], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[39], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[39] = lo_ex_k;
+                values[39] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[37] = hi_ex_k;
+                values[37] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:42)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[40], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[40], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[42], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[42], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[42] = lo_ex_k;
+                values[42] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[40] = hi_ex_k;
+                values[40] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:43)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[41], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[41], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[43], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[43], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[43] = lo_ex_k;
+                values[43] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[41] = hi_ex_k;
+                values[41] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:46)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[44], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[44], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[46], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[46], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[46] = lo_ex_k;
+                values[46] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[44] = hi_ex_k;
+                values[44] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:47)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[45], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[45], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[47], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[47], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[47] = lo_ex_k;
+                values[47] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[45] = hi_ex_k;
+                values[45] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:50)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[48], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[48], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[50], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[50], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[50] = lo_ex_k;
+                values[50] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[48] = hi_ex_k;
+                values[48] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:51)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[49], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[49], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[51], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[51], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[51] = lo_ex_k;
+                values[51] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[49] = hi_ex_k;
+                values[49] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:54)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[52], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[52], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[54], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[54], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[54] = lo_ex_k;
+                values[54] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[52] = hi_ex_k;
+                values[52] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:55)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[53], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[53], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[55], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[55], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[55] = lo_ex_k;
+                values[55] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[53] = hi_ex_k;
+                values[53] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:58)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[56], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[56], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[58], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[58], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[58] = lo_ex_k;
+                values[58] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[56] = hi_ex_k;
+                values[56] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:59)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[57], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[57], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[59], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[59], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[59] = lo_ex_k;
+                values[59] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[57] = hi_ex_k;
+                values[57] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:62)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[60], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[60], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[62], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[62], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[62] = lo_ex_k;
+                values[62] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[60] = hi_ex_k;
+                values[60] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:1,register_bit:1,hi_register_index:63)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[61], 2u);
+            let lo_ex_v = subgroupShuffleXor(values[61], 2u);
+            let hi_ex_k = subgroupShuffleXor(keys[63], 2u);
+            let hi_ex_v = subgroupShuffleXor(values[63], 2u);
+            if ((local_tid & 2u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[63] = lo_ex_k;
+                values[63] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[61] = hi_ex_k;
+                values[61] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:4)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[0], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[0], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[4], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[4], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[4] = lo_ex_k;
+                values[4] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[0] = hi_ex_k;
+                values[0] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:5)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[1], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[1], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[5], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[5], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[5] = lo_ex_k;
+                values[5] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[1] = hi_ex_k;
+                values[1] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:6)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[2], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[2], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[6], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[6], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[6] = lo_ex_k;
+                values[6] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[2] = hi_ex_k;
+                values[2] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:7)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[3], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[3], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[7], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[7], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[7] = lo_ex_k;
+                values[7] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[3] = hi_ex_k;
+                values[3] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:12)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[8], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[8], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[12], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[12], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[12] = lo_ex_k;
+                values[12] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[8] = hi_ex_k;
+                values[8] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:13)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[9], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[9], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[13], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[13], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[13] = lo_ex_k;
+                values[13] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[9] = hi_ex_k;
+                values[9] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:14)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[10], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[10], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[14], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[14], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[14] = lo_ex_k;
+                values[14] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[10] = hi_ex_k;
+                values[10] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:15)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[11], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[11], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[15], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[15], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[15] = lo_ex_k;
+                values[15] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[11] = hi_ex_k;
+                values[11] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:20)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[16], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[16], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[20], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[20], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[20] = lo_ex_k;
+                values[20] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[16] = hi_ex_k;
+                values[16] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:21)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[17], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[17], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[21], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[21], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[21] = lo_ex_k;
+                values[21] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[17] = hi_ex_k;
+                values[17] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:22)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[18], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[18], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[22], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[22], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[22] = lo_ex_k;
+                values[22] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[18] = hi_ex_k;
+                values[18] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:23)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[19], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[19], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[23], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[23], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[23] = lo_ex_k;
+                values[23] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[19] = hi_ex_k;
+                values[19] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:28)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[24], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[24], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[28], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[28], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[28] = lo_ex_k;
+                values[28] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[24] = hi_ex_k;
+                values[24] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:29)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[25], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[25], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[29], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[29], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[29] = lo_ex_k;
+                values[29] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[25] = hi_ex_k;
+                values[25] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:30)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[26], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[26], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[30], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[30], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[30] = lo_ex_k;
+                values[30] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[26] = hi_ex_k;
+                values[26] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:31)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[27], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[27], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[31], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[31], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[31] = lo_ex_k;
+                values[31] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[27] = hi_ex_k;
+                values[27] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:36)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[32], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[32], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[36], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[36], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[36] = lo_ex_k;
+                values[36] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[32] = hi_ex_k;
+                values[32] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:37)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[33], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[33], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[37], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[37], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[37] = lo_ex_k;
+                values[37] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[33] = hi_ex_k;
+                values[33] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:38)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[34], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[34], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[38], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[38], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[38] = lo_ex_k;
+                values[38] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[34] = hi_ex_k;
+                values[34] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:39)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[35], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[35], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[39], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[39], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[39] = lo_ex_k;
+                values[39] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[35] = hi_ex_k;
+                values[35] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:44)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[40], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[40], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[44], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[44], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[44] = lo_ex_k;
+                values[44] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[40] = hi_ex_k;
+                values[40] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:45)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[41], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[41], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[45], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[45], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[45] = lo_ex_k;
+                values[45] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[41] = hi_ex_k;
+                values[41] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:46)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[42], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[42], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[46], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[46], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[46] = lo_ex_k;
+                values[46] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[42] = hi_ex_k;
+                values[42] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:47)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[43], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[43], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[47], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[47], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[47] = lo_ex_k;
+                values[47] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[43] = hi_ex_k;
+                values[43] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:52)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[48], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[48], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[52], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[52], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[52] = lo_ex_k;
+                values[52] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[48] = hi_ex_k;
+                values[48] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:53)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[49], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[49], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[53], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[53], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[53] = lo_ex_k;
+                values[53] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[49] = hi_ex_k;
+                values[49] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:54)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[50], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[50], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[54], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[54], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[54] = lo_ex_k;
+                values[54] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[50] = hi_ex_k;
+                values[50] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:55)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[51], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[51], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[55], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[55], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[55] = lo_ex_k;
+                values[55] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[51] = hi_ex_k;
+                values[51] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:60)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[56], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[56], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[60], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[60], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[60] = lo_ex_k;
+                values[60] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[56] = hi_ex_k;
+                values[56] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:61)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[57], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[57], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[61], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[61], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[61] = lo_ex_k;
+                values[61] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[57] = hi_ex_k;
+                values[57] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:62)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[58], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[58], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[62], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[62], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[62] = lo_ex_k;
+                values[62] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[58] = hi_ex_k;
+                values[58] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:2,register_bit:2,hi_register_index:63)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[59], 4u);
+            let lo_ex_v = subgroupShuffleXor(values[59], 4u);
+            let hi_ex_k = subgroupShuffleXor(keys[63], 4u);
+            let hi_ex_v = subgroupShuffleXor(values[63], 4u);
+            if ((local_tid & 4u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[63] = lo_ex_k;
+                values[63] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[59] = hi_ex_k;
+                values[59] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:8)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[0], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[0], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[8], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[8], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[8] = lo_ex_k;
+                values[8] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[0] = hi_ex_k;
+                values[0] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:9)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[1], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[1], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[9], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[9], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[9] = lo_ex_k;
+                values[9] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[1] = hi_ex_k;
+                values[1] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:10)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[2], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[2], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[10], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[10], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[10] = lo_ex_k;
+                values[10] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[2] = hi_ex_k;
+                values[2] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:11)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[3], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[3], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[11], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[11], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[11] = lo_ex_k;
+                values[11] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[3] = hi_ex_k;
+                values[3] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:12)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[4], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[4], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[12], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[12], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[12] = lo_ex_k;
+                values[12] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[4] = hi_ex_k;
+                values[4] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:13)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[5], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[5], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[13], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[13], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[13] = lo_ex_k;
+                values[13] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[5] = hi_ex_k;
+                values[5] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:14)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[6], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[6], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[14], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[14], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[14] = lo_ex_k;
+                values[14] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[6] = hi_ex_k;
+                values[6] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:15)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[7], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[7], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[15], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[15], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[15] = lo_ex_k;
+                values[15] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[7] = hi_ex_k;
+                values[7] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:24)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[16], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[16], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[24], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[24], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[24] = lo_ex_k;
+                values[24] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[16] = hi_ex_k;
+                values[16] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:25)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[17], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[17], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[25], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[25], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[25] = lo_ex_k;
+                values[25] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[17] = hi_ex_k;
+                values[17] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:26)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[18], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[18], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[26], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[26], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[26] = lo_ex_k;
+                values[26] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[18] = hi_ex_k;
+                values[18] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:27)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[19], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[19], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[27], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[27], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[27] = lo_ex_k;
+                values[27] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[19] = hi_ex_k;
+                values[19] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:28)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[20], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[20], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[28], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[28], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[28] = lo_ex_k;
+                values[28] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[20] = hi_ex_k;
+                values[20] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:29)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[21], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[21], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[29], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[29], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[29] = lo_ex_k;
+                values[29] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[21] = hi_ex_k;
+                values[21] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:30)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[22], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[22], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[30], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[30], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[30] = lo_ex_k;
+                values[30] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[22] = hi_ex_k;
+                values[22] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:31)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[23], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[23], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[31], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[31], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[31] = lo_ex_k;
+                values[31] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[23] = hi_ex_k;
+                values[23] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:40)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[32], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[32], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[40], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[40], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[40] = lo_ex_k;
+                values[40] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[32] = hi_ex_k;
+                values[32] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:41)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[33], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[33], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[41], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[41], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[41] = lo_ex_k;
+                values[41] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[33] = hi_ex_k;
+                values[33] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:42)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[34], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[34], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[42], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[42], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[42] = lo_ex_k;
+                values[42] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[34] = hi_ex_k;
+                values[34] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:43)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[35], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[35], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[43], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[43], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[43] = lo_ex_k;
+                values[43] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[35] = hi_ex_k;
+                values[35] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:44)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[36], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[36], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[44], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[44], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[44] = lo_ex_k;
+                values[44] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[36] = hi_ex_k;
+                values[36] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:45)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[37], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[37], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[45], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[45], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[45] = lo_ex_k;
+                values[45] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[37] = hi_ex_k;
+                values[37] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:46)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[38], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[38], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[46], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[46], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[46] = lo_ex_k;
+                values[46] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[38] = hi_ex_k;
+                values[38] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:47)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[39], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[39], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[47], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[47], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[47] = lo_ex_k;
+                values[47] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[39] = hi_ex_k;
+                values[39] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:56)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[48], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[48], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[56], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[56], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[56] = lo_ex_k;
+                values[56] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[48] = hi_ex_k;
+                values[48] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:57)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[49], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[49], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[57], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[57], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[57] = lo_ex_k;
+                values[57] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[49] = hi_ex_k;
+                values[49] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:58)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[50], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[50], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[58], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[58], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[58] = lo_ex_k;
+                values[58] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[50] = hi_ex_k;
+                values[50] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:59)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[51], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[51], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[59], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[59], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[59] = lo_ex_k;
+                values[59] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[51] = hi_ex_k;
+                values[51] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:60)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[52], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[52], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[60], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[60], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[60] = lo_ex_k;
+                values[60] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[52] = hi_ex_k;
+                values[52] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:61)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[53], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[53], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[61], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[61], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[61] = lo_ex_k;
+                values[61] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[53] = hi_ex_k;
+                values[53] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:62)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[54], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[54], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[62], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[62], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[62] = lo_ex_k;
+                values[62] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[54] = hi_ex_k;
+                values[54] = hi_ex_v;
+            }
+        }
+    // swap(lane_bit:3,register_bit:3,hi_register_index:63)
+        {
+            let lo_ex_k = subgroupShuffleXor(keys[55], 8u);
+            let lo_ex_v = subgroupShuffleXor(values[55], 8u);
+            let hi_ex_k = subgroupShuffleXor(keys[63], 8u);
+            let hi_ex_v = subgroupShuffleXor(values[63], 8u);
+            if ((local_tid & 8u) == 0u) {
+                // lo lane: swap self hi register with pair lo register
+                keys[63] = lo_ex_k;
+                values[63] = lo_ex_v;
+            } else {
+                // hi lane: swap self lo register with pair hi register
+                keys[55] = hi_ex_k;
+                values[55] = hi_ex_v;
+            }
+        }
+        if is_active {
+            { let global_offset = 0 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[0];
+            global_value_indices[seg_start + global_offset] = values[0]; } }
+            { let global_offset = 4 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[1];
+            global_value_indices[seg_start + global_offset] = values[1]; } }
+            { let global_offset = 8 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[2];
+            global_value_indices[seg_start + global_offset] = values[2]; } }
+            { let global_offset = 12 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[3];
+            global_value_indices[seg_start + global_offset] = values[3]; } }
+            { let global_offset = 16 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[4];
+            global_value_indices[seg_start + global_offset] = values[4]; } }
+            { let global_offset = 20 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[5];
+            global_value_indices[seg_start + global_offset] = values[5]; } }
+            { let global_offset = 24 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[6];
+            global_value_indices[seg_start + global_offset] = values[6]; } }
+            { let global_offset = 28 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[7];
+            global_value_indices[seg_start + global_offset] = values[7]; } }
+            { let global_offset = 32 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[8];
+            global_value_indices[seg_start + global_offset] = values[8]; } }
+            { let global_offset = 36 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[9];
+            global_value_indices[seg_start + global_offset] = values[9]; } }
+            { let global_offset = 40 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[10];
+            global_value_indices[seg_start + global_offset] = values[10]; } }
+            { let global_offset = 44 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[11];
+            global_value_indices[seg_start + global_offset] = values[11]; } }
+            { let global_offset = 48 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[12];
+            global_value_indices[seg_start + global_offset] = values[12]; } }
+            { let global_offset = 52 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[13];
+            global_value_indices[seg_start + global_offset] = values[13]; } }
+            { let global_offset = 56 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[14];
+            global_value_indices[seg_start + global_offset] = values[14]; } }
+            { let global_offset = 60 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[15];
+            global_value_indices[seg_start + global_offset] = values[15]; } }
+            { let global_offset = 1 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[16];
+            global_value_indices[seg_start + global_offset] = values[16]; } }
+            { let global_offset = 5 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[17];
+            global_value_indices[seg_start + global_offset] = values[17]; } }
+            { let global_offset = 9 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[18];
+            global_value_indices[seg_start + global_offset] = values[18]; } }
+            { let global_offset = 13 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[19];
+            global_value_indices[seg_start + global_offset] = values[19]; } }
+            { let global_offset = 17 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[20];
+            global_value_indices[seg_start + global_offset] = values[20]; } }
+            { let global_offset = 21 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[21];
+            global_value_indices[seg_start + global_offset] = values[21]; } }
+            { let global_offset = 25 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[22];
+            global_value_indices[seg_start + global_offset] = values[22]; } }
+            { let global_offset = 29 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[23];
+            global_value_indices[seg_start + global_offset] = values[23]; } }
+            { let global_offset = 33 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[24];
+            global_value_indices[seg_start + global_offset] = values[24]; } }
+            { let global_offset = 37 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[25];
+            global_value_indices[seg_start + global_offset] = values[25]; } }
+            { let global_offset = 41 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[26];
+            global_value_indices[seg_start + global_offset] = values[26]; } }
+            { let global_offset = 45 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[27];
+            global_value_indices[seg_start + global_offset] = values[27]; } }
+            { let global_offset = 49 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[28];
+            global_value_indices[seg_start + global_offset] = values[28]; } }
+            { let global_offset = 53 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[29];
+            global_value_indices[seg_start + global_offset] = values[29]; } }
+            { let global_offset = 57 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[30];
+            global_value_indices[seg_start + global_offset] = values[30]; } }
+            { let global_offset = 61 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[31];
+            global_value_indices[seg_start + global_offset] = values[31]; } }
+            { let global_offset = 2 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[32];
+            global_value_indices[seg_start + global_offset] = values[32]; } }
+            { let global_offset = 6 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[33];
+            global_value_indices[seg_start + global_offset] = values[33]; } }
+            { let global_offset = 10 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[34];
+            global_value_indices[seg_start + global_offset] = values[34]; } }
+            { let global_offset = 14 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[35];
+            global_value_indices[seg_start + global_offset] = values[35]; } }
+            { let global_offset = 18 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[36];
+            global_value_indices[seg_start + global_offset] = values[36]; } }
+            { let global_offset = 22 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[37];
+            global_value_indices[seg_start + global_offset] = values[37]; } }
+            { let global_offset = 26 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[38];
+            global_value_indices[seg_start + global_offset] = values[38]; } }
+            { let global_offset = 30 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[39];
+            global_value_indices[seg_start + global_offset] = values[39]; } }
+            { let global_offset = 34 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[40];
+            global_value_indices[seg_start + global_offset] = values[40]; } }
+            { let global_offset = 38 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[41];
+            global_value_indices[seg_start + global_offset] = values[41]; } }
+            { let global_offset = 42 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[42];
+            global_value_indices[seg_start + global_offset] = values[42]; } }
+            { let global_offset = 46 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[43];
+            global_value_indices[seg_start + global_offset] = values[43]; } }
+            { let global_offset = 50 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[44];
+            global_value_indices[seg_start + global_offset] = values[44]; } }
+            { let global_offset = 54 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[45];
+            global_value_indices[seg_start + global_offset] = values[45]; } }
+            { let global_offset = 58 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[46];
+            global_value_indices[seg_start + global_offset] = values[46]; } }
+            { let global_offset = 62 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[47];
+            global_value_indices[seg_start + global_offset] = values[47]; } }
+            { let global_offset = 3 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[48];
+            global_value_indices[seg_start + global_offset] = values[48]; } }
+            { let global_offset = 7 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[49];
+            global_value_indices[seg_start + global_offset] = values[49]; } }
+            { let global_offset = 11 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[50];
+            global_value_indices[seg_start + global_offset] = values[50]; } }
+            { let global_offset = 15 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[51];
+            global_value_indices[seg_start + global_offset] = values[51]; } }
+            { let global_offset = 19 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[52];
+            global_value_indices[seg_start + global_offset] = values[52]; } }
+            { let global_offset = 23 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[53];
+            global_value_indices[seg_start + global_offset] = values[53]; } }
+            { let global_offset = 27 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[54];
+            global_value_indices[seg_start + global_offset] = values[54]; } }
+            { let global_offset = 31 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[55];
+            global_value_indices[seg_start + global_offset] = values[55]; } }
+            { let global_offset = 35 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[56];
+            global_value_indices[seg_start + global_offset] = values[56]; } }
+            { let global_offset = 39 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[57];
+            global_value_indices[seg_start + global_offset] = values[57]; } }
+            { let global_offset = 43 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[58];
+            global_value_indices[seg_start + global_offset] = values[58]; } }
+            { let global_offset = 47 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[59];
+            global_value_indices[seg_start + global_offset] = values[59]; } }
+            { let global_offset = 51 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[60];
+            global_value_indices[seg_start + global_offset] = values[60]; } }
+            { let global_offset = 55 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[61];
+            global_value_indices[seg_start + global_offset] = values[61]; } }
+            { let global_offset = 59 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[62];
+            global_value_indices[seg_start + global_offset] = values[62]; } }
+            { let global_offset = 63 * M + local_tid;
+                if global_offset < seg_size {
+            global_keys[seg_start + global_offset] = keys[63];
+            global_value_indices[seg_start + global_offset] = values[63]; } }
+        }
 }
