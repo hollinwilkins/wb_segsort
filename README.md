@@ -20,9 +20,21 @@ Sorting Kernels: [shaders/sort_kernels](./shaders/sort_kernels/)
 
 ### Throughput
 
+This figure shows the highest throughput of the selected winner for each bin. It outlines a combination of fixed-size sorting kernels and their max throughput.
+
+![Throughput Envolope of Winning Kernels](./results/experiment3/envelope.png)
+
 ### Register vs Shared Memory
 
+This is one of the comparisons in Hou et. al, recreated here to show that register sorting networks are indeed faster until the bitonic sorting networks become too large, at which point, a hybrid register sort + block merge algorith (hybmerge) start to win.
+
+![Register sort vs. shared memory sort](./results/experiment3/reg_vs_smem.png)
+
 ### CuteSort + merge vs Register Bitonic Sort + merge
+
+This figure compares the register-based radix sort + block merge (cutemerge) to the register-based bitonic sort + block merge (hybmerge). We can see that the 32 calls to `subgroupBallot` makes cutemerge perform worse than hybmerge, until the sorting networks of hybmerge become too large, right at N=256. At N=256, the run-length of the sorted blocks jumps from 64 to 256, at which point the radix sort starts to win. The maximum shared memory of the test device is 32kb, which limits our experiments to a maximum of N=4096. For devices with more maximum shared memory, we could test larger values of N, and we woul expect the cutemerge kernels to perform even better compared to hybmerge kernels.
+
+![Cute sort + merge vs. reg sort + merge](./results/experiment3/cutemerge_vs_hybmerge.png)
 
 ## Summary of Kernels
 
