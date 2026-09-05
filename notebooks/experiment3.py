@@ -14,22 +14,45 @@
 # ---
 
 # %% [markdown]
-# # Kernel benchmark analysis
+# # Experiment 3: Sorting Kernels
 #
-# Loads the per-kernel timing CSVs under `output/kernels/keys_<N>/` (one
-# self-describing CSV per kernel variant, one row per timed run) and provides
-# robust per-kernel summaries plus comparison plots.
+# This experiment explores different kernels for sorting fixed-sized arrays.
+# It is part of a larger effort to build a fast segmented sorting algorithm on
+# WebGPU. This work is based on Hou et. al's [Fast Segmented Sort on GPUs](https://dl.acm.org/doi/abs/10.1145/3079079.3079105).
 #
-# **Structure:** the **PREP** cell builds every shared DataFrame once from
-# `data`. All plot cells below read only those names (`agg`, `summary`,
-# `winners`, `geo_win`, `seg`, `bins`, `key_counts`, style maps) and reassign
-# none of them — so they can be run or reordered freely once Load + PREP have
-# run. Each plot cell still owns its plot-local temporaries (pivots, best-of
-# selections).
+# There are four sorting methods being tested:
+# 1.    smem: shared-memory-based bitonic sort networks - use workgroup memory to shuffle data between threads
+# 2.    reg: register-based bitonic sort networks - use registers to shuffle data between threads
+#       This is the analog to the register-based sorting network created by Hou et. al.
+# 3.    hybrid: hybrid bitonic sort networks - use registers to shuffle data until we are limited by subgroup size, then switch to shared memory
+# 4.    hybmerge: hybrid bitonic sort + merge sort - use register to shuffle data until we are limited by subgroup size, then switch to a recursive merge sort
+#       This is the analog to the mid-sized sorting networks created by Hou et. al.
 #
-# **Note on variance:** the first several runs of some kernels show a gradual
-# DVFS clock ramp, so `mean` is biased low. We use the **median** as the robust
-# per-experiment statistic.
+# ## Methodology
+#
+# ### Environment
+# - Device: Apple **M2 Max** (Mac14,6), **macOS 26.5.1**.
+# - WebGPU Backend: Dawn Release Build (bddf1a04f7c262107a9aae301c45fc49e15c7fef). Dawn is required for subgroups on MacOS and correct GPU timestamp measurement.
+# - Published Memory Bandwidth: 400 Gb/s
+# - Measured Memory Bandwidth: ~379.7 Gb/s
+#
+# ### Inputs/Outputs
+# - Segment Array: sequence of monotonically-increasing array length values, e.g [2, 4, 10] defines 3 segments with length [2, 2, 6], respectively. (input only)
+# - Keys Array: sequence of keys to sort, 32-bit unsigned integers. (input and output)
+# - Value Index Array: sorted sequence of value indices, 32-bit unsigned integers, can be used in a separate step to sort an actual array of values. (output only)
+# - Memory bandwidth is assumed at 12 bytes / key (1 key read, 1 key write, 1 value index write). This is roughly 31.7 G keys / s.
+#
+# ### Test Data
+#
+# Test data is randomly generated per bin
+#
+# %% [markdown]
+#
+# ## Future Work
+#
+# 1. [GPUSorting](https://github.com/b0nes164/GPUSorting) implements a cutesort, which is a register-based radix sort. This would be a competitor to register-based bitonic sorts.
+# 2. radix sorting instead of merge sorting for hybrid sorting algorithms (need to think this through more)
+#
 
 # %% [markdown]
 # ## Methodology

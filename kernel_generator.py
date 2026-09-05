@@ -46,7 +46,7 @@ class KernelArgs:
     wpt: int        # work items per thread = N // M
     R: int          # number of threads in subgroup (for register shuffling),
                     # must be <= n_subgroups supported by chip
-    mode: str       # "reg" | "wg" | "hybrid" | "hybmerge"
+    mode: str       # "reg" | "cute" | "wg" | "hybrid" | "hybmerge"
     is_block: bool  # block store if true, otherwise striped store
 
     def name(self):
@@ -56,6 +56,9 @@ class KernelArgs:
         if self.mode == "hybmerge":
             smem_k = 16 if 8 * self.N <= 16384 else 32
             return f"segsort_hybmerge_sg{self.R}_smem{smem_k}k_n{self.N}_m{self.M}_{store}"
+        if self.mode == "cutemerge":
+            smem_k = 16 if 8 * self.N <= 16384 else 32
+            return f"segsort_cutemerge_sg{self.R}_smem{smem_k}k_n{self.N}_m{self.M}_{store}"
         return f"segsort_{self.mode}_n{self.N}_m{self.M}_{store}"
 
 class Transposer:
@@ -790,15 +793,337 @@ fn {name}(
 }}
 """
 
+    # merge-path pass: merge adjacent sorted runs of `run` into runs of 2*run,
+    # staged through smem (register pong write-back). Identical body to the
+    # hybmerge merge pass -- shared by hybmerge and cutemerge.
+    def _merge_pass(self, run: int, wpt: int) -> str:
+        merged = 2 * run
+        return f"""    // merge pass: two sorted runs of {run} -> {merged} (register-staged)
+    {{
+        let group_base = (base / {merged}u) * {merged}u;
+        let diag = base - group_base;
+        let a_base = group_base;
+        let b_base = group_base + {run}u;
+        // merge-path: binary search the diagonal for this thread's A/B split
+        var lo = select(0u, diag - {run}u, diag > {run}u);
+        var hi = min(diag, {run}u);
+        while (lo < hi) {{
+            let mid = (lo + hi) >> 1u;
+            let ak = smem_keys[a_base + mid];
+            let av = smem_vals[a_base + mid];
+            let bpos = b_base + (diag - 1u - mid);
+            let bk = smem_keys[bpos];
+            let bv = smem_vals[bpos];
+            if ak < bk || (ak == bk && av <= bv) {{ lo = mid + 1u; }} else {{ hi = mid; }}
+        }}
+        var ai = lo;
+        var bi = diag - lo;
+        // merge this thread's WPT outputs into registers (the pong)
+        var out_keys: array<u32, {wpt}>;
+        var out_vals: array<u32, {wpt}>;
+        for (var k = 0u; k < WPT; k = k + 1u) {{
+            let take_a = bi >= {run}u || (ai < {run}u &&
+                (smem_keys[a_base + ai] < smem_keys[b_base + bi] ||
+                 (smem_keys[a_base + ai] == smem_keys[b_base + bi] &&
+                  smem_vals[a_base + ai] <= smem_vals[b_base + bi])));
+            if take_a {{
+                out_keys[k] = smem_keys[a_base + ai];
+                out_vals[k] = smem_vals[a_base + ai];
+                ai = ai + 1u;
+            }} else {{
+                out_keys[k] = smem_keys[b_base + bi];
+                out_vals[k] = smem_vals[b_base + bi];
+                bi = bi + 1u;
+            }}
+        }}
+        workgroupBarrier();   // every read is done before any write-back
+        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
+                              // the in-place write-back for single-SIMD-group WGs
+        for (var k = 0u; k < WPT; k = k + 1u) {{
+            smem_keys[base + k] = out_keys[k];
+            smem_vals[base + k] = out_vals[k];
+        }}
+    }}
+    workgroupBarrier();"""
+
+    def _cute_base(self, sg: int, wpt: int):
+        COMP = ["x", "y", "z", "w"]
+        if sg in (32, 64, 128):
+            cpb = sg // 32
+            cw = min(wpt, 128 // sg)
+            crun = cw * sg
+            groups = wpt // cw
+            blocks = []
+            for g in range(groups):
+                s0 = g * cw
+                L = [f"    {{  // CuteSort wide run {g}: {cw} slot(s) x {sg} lanes -> sorted run of {crun}",
+                     f"        let rbase = sub_block + {g * crun}u;"]
+                for c in range(cw):
+                    L.append(f"        var ge_{c} = lane_mask_lt({c * sg}u + sid);")
+                L.append("        for (var bit = 0u; bit < 32u; bit = bit + 1u) {")
+                for c in range(cw):
+                    L.append(f"            let bal_{c} = subgroupBallot((keys[{s0 + c}] & (1u << bit)) == 0u);")
+                L.append("            var zmask = vec4<u32>(0u, 0u, 0u, 0u);")
+                for c in range(cw):
+                    for j in range(cpb):
+                        L.append(f"            zmask.{COMP[c * cpb + j]} = bal_{c}.{COMP[j]};")
+                for c in range(cw):
+                    L.append(f"            let isz_{c} = (keys[{s0 + c}] & (1u << bit)) == 0u;")
+                    L.append(f"            ge_{c} = select(ge_{c} | zmask, ge_{c} & zmask, isz_{c});")
+                L.append("        }")
+                for c in range(cw):
+                    L.append(f"        let r_{c} = ballot_popc(ge_{c});")
+                    L.append(f"        smem_keys[rbase + r_{c}] = keys[{s0 + c}];")
+                    L.append(f"        smem_vals[rbase + r_{c}] = values[{s0 + c}];")
+                L.append("    }")
+                blocks.append("\n".join(L))
+            return "\n".join(blocks), crun, False
+
+        slots = []
+        for k in range(wpt):
+            slots.append(f"""    {{  // cute run for register slot {k}
+        let key_k = keys[{k}];
+        var ge_mask = lane_mask_lt(sid);
+        for (var bit = 0u; bit < 32u; bit = bit + 1u) {{
+            let is_zero = (key_k & (1u << bit)) == 0u;
+            let ballot0 = subgroupBallot(is_zero);
+            ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
+        }}
+        let rank = ballot_popc(ge_mask & bin_mask);
+        smem_keys[sub_block + {k}u * SG + rank] = key_k;
+        smem_vals[sub_block + {k}u * SG + rank] = values[{k}];
+    }}""")
+        return "\n".join(slots), sg, True
+
+    def sort_kernel_cute_merge(self, kernel: KernelArgs):
+        name = kernel.name()
+        N, M, sg = kernel.N, kernel.M, kernel.R
+        wpt = kernel.wpt
+        RUN = sg * wpt
+
+        base, initial_run, uses_bin_mask = self._cute_base(sg, wpt)
+
+        passes = []
+        run = initial_run
+        while run < N:
+            passes.append(self._merge_pass(run, wpt))
+            run *= 2
+        merge_passes = "\n".join(passes)
+
+        bin_setup = ("""    let seg_lane_base = sid - (sid % SG);
+    let bin_mask = lane_mask_lt(seg_lane_base + SG) & ~lane_mask_lt(seg_lane_base);
+""" if uses_bin_mask else "")
+
+        if kernel.is_block:
+            store = """    for (var r = 0u; r < WPT; r = r + 1u) {{
+        let pos = local_tid * WPT + r;
+        if is_active && pos < seg_size {{
+            global_keys[seg_start + pos] = smem_keys[pos];
+            global_value_indices[seg_start + pos] = smem_vals[pos];
+        }}
+    }}"""
+        else:
+            store = """    for (var c = 0u; c < WPT; c = c + 1u) {{
+        let j = c * M + local_tid;
+        if is_active && j < seg_size {{
+            global_keys[seg_start + j] = smem_keys[j];
+            global_value_indices[seg_start + j] = smem_vals[j];
+        }}
+    }}"""
+
+        return f"""
+enable subgroups;
+
+override WG: u32 = {M}u;
+
+@group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
+@group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
+@group(0) @binding(2) var<storage, read> segments: array<u32>;
+@group(0) @binding(3) var<storage, read> bin_offsets: array<u32>;
+@group(0) @binding(4) var<storage, read> bin_indices: array<u32>;
+
+const N: u32 = {N}u;
+const M: u32 = {M}u;
+const WPT: u32 = {wpt}u;
+const SG: u32 = {sg}u;      // one CuteSort run spans SG lanes; RUN = SG*WPT = {RUN}
+
+var<workgroup> smem_keys: array<u32, N>;
+var<workgroup> smem_vals: array<u32, N>;
+
+fn lane_mask_lt(sid: u32) -> vec4<u32> {{
+    var m = vec4<u32>(0u, 0u, 0u, 0u);
+    if (sid >= 32u) {{ m.x = 0xffffffffu; }} else {{ m.x = (1u << sid) - 1u; }}
+    if (sid >= 64u) {{ m.y = 0xffffffffu; }} else if (sid > 32u) {{ m.y = (1u << (sid - 32u)) - 1u; }}
+    if (sid >= 96u) {{ m.z = 0xffffffffu; }} else if (sid > 64u) {{ m.z = (1u << (sid - 64u)) - 1u; }}
+    if (sid >= 128u) {{ m.w = 0xffffffffu; }} else if (sid > 96u) {{ m.w = (1u << (sid - 96u)) - 1u; }}
+    return m;
+}}
+
+fn ballot_popc(v: vec4<u32>) -> u32 {{
+    let c = countOneBits(v);
+    return c.x + c.y + c.z + c.w;
+}}
+
+@compute @workgroup_size(WG, 1, 1)
+fn {name}(
+    @builtin(subgroup_invocation_id) sid: u32,
+    @builtin(local_invocation_index) tid_g: u32,
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
+) {{
+    const BIN: u32 = {N.bit_length() - 1}u;
+
+    let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
+    let bin_count = bin_offsets[BIN] - bin_base;
+
+    let local_tid = tid_g % M;
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = (wg_index * WG + tid_g) / M;
+
+    let is_active = global_seg < bin_count;
+    let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
+    let seg_id = bin_indices[slot];
+    let seg_start = select(segments[seg_id - 1u], 0u, seg_id == 0u);
+    let seg_end = segments[seg_id];
+    let seg_size = select(0u, seg_end - seg_start, is_active);
+
+    var keys: array<u32, {wpt}>;
+    var values: array<u32, {wpt}>;
+
+    for (var r = 0u; r < WPT; r = r + 1u) {{
+        let pos = local_tid * WPT + r;
+        if is_active && pos < seg_size {{
+            keys[r] = global_keys[seg_start + pos];
+            values[r] = seg_start + pos;
+        }} else {{
+            keys[r] = 0xffffffffu;
+            values[r] = 0xffffffffu;
+        }}
+    }}
+
+    // phase 1 (CuteSort): each subgroup sorts its RUN = SG*WPT elements.
+    let sub_block = (tid_g / SG) * SG * WPT;   // this subgroup's runs live here
+{bin_setup}
+{base}
+    workgroupBarrier();
+
+    let base = local_tid * WPT;   // this thread's blocked output range [base, base+WPT)
+
+{merge_passes}
+{store}
+}}
+"""
+
+    def sort_kernel_cute(self, kernel: KernelArgs) -> str:
+        name = kernel.name()
+        N = kernel.N
+        store = self.store_back(kernel, "seg_start", "seg_size", "is_active", 1)
+        return f"""
+enable subgroups;
+
+override WG: u32 = {N}u;
+
+@group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
+@group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
+@group(0) @binding(2) var<storage, read> segments: array<u32>;
+@group(0) @binding(3) var<storage, read> bin_offsets: array<u32>;
+@group(0) @binding(4) var<storage, read> bin_indices: array<u32>;
+
+const N: u32 = {N}u;
+const M: u32 = {N}u;
+const WPT: u32 = 1u;
+
+var<workgroup> smem_keys: array<u32, WG>;
+var<workgroup> smem_vals: array<u32, WG>;
+
+fn lane_mask_lt(sid: u32) -> vec4<u32> {{
+    var m = vec4<u32>(0u, 0u, 0u, 0u);
+    if (sid >= 32u) {{ m.x = 0xffffffffu; }} else {{ m.x = (1u << sid) - 1u; }}
+    if (sid >= 64u) {{ m.y = 0xffffffffu; }} else if (sid > 32u) {{ m.y = (1u << (sid - 32u)) - 1u; }}
+    if (sid >= 96u) {{ m.z = 0xffffffffu; }} else if (sid > 64u) {{ m.z = (1u << (sid - 64u)) - 1u; }}
+    if (sid >= 128u) {{ m.w = 0xffffffffu; }} else if (sid > 96u) {{ m.w = (1u << (sid - 96u)) - 1u; }}
+    return m;
+}}
+
+fn ballot_popc(v: vec4<u32>) -> u32 {{
+    let c = countOneBits(v);
+    return c.x + c.y + c.z + c.w;
+}}
+
+@compute @workgroup_size(WG, 1, 1)
+fn {name}(
+    @builtin(subgroup_invocation_id) sid: u32,
+    @builtin(local_invocation_index) lid: u32,
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
+) {{
+    const BIN: u32 = {N.bit_length() - 1}u;
+
+    let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
+    let bin_count = bin_offsets[BIN] - bin_base;
+
+    // WG == subgroup size, so one subgroup covers the whole workgroup and packs
+    // WG/M segments (each M consecutive lanes = one segment). This keeps a full
+    // subgroup busy even for tiny N, instead of one segment per workgroup.
+    let local_tid = sid & (M - 1u);
+    let seg_lane_base = sid - local_tid;            // my segment's base lane in the subgroup
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = (wg_index * WG + sid) / M;
+
+    let is_active = global_seg < bin_count;
+    let slot = bin_base + select(0u, global_seg, is_active);   // clamp so the read is in-range
+    let seg_id = bin_indices[slot];
+    let seg_start = select(segments[seg_id - 1u], 0u, seg_id == 0u);
+    let seg_end = segments[seg_id];
+    let seg_size = select(0u, seg_end - seg_start, is_active);
+
+    var key: u32;
+    var value: u32;
+    if is_active && local_tid < seg_size {{
+        key = global_keys[seg_start + local_tid];
+        value = seg_start + local_tid;
+    }} else {{
+        key = 0xffffffffu;                          // sentinels sort to the top, dropped at store
+        value = 0xffffffffu;
+    }}
+
+    // Multisplit over the full subgroup, then confine the popcount to my
+    // segment's lanes (bin_mask) so segments sharing the subgroup don't mix.
+    let bin_mask = lane_mask_lt(seg_lane_base + M) & ~lane_mask_lt(seg_lane_base);
+    var ge_mask = lane_mask_lt(sid);
+    for (var bit = 0u; bit < 32u; bit = bit + 1u) {{
+        let is_zero = (key & (1u << bit)) == 0u;
+        let ballot0 = subgroupBallot(is_zero);
+        ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
+    }}
+    let rank = ballot_popc(ge_mask & bin_mask);     // my sorted position within the segment
+
+    smem_keys[seg_lane_base + rank] = key;
+    smem_vals[seg_lane_base + rank] = value;
+    workgroupBarrier();
+
+    var keys: array<u32, 1>;
+    var values: array<u32, 1>;
+    keys[0] = smem_keys[sid];
+    values[0] = smem_vals[sid];
+
+{store}
+}}
+"""
+
     def sort_kernel(self, kernel: KernelArgs):
         if kernel.mode == "reg":
             return self.sort_kernel_reg(kernel)
+        elif kernel.mode == "cute":
+            return self.sort_kernel_cute(kernel)
         elif kernel.mode == "wg":
             return self.sort_kernel_workgroup(kernel)
         elif kernel.mode == "hybrid":
             return self.sort_kernel_hybrid(kernel)
         elif kernel.mode == "hybmerge":
             return self.sort_kernel_hybrid_merge(kernel)
+        elif kernel.mode == "cutemerge":
+            return self.sort_kernel_cute_merge(kernel)
 
     def sort_kernel_n1(self):
         name = "segsort_wg_n1_m1_block"
@@ -912,6 +1237,11 @@ def main():
                 kernels.add(KernelArgs(N, M, N // M, M, "reg", is_block))
 
         for N in SEGMENT_SIZES:
+            if N > max(SUBGROUP_SIZES):
+                continue
+            kernels.add(KernelArgs(N, N, 1, N, "cute", is_block))
+
+        for N in SEGMENT_SIZES:
             for wpt in WPTS:
                 if N % wpt != 0:
                     continue
@@ -926,6 +1256,7 @@ def main():
                         kernels.add(KernelArgs(N, M, wpt, sg_size, "hybrid", is_block))
                     if M >= 2 * sg_size and 8 * N <= SMEM_BUDGETS[-1]:
                         kernels.add(KernelArgs(N, M, wpt, sg_size, "hybmerge", is_block))
+                        kernels.add(KernelArgs(N, M, wpt, sg_size, "cutemerge", is_block))
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 

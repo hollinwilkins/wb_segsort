@@ -2182,6 +2182,7 @@ dependencies = [
     { name = "jupyter" },
     { name = "jupytext" },
     { name = "matplotlib" },
+    { name = "numpy" },
     { name = "pandas" },
 ]
 
@@ -2190,6 +2191,7 @@ requires-dist = [
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "jupytext", specifier = ">=1.19.5" },
     { name = "matplotlib", specifier = ">=3.11.1" },
+    { name = "numpy", specifier = ">=2.5.2" },
     { name = "pandas", specifier = ">=3.0.5" },
 ]
 

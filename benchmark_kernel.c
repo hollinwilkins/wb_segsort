@@ -52,6 +52,8 @@ typedef enum bench_memory_kind
     bench_memory_smem = 1,
     bench_memory_hybrid = 2,
     bench_memory_hybmerge = 3,
+    bench_memory_cute = 4,
+    bench_memory_cutemerge = 5,
 } bench_memory_kind;
 
 typedef enum bench_store_kind
@@ -152,6 +154,8 @@ static const char * bench_memory_name(const bench_memory_kind kind)
         case bench_memory_smem: return "smem";
         case bench_memory_hybrid: return "hybrid";
         case bench_memory_hybmerge: return "hybmerge";
+        case bench_memory_cute: return "cute";
+        case bench_memory_cutemerge: return "cutemerge";
         default: PANIC("invalid memory kind");
     }
 }
@@ -293,6 +297,8 @@ static bench_memory_kind bench_memory_for_name(const char * const name)
     else if (strcmp("smem", name) == 0) return bench_memory_smem;
     else if (strcmp("hybrid", name) == 0) return bench_memory_hybrid;
     else if (strcmp("hybmerge", name) == 0) return bench_memory_hybmerge;
+    else if (strcmp("cute", name) == 0) return bench_memory_cute;
+    else if (strcmp("cutemerge", name) == 0) return bench_memory_cutemerge;
 
     PANIC("invalid memory kind %s", name);
 }
@@ -305,8 +311,6 @@ static bench_store_kind bench_store_for_name(const char * const name)
     PANIC("invalid memory kind %s", name);
 }
 
-// Parse the experiments CSV (header: name,memory,store,N,M,R,subgroups,smem,bin)
-// into a malloc'd array. Caller frees. Sets *out_count.
 static bench_experiment * bench_load_experiments(const char * const path, size_t * const out_count)
 {
     FILE * const f = fopen(path, "r");
@@ -701,10 +705,6 @@ static hwstats_sampler * create_sampler(
     return NULL;
 }
 
-// Generate the segment layout for a bin: segment sizes in (2^(bin-1), 2^bin],
-// packed until the n_keys budget is exhausted. Deterministic in seed (a fresh
-// sampler is created each call so a bin's layout is independent of iteration
-// order). Fills `segments` (cumulative ends), returns segments_len, sets keys_len.
 static uint32_t bench_generate_segments(
     const uint32_t bin,
     const uint32_t n_keys,
@@ -771,6 +771,15 @@ static uint32_t bench_wg(
             return wg;
         }
         case bench_memory_hybmerge: return M;
+        case bench_memory_cutemerge: return M;
+        case bench_memory_cute:
+        {
+            if (M > subgroup_size)
+            {
+                PANIC("cute requires subgroup_size (%u) >= N (%u)", subgroup_size, M);
+            }
+            return subgroup_size;
+        }
         default: PANIC("invalid memory kind");
     }
 }
@@ -807,13 +816,6 @@ static void benchmark_wait_idle(WGPUInstance const instance, WGPUQueue const que
     wgpuInstanceWaitAny(instance, 1, &wait, (uint64_t)5 * 1000000000);
 }
 
-// Compute bin_offsets/bin_indices on the GPU using the real binning kernels
-// (shaders/wb_bin.wgsl), the same clear -> histogram -> schedule -> group passes
-// the production pipeline uses. Writes directly into buffers->bin_offsets and
-// buffers->bin_indices; segments must already be uploaded. This replaces the CPU
-// prefix-sum, which is prohibitively slow when small N produces millions of
-// segments. bin_config_data/bin_histogram/bin_dispatch are Dawn zero-initialized;
-// only bin_dispatch's output (unused here) depends on bin_config_data.
 static void bench_compute_bins_gpu(
     const bench_buffers * const buffers,
     const uint32_t segments_len,
@@ -903,7 +905,6 @@ static void bench_compute_bins_gpu(
 
     wgpuQueueWriteBuffer(queue, buffers->bin_config, 0, &segments_len, sizeof(segments_len));
 
-    // One workgroup (16x16=256 threads) per 256 segments; kernel flattens x/y.
     const wbg_dispatch_size bin_base = { 16u, 16u, 1u };
     const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&bin_base, segments_len);
 
@@ -938,10 +939,6 @@ static void bench_compute_bins_gpu(
     mems_allocator_free(&mems_system_allocator, source);
 }
 
-// Dispatch the sort once and check the GPU output against a precomputed CPU
-// reference sort (shared across every experiment in the same bin). Records the
-// first mismatch (if any) and returns it; never aborts, so a sweep can validate
-// every config and tabulate the results.
 static bench_validation bench_validate(
     const char * const name,
     const bench_buffers * const buffers,
@@ -1047,9 +1044,6 @@ static void bench_write_buffer(
     }
 }
 
-// Current system thermal-pressure level via Darwin's notify API (no sudo).
-// 0 == nominal; higher == hotter (OSThermalPressureLevel). Returns -1 if the
-// key is unavailable so callers can degrade gracefully.
 static int64_t thermal_pressure_level(void)
 {
     static int token = -1;
@@ -1069,13 +1063,10 @@ static int64_t thermal_pressure_level(void)
     return (int64_t)state;
 }
 
-// Block until thermal pressure returns to nominal so every experiment starts
-// from the same thermal baseline. Polls once a second, capped so a stuck/hot
-// machine can't stall the run forever. No-op if the API is unavailable.
 static void thermal_wait_for_nominal(const uint32_t max_wait_s)
 {
     const int64_t level = thermal_pressure_level();
-    if (level <= 0) return; // nominal, or API unavailable (-1)
+    if (level <= 0) return;
 
     fprintf(stdout, "  thermal pressure=%lld, cooling down (max %us)...\n",
         (long long)level, max_wait_s);
@@ -1138,6 +1129,17 @@ static void run_benchmark(
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_hybmerge_sg%u_smem%uk_n%u_m%u_%s",
                 config.subgroups, smem_kb, config.N, config.M, store_name);
         } break;
+        case bench_memory_cute:
+        {
+            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cute_n%u_m%u_%s",
+                config.N, config.M, store_name);
+        } break;
+        case bench_memory_cutemerge:
+        {
+            const uint32_t smem_kb = config.smem_bytes / 1024;
+            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cutemerge_sg%u_smem%uk_n%u_m%u_%s",
+                config.subgroups, smem_kb, config.N, config.M, store_name);
+        } break;
     }
 
     const uint32_t wg = bench_wg(
@@ -1156,7 +1158,6 @@ static void run_benchmark(
     snprintf(FILE_PATH, sizeof(FILE_PATH), "shaders/sort_kernels/%s.wgsl", KERNEL_NAME);
     WGPUComputePipeline pipeline = bench_create_pipeline(KERNEL_NAME, FILE_PATH, wg, device, pipeline_layout);
 
-    // segments + bin_offsets/bin_indices were uploaded/computed by the caller.
     bench_write_buffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
 
     const uint32_t segs_per_wg = wg / config.M;
@@ -1171,10 +1172,6 @@ static void run_benchmark(
             instance, device, queue);
         if (out_validation != NULL) *out_validation = v;
 
-        // validate_only: skip the timed benchmark. Otherwise fall through and
-        // benchmark too -- the benchmark loop resets the keys buffer from the
-        // pristine staging copy before each timed run, so the in-place sort the
-        // validation dispatch just performed does not affect the measurements.
         if (config.validate_only)
         {
             wgpuComputePipelineRelease(pipeline);
@@ -1206,8 +1203,6 @@ static void run_benchmark(
         else
             fprintf(stdout, "Benchmark run (%u/%u)...\n", i + 1, config.runs);
 
-        // Re-check thermal state every 5 timed runs so a heat build-up mid-run
-        // pauses measurement until pressure returns to nominal.
         if (!is_warmup && i > 0 && (i % 5u) == 0u)
         {
             thermal_wait_for_nominal(120u);
@@ -1279,11 +1274,6 @@ static void run_benchmark(
 }
 
 
-// ---- Batch runner: many experiments in one process -------------------------
-
-// Constant per-device resources shared by every experiment that runs on a
-// context. A distinct context (device) is needed per smem value because the
-// workgroup-storage limit is fixed at device creation.
 typedef struct bench_context_res
 {
     hwgutil_wgpu_context context;
@@ -1426,8 +1416,6 @@ int main(const int argc, const char ** const argv)
 
     size_t total = 0;
 
-    // Iterate by smem: each distinct value needs its own device (the
-    // workgroup-storage limit is fixed at device creation).
     for (uint32_t smem_kb = 1; smem_kb <= 64; smem_kb <<= 1)
     {
         bool smem_used = false;
@@ -1440,11 +1428,9 @@ int main(const int argc, const char ** const argv)
         bench_context_res res;
         bench_context_res_init(&res, smem_kb, n_keys);
 
-        // Pristine keys uploaded once per device (reset source for every run).
         fprintf(stdout, "Uploading %u keys to device (smem=%uk)...\n", n_keys, smem_kb);
         wgpuQueueWriteBuffer(res.context.queue, res.buffers.keys_staging, 0, keys, (size_t)n_keys * sizeof(uint32_t));
 
-        // Iterate by bin: the segment layout depends only on the bin.
         for (uint32_t bin = 0; bin <= 12; bin++)
         {
             bool bin_used = false;
@@ -1465,9 +1451,6 @@ int main(const int argc, const char ** const argv)
             bench_write_buffer(res.context.queue, res.buffers.segments, 0, segments, segments_len * sizeof(uint32_t));
             bench_compute_bins_gpu(&res.buffers, segments_len, res.context.instance, res.context.device, res.context.queue);
 
-            // CPU reference sort depends only on (keys, segments) == the bin, so
-            // compute it once here and share it across every experiment in the bin
-            // (avoids re-sorting ~1M keys per kernel, the validation bottleneck).
             uint32_t * expected_keys = NULL;
             uint32_t * expected_value_indices = NULL;
             {
