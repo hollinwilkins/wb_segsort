@@ -20,7 +20,7 @@ Sorting Kernels: [shaders/sort_kernels](./shaders/sort_kernels/)
 
 ### Throughput
 
-This figure shows the highest throughput of the selected winner for each bin. It outlines a combination of fixed-size sorting kernels and their max throughput.
+This figure shows the highest throughput of the selected winner for each bin. It outlines a combination of fixed-size sorting kernels and their max throughput. The 31.7 G keys / s ceiling was measured on this device using the [benchmark_throughput.c](./benchmark_throughput.c) kernel, measuring peak throughput in Gb / s, and dividing by 12 bytes / key.
 
 ![Throughput Envolope of Winning Kernels](./results/experiment3/envelope.png)
 
