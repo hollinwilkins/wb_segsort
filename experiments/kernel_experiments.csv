@@ -1,4 +1,4 @@
-name,memory,store,N,M,R,subgroups,smem,bin
+name,family,store,N,M,R,subgroups,smem,bin
 segsort_hybmerge_sg16_smem16k_n1024_m128_block,hybmerge,block,1024,128,16,16,16,10
 segsort_hybmerge_sg16_smem16k_n1024_m256_block,hybmerge,block,1024,256,16,16,16,10
 segsort_hybmerge_sg16_smem16k_n1024_m32_block,hybmerge,block,1024,32,16,16,16,10

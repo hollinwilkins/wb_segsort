@@ -111,8 +111,8 @@ FAMILY_LABEL = {
     "smem": "smem",
     "hybrid": "hybrid",
     "hybmerge": "hybmerge",
-    "cute": "cute (ballot radix)",
-    "cutemerge": "cutemerge (cute+merge)",
+    "cute": "cute",
+    "cutemerge": "cutemerge",
 }
 SG_COLORS = {8: "#4269d0", 16: "#e8834a", 32: "#59a14f"}
 
@@ -142,7 +142,6 @@ def load(root="../output/kernels") -> pd.DataFrame:
 
     data = pd.concat(frames, ignore_index=True)
     data["kernel"] = data["root"].map(lambda p: Path(p).name)
-    data["family"] = data["memory"]
     data["avg_seg"] = data["keys"] / data["segments"]
     data["gpu_us"] = data["gpu_ns"] / 1e3
 
@@ -158,7 +157,7 @@ data = load()
 
 # %%
 # --- per-experiment aggregate: one row per (kernel, key count) ---------------
-_ID = ["memory", "store", "bin", "N", "M", "subgroups", "kernel", "n_keys"]
+_ID = ["family", "store", "bin", "N", "M", "subgroups", "kernel", "n_keys"]
 agg = (data.groupby(_ID, as_index=False)
            .agg(gkeys_s=("gkeys_s", "median"),   # the per-experiment value
                 lo=("gkeys_s", "min"),
@@ -167,7 +166,6 @@ agg = (data.groupby(_ID, as_index=False)
                 std=("gkeys_s", "std"),
                 gpu_us=("gpu_us", "median"),
                 wall_us=("wall_ns", "median")))
-agg["family"] = agg["memory"]
 agg["cv"] = 100 * agg["std"] / agg["mean"]
 agg["wall_us"] = agg["wall_us"] / 1e3
 
@@ -367,10 +365,10 @@ plot_subgroup_study(agg, "hybrid")
 #
 
 # %%
-def plot_memory_by_bin(agg):
+def plot_family_by_bin(agg):
     ref_nk = max(key_counts)
     sub = agg[agg["n_keys"] == ref_nk]
-    best = sub.groupby(["bin", "memory"])["gkeys_s"].max().unstack("memory").sort_index()
+    best = sub.groupby(["bin", "family"])["gkeys_s"].max().unstack("family").sort_index()
     order = [m for m in ["reg", "cute", "smem", "hybrid", "hybmerge", "cutemerge"] if m in best.columns]
     best = best[order]
 
@@ -385,14 +383,14 @@ def plot_memory_by_bin(agg):
     ax.set_xticks(x)
     ax.set_xticklabels([f"bin {b}\nN={seg[b]}" for b in idx])
     ax.set_ylabel("best throughput (G keys/s)")
-    ax.set_title(f"best kernel per bin, by memory strategy @ {ref_nk:,} keys")
-    ax.legend(frameon=False, title="memory", loc="upper right")
+    ax.set_title(f"best kernel per bin, by family @ {ref_nk:,} keys")
+    ax.legend(frameon=False, title="family", loc="upper right")
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
     fig.tight_layout()
     return best
 
 
-plot_memory_by_bin(agg)
+plot_family_by_bin(agg)
 
 # %% [markdown]
 # ## Speedup heatmaps vs smem
@@ -400,13 +398,13 @@ plot_memory_by_bin(agg)
 
 # %%
 def speedup_heatmaps(agg, baseline="smem", saturate=2.5):
-    best = agg.groupby(["memory", "store", "bin", "n_keys"])["gkeys_s"].max().reset_index()
-    base = (best[best["memory"] == baseline]
-            .rename(columns={"gkeys_s": "base"}).drop(columns="memory"))
-    m = best[best["memory"] != baseline].merge(base, on=["store", "bin", "n_keys"])
+    best = agg.groupby(["family", "store", "bin", "n_keys"])["gkeys_s"].max().reset_index()
+    base = (best[best["family"] == baseline]
+            .rename(columns={"gkeys_s": "base"}).drop(columns="family"))
+    m = best[best["family"] != baseline].merge(base, on=["store", "bin", "n_keys"])
     m["speedup"] = m["gkeys_s"] / m["base"]
 
-    memories = [x for x in ["reg", "cute", "hybrid", "hybmerge", "cutemerge"] if x in m["memory"].values]
+    memories = [x for x in ["reg", "cute", "hybrid", "hybmerge", "cutemerge"] if x in m["family"].values]
     stores = [x for x in ["block", "striped"] if x in m["store"].values]
     lim = float(np.log2(saturate))
     norm = TwoSlopeNorm(vmin=-lim, vcenter=0.0, vmax=lim)
@@ -417,7 +415,7 @@ def speedup_heatmaps(agg, baseline="smem", saturate=2.5):
     for r, mem in enumerate(memories):
         for c, st in enumerate(stores):
             ax = axes[r][c]
-            s = m[(m["memory"] == mem) & (m["store"] == st)]
+            s = m[(m["family"] == mem) & (m["store"] == st)]
             Z = s.pivot(index="n_keys", columns="bin", values="speedup").reindex(
                 index=key_counts, columns=bins)
             logZ = np.log2(Z.values)
@@ -515,8 +513,8 @@ plot_winner_stability(agg, commit_at="geomean")
 #
 
 # %%
-def plot_store_heatmap(agg, memory="reg", saturate=2.5):
-    sub = agg[agg["memory"] == memory]
+def plot_store_heatmap(agg, family="reg", saturate=2.5):
+    sub = agg[agg["family"] == family]
     best = sub.groupby(["store", "bin", "n_keys"])["gkeys_s"].max().reset_index()
     blk = best[best["store"] == "block"].rename(columns={"gkeys_s": "block"}).drop(columns="store")
     strp = best[best["store"] == "striped"].rename(columns={"gkeys_s": "striped"}).drop(columns="store")
@@ -545,7 +543,7 @@ def plot_store_heatmap(agg, memory="reg", saturate=2.5):
     ax.set_yticklabels([f"{k // 10**6}M" for k in key_counts])
     ax.set_xlabel("segment size N")
     ax.set_ylabel("key count")
-    ax.set_title(f"{memory}: striped / block store (blue = striped faster, red = block faster)")
+    ax.set_title(f"{family}: striped / block store (blue = striped faster, red = block faster)")
     cbar = fig.colorbar(im, ax=ax, pad=0.02)
     cbar.set_ticks(np.log2([1 / saturate, 0.71, 1.0, 1.41, saturate]))
     cbar.ax.set_yticklabels(["≤0.40x", "0.71x", "1.00x", "1.41x", "≥2.50x"])
@@ -553,7 +551,7 @@ def plot_store_heatmap(agg, memory="reg", saturate=2.5):
     fig.tight_layout()
 
 
-plot_store_heatmap(agg, memory="reg")
+plot_store_heatmap(agg, family="reg")
 
 # %% [markdown]
 # ## Achievable-throughput envelope
@@ -667,9 +665,9 @@ plot_envelope_compare(agg, n_keys=key_counts[1])
 # N=segment size, M=number of threads per segment
 
 # %%
-def plot_mn_tuning(agg, memory, n_keys=None, ax=None):
+def plot_mn_tuning(agg, family, n_keys=None, ax=None):
     nk = n_keys if n_keys is not None else max(key_counts)
-    sub = agg[(agg["memory"] == memory) & (agg["n_keys"] == nk)]
+    sub = agg[(agg["family"] == family) & (agg["n_keys"] == nk)]
     if sub.empty:
         return None
     cell = sub.groupby(["N", "M"])["gkeys_s"].median().reset_index()
@@ -696,7 +694,7 @@ def plot_mn_tuning(agg, memory, n_keys=None, ax=None):
     ax.set_yticklabels(Ms)
     ax.set_xlabel("segment size N")
     ax.set_ylabel("lanes M")
-    ax.set_title(f"{memory}: throughput (G keys/s) over N x M @ {nk // 10**6}M (* = best M per N)")
+    ax.set_title(f"{family}: throughput (G keys/s) over N x M @ {nk // 10**6}M (* = best M per N)")
     plt.colorbar(im, ax=ax, pad=0.02, label="G keys/s")
     plt.tight_layout()
 
@@ -713,9 +711,9 @@ for _mem in ["reg", "cute", "smem", "hybrid", "hybmerge", "cutemerge"]:
 def plot_reg_vs_smem(agg, n_keys=None):
     nk = n_keys if n_keys is not None else max(key_counts)
     mems = ["reg", "smem", "hybmerge"]
-    sub = agg[(agg["memory"].isin(mems)) & (agg["n_keys"] == nk)]
-    best = sub.groupby(["memory", "N"])["gkeys_s"].median().reset_index()
-    piv = best.pivot(index="N", columns="memory", values="gkeys_s").sort_index()
+    sub = agg[(agg["family"].isin(mems)) & (agg["n_keys"] == nk)]
+    best = sub.groupby(["family", "N"])["gkeys_s"].median().reset_index()
+    piv = best.pivot(index="N", columns="family", values="gkeys_s").sort_index()
 
     labels = {"reg": "register", "smem": "smem",
               "hybmerge": "hybmerge (merge-path, ~Hou et al)"}
@@ -752,11 +750,11 @@ plot_reg_vs_smem(agg)
 def cute_vs_reg(agg, n_keys=None):
     nk = n_keys if n_keys is not None else max(key_counts)
     mems = ["reg", "cute"]
-    sub = agg[(agg["memory"].isin(mems)) & (agg["n_keys"] == nk)]
+    sub = agg[(agg["family"].isin(mems)) & (agg["n_keys"] == nk)]
     # best (max) kernel per family per N -- reg has several M/store variants;
     # compare each family's best so the head-to-head is fair.
-    best = sub.groupby(["memory", "N"])["gkeys_s"].max().reset_index()
-    piv = best.pivot(index="N", columns="memory", values="gkeys_s").sort_index()
+    best = sub.groupby(["family", "N"])["gkeys_s"].max().reset_index()
+    piv = best.pivot(index="N", columns="family", values="gkeys_s").sort_index()
     # cute only exists on the small-segment tier; restrict to N where it ran.
     piv = piv.dropna(subset=["cute"]) if "cute" in piv else piv
 
@@ -810,9 +808,9 @@ cute_vs_reg(agg)
 def cutemerge_vs_hybmerge(agg, n_keys=None):
     nk = n_keys if n_keys is not None else max(key_counts)
     mems = ["reg", "hybmerge", "cutemerge"]
-    sub = agg[(agg["memory"].isin(mems)) & (agg["n_keys"] == nk)]
-    best = sub.groupby(["memory", "N"])["gkeys_s"].max().reset_index()
-    piv = best.pivot(index="N", columns="memory", values="gkeys_s").sort_index()
+    sub = agg[(agg["family"].isin(mems)) & (agg["n_keys"] == nk)]
+    best = sub.groupby(["family", "N"])["gkeys_s"].max().reset_index()
+    piv = best.pivot(index="N", columns="family", values="gkeys_s").sort_index()
     # merge tier only: keep N where cutemerge/hybmerge actually ran.
     merge_fams = [m for m in ["hybmerge", "cutemerge"] if m in piv]
     if merge_fams:
@@ -908,7 +906,7 @@ def plot_smem_budget_compare(agg):
     has32 = set(d.loc[d["budget"] == "32k", "base"])
     d = d[d["base"].isin(has32)]
 
-    piv = d.pivot_table(index=["base", "memory", "n_keys"], columns="budget",
+    piv = d.pivot_table(index=["base", "family", "n_keys"], columns="budget",
                         values="gkeys_s").reset_index()
     piv["ratio"] = piv["32k"] / piv["16k"]
 
@@ -918,7 +916,7 @@ def plot_smem_budget_compare(agg):
 
     fig, ax = plt.subplots(figsize=(8, 5.5))
     for mem in ("smem", "hybrid"):
-        s = piv[piv["memory"] == mem]
+        s = piv[piv["family"] == mem]
         x = [xpos[nk] + rng.uniform(-0.18, 0.18) for nk in s["n_keys"]]
         ax.scatter(x, s["ratio"], s=32, alpha=0.7, color=FAMILY_COLORS[mem],
                    label=FAMILY_LABEL[mem], edgecolor="white", linewidth=0.4)

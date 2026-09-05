@@ -46,15 +46,15 @@
     } \
 }
 
-typedef enum bench_memory_kind
+typedef enum bench_family_kind
 {
-    bench_memory_reg = 0,
-    bench_memory_smem = 1,
-    bench_memory_hybrid = 2,
-    bench_memory_hybmerge = 3,
-    bench_memory_cute = 4,
-    bench_memory_cutemerge = 5,
-} bench_memory_kind;
+    bench_family_reg = 0,
+    bench_family_smem = 1,
+    bench_family_hybrid = 2,
+    bench_family_hybmerge = 3,
+    bench_family_cute = 4,
+    bench_family_cutemerge = 5,
+} bench_family_kind;
 
 typedef enum bench_store_kind
 {
@@ -71,7 +71,7 @@ typedef struct bench_smem
 typedef struct bench_config
 {
     const char * root;
-    bench_memory_kind memory;
+    bench_family_kind family;
     bench_store_kind store;
     uint32_t seed;
     uint32_t runs;
@@ -117,7 +117,7 @@ typedef struct bench_result
 typedef struct bench_experiment
 {
     char name[512];
-    bench_memory_kind memory;
+    bench_family_kind family;
     bench_store_kind store;
     uint32_t N;
     uint32_t M;
@@ -146,17 +146,17 @@ static const bench_smem BENCH_SMEMS[2] = {
     { "32kb", 32 * 1024 },
 };
 
-static const char * bench_memory_name(const bench_memory_kind kind)
+static const char * bench_family_name(const bench_family_kind kind)
 {
     switch (kind)
     {
-        case bench_memory_reg: return "reg";
-        case bench_memory_smem: return "smem";
-        case bench_memory_hybrid: return "hybrid";
-        case bench_memory_hybmerge: return "hybmerge";
-        case bench_memory_cute: return "cute";
-        case bench_memory_cutemerge: return "cutemerge";
-        default: PANIC("invalid memory kind");
+        case bench_family_reg: return "reg";
+        case bench_family_smem: return "smem";
+        case bench_family_hybrid: return "hybrid";
+        case bench_family_hybmerge: return "hybmerge";
+        case bench_family_cute: return "cute";
+        case bench_family_cutemerge: return "cutemerge";
+        default: PANIC("invalid family");
     }
 }
 
@@ -205,12 +205,12 @@ static void write_results_csv(
     if (f == NULL) PANIC("could not open csv file for writing: %s", CSV_PATH);
 
     fprintf(f,
-        "root,memory,store,seed,runs,N,M,wpt,R,subgroups,smem_bytes,bin,n_keys,"
+        "root,family,store,seed,runs,N,M,wpt,R,subgroups,smem_bytes,bin,n_keys,"
         "max_invocations,max_smem_size,target_wg_size,sampler,wg,segments,keys,"
         "run,wall_ns,gpu_ns,throughput_mkeys_s\n");
 
     const uint32_t wpt = config.N / config.M;
-    const char * const memory = bench_memory_name(config.memory);
+    const char * const family = bench_family_name(config.family);
     const char * const store = bench_store_name(config.store);
 
     for (uint32_t i = 0; i < config.runs; i++)
@@ -223,7 +223,7 @@ static void write_results_csv(
         fprintf(f,
             "%s,%s,%s,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%zu,%zu,"
             "%u,%" PRIu64 ",%" PRIu64 ",%.6f\n",
-            config.root, memory, store, config.seed, config.runs, config.N, config.M,
+            config.root, family, store, config.seed, config.runs, config.N, config.M,
             wpt, config.R, config.subgroups, config.smem_bytes, config.bin, config.n_keys,
             config.max_invocations, config.max_smem_size, config.target_wg_size,
             config.sampler_name, wg, segments_len, keys_len,
@@ -258,7 +258,7 @@ static void write_validation_csv(
     if (f == NULL) PANIC("could not open validation csv for writing: %s", PATH);
 
     fprintf(f,
-        "name,memory,store,N,M,R,subgroups,smem,bin,keys,segments,valid,"
+        "name,family,store,N,M,R,subgroups,smem,bin,keys,segments,valid,"
         "fail_index,fail_kind,cpu_key,gpu_key,cpu_vi,gpu_vi\n");
 
     size_t passed = 0;
@@ -271,7 +271,7 @@ static void write_validation_csv(
 
         fprintf(f,
             "%s,%s,%s,%u,%u,%u,%u,%u,%u,%zu,%zu,%s,%zu,%s,%u,%u,%u,%u\n",
-            x->name, bench_memory_name(x->memory), bench_store_name(x->store),
+            x->name, bench_family_name(x->family), bench_store_name(x->store),
             x->N, x->M, x->R, x->subgroups, x->smem_kb, x->bin,
             v->keys_len, v->segments_len, v->valid ? "true" : "false",
             v->valid ? (size_t)0 : v->fail_index, v->valid ? "" : v->fail_kind,
@@ -286,16 +286,16 @@ static void write_validation_csv(
     fprintf(stdout, "\nvalidation: %zu passed, %zu failed -> %s\n", passed, failed, PATH);
 }
 
-static bench_memory_kind bench_memory_for_name(const char * const name)
+static bench_family_kind bench_family_for_name(const char * const name)
 {
-    if (strcmp("reg", name) == 0) return bench_memory_reg;
-    else if (strcmp("smem", name) == 0) return bench_memory_smem;
-    else if (strcmp("hybrid", name) == 0) return bench_memory_hybrid;
-    else if (strcmp("hybmerge", name) == 0) return bench_memory_hybmerge;
-    else if (strcmp("cute", name) == 0) return bench_memory_cute;
-    else if (strcmp("cutemerge", name) == 0) return bench_memory_cutemerge;
+    if (strcmp("reg", name) == 0) return bench_family_reg;
+    else if (strcmp("smem", name) == 0) return bench_family_smem;
+    else if (strcmp("hybrid", name) == 0) return bench_family_hybrid;
+    else if (strcmp("hybmerge", name) == 0) return bench_family_hybmerge;
+    else if (strcmp("cute", name) == 0) return bench_family_cute;
+    else if (strcmp("cutemerge", name) == 0) return bench_family_cutemerge;
 
-    PANIC("invalid memory kind %s", name);
+    PANIC("invalid family %s", name);
 }
 
 static bench_store_kind bench_store_for_name(const char * const name)
@@ -303,7 +303,7 @@ static bench_store_kind bench_store_for_name(const char * const name)
     if (strcmp("block", name) == 0) return bench_store_block;
     else if (strcmp("striped", name) == 0) return bench_store_striped;
 
-    PANIC("invalid memory kind %s", name);
+    PANIC("invalid family %s", name);
 }
 
 static bench_experiment * bench_load_experiments(const char * const path, size_t * const out_count)
@@ -328,19 +328,19 @@ static bench_experiment * bench_load_experiments(const char * const path, size_t
         if (LINE[0] == '\n' || LINE[0] == '\r' || LINE[0] == '\0') continue;
 
         char name[512];
-        char memory[32];
+        char family[32];
         char store[32];
         uint32_t N, M, R, subgroups, smem_kb, bin;
 
         if (sscanf(LINE, "%511[^,],%31[^,],%31[^,],%u,%u,%u,%u,%u,%u",
-                name, memory, store, &N, &M, &R, &subgroups, &smem_kb, &bin) != 9)
+                name, family, store, &N, &M, &R, &subgroups, &smem_kb, &bin) != 9)
         {
             PANIC("malformed experiments row: %s", LINE);
         }
 
         bench_experiment * const e = &exps[n++];
         snprintf(e->name, sizeof(e->name), "%s", name);
-        e->memory = bench_memory_for_name(memory);
+        e->family = bench_family_for_name(family);
         e->store = bench_store_for_name(store);
         e->N = N;
         e->M = M;
@@ -739,7 +739,7 @@ static uint32_t bench_generate_segments(
 }
 
 static uint32_t bench_wg(
-    const bench_memory_kind memory,
+    const bench_family_kind family,
     const uint32_t N,
     const uint32_t M,
     const uint32_t subgroup_size,
@@ -748,16 +748,16 @@ static uint32_t bench_wg(
     const uint32_t target_wg_size
 ) {
     const uint32_t wpt = N / M;
-    switch (memory) {
-        case bench_memory_reg:
+    switch (family) {
+        case bench_family_reg:
         {
             uint32_t wg = WB_MIN(target_wg_size, max_invocations);
             wg = (wg / subgroup_size) * subgroup_size;
             if (wg < subgroup_size) wg = subgroup_size;
             return wg;
         }
-        case bench_memory_smem:
-        case bench_memory_hybrid:
+        case bench_family_smem:
+        case bench_family_hybrid:
         {
             const uint32_t smem_cap = max_smem_size / (wpt * 2u * 4u);
             uint32_t wg = WB_MIN(target_wg_size, WB_MIN(max_invocations, smem_cap));
@@ -765,9 +765,9 @@ static uint32_t bench_wg(
             if (wg < M) wg = M;
             return wg;
         }
-        case bench_memory_hybmerge: return M;
-        case bench_memory_cutemerge: return M;
-        case bench_memory_cute:
+        case bench_family_hybmerge: return M;
+        case bench_family_cutemerge: return M;
+        case bench_family_cute:
         {
             if (M > subgroup_size)
             {
@@ -775,7 +775,7 @@ static uint32_t bench_wg(
             }
             return subgroup_size;
         }
-        default: PANIC("invalid memory kind");
+        default: PANIC("invalid family");
     }
 }
 
@@ -1103,35 +1103,35 @@ static void run_benchmark(
     static char KERNEL_NAME[2048];
     const char * store_name = bench_store_name(config.store);
 
-    switch (config.memory)
+    switch (config.family)
     {
-        case bench_memory_reg:
+        case bench_family_reg:
         {
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_reg_n%u_m%u_%s",
                 config.N, config.M, store_name);
         } break;
-        case bench_memory_smem:
+        case bench_family_smem:
         {
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_wg_n%u_m%u_%s",
                 config.N, config.M, store_name);
         } break;
-        case bench_memory_hybrid:
+        case bench_family_hybrid:
         {
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_hybrid_sg%u_n%u_m%u_%s",
                 config.subgroups, config.N, config.M, store_name);
         } break;
-        case bench_memory_hybmerge:
+        case bench_family_hybmerge:
         {
             const uint32_t smem_kb = config.smem_bytes / 1024;
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_hybmerge_sg%u_smem%uk_n%u_m%u_%s",
                 config.subgroups, smem_kb, config.N, config.M, store_name);
         } break;
-        case bench_memory_cute:
+        case bench_family_cute:
         {
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cute_n%u_m%u_%s",
                 config.N, config.M, store_name);
         } break;
-        case bench_memory_cutemerge:
+        case bench_family_cutemerge:
         {
             const uint32_t smem_kb = config.smem_bytes / 1024;
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cutemerge_sg%u_smem%uk_n%u_m%u_%s",
@@ -1140,7 +1140,7 @@ static void run_benchmark(
     }
 
     const uint32_t wg = bench_wg(
-        config.memory,
+        config.family,
         config.N,
         config.M,
         config.subgroups,
@@ -1178,12 +1178,12 @@ static void run_benchmark(
 
     fprintf(stdout,
         "Benchmarking %s:\n"
-        "  root=%s memory=%s store=%s sampler=%s\n"
+        "  root=%s family=%s store=%s sampler=%s\n"
         "  N=%u M=%u wpt=%u R=%u subgroups=%u wg=%u bin=%u smem_bytes=%u\n"
         "  seed=%u runs=%u n_keys=%u segments=%zu keys=%zu\n"
         "  max_invocations=%u max_smem_size=%u target_wg_size=%u\n",
         KERNEL_NAME,
-        config.root, bench_memory_name(config.memory), bench_store_name(config.store),
+        config.root, bench_family_name(config.family), bench_store_name(config.store),
         config.sampler_name,
         config.N, config.M, config.N / config.M, config.R, config.subgroups, wg,
         config.bin, config.smem_bytes,
@@ -1519,7 +1519,7 @@ int main(const int argc, const char ** const argv)
 
                 const bench_config config = (bench_config){
                     .root = ROOT_PATH,
-                    .memory = exp->memory,
+                    .family = exp->family,
                     .store = exp->store,
                     .seed = seed,
                     .runs = runs,
