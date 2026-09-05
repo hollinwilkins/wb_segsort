@@ -24,9 +24,12 @@
 #define WBG_MERGE_WG 256u
 #define WBG_MERGE_TILE_MAX_DEPTH 20u
 
+#define WBG_DEFAULT_MAX_BIN 12u
+
 typedef struct wbg_gpu_config
 {
     uint32_t segments_len;
+    uint32_t max_bin;
 } wbg_gpu_config;
 
 typedef uint32_t wbg_bin_flag;
@@ -1884,9 +1887,8 @@ WB_EXPORT void wbg_prepare(
     wbg_gpu_config * const config
 )
 {
-    *config = (wbg_gpu_config){
-        .segments_len = segments_len,
-    };
+    config->segments_len = segments_len;
+    if (config->max_bin == 0u) config->max_bin = WBG_DEFAULT_MAX_BIN;
 
     wbg__write_buffer(queue, buffers->config, 0, config, sizeof(wbg_gpu_config));
     wbg__write_buffer(queue, buffers->segments, 0, segments, segments_len * sizeof(uint32_t));

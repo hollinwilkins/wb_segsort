@@ -4,6 +4,7 @@ override WORKGROUP_ITEMS: u32 = WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y;
 
 struct Config {
     segments_len: u32,
+    max_bin: u32,
 }
 
 struct BinConfig {
@@ -30,7 +31,7 @@ struct DispatchSize {
 var <workgroup> local_bin_counts: array<atomic<u32>, 13>;
 
 fn segment_bucket(segment_len: u32) -> u32 {
-    return min(32u - countLeadingZeros(segment_len - 1u), 12u);
+    return min(32u - countLeadingZeros(segment_len - 1u), config.max_bin);
 }
 
 @compute @workgroup_size(16, 1, 1)
@@ -109,8 +110,6 @@ fn main_schedule() {
     }
 }
 
-// Group segment indices in order for dispatch
-// After calling this, all indices will be grouped and in order by segment size ascending
 @compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y, 1)
 fn main_group(
     @builtin(workgroup_id) workgroup_id: vec3<u32>,

@@ -3,24 +3,49 @@
 # printouts) -- all source code stripped via nbconvert's --no-input.
 #
 # Usage:
-#   ./export_outputs.sh <path/to/notebook.ipynb> [output.html]
+#   ./export_notebook.sh <path/to/notebook.ipynb | path/to/notebook.py> [output.html]
 #
-# Uses the notebook's already-stored outputs (does NOT re-execute). Run the
-# notebook first if you want fresh outputs. If [output.html] is omitted, writes
-# alongside the notebook as <name>.outputs.html. The output path is relative to
-# your current directory (not the notebook's), and parent dirs are created.
+# Accepts either an executed .ipynb OR a jupytext percent .py file:
+#   - .ipynb : uses the notebook's already-stored outputs (does NOT re-execute);
+#              run the notebook first if you want fresh outputs.
+#   - .py    : a jupytext (formats: ipynb,py:percent) source. It is converted to
+#              a paired .ipynb AND executed (so outputs exist) before export. The
+#              generated .ipynb is left next to the .py.
+#
+# If [output.html] is omitted, writes alongside the input as <name>.outputs.html.
+# The output path is relative to your current directory (not the input's), and
+# parent dirs are created.
 
 set -e
 
-nb="$1"
-if [ -z "$nb" ]; then
-    echo "usage: $0 <path/to/notebook.ipynb> [output.html]" >&2
+in="$1"
+if [ -z "$in" ]; then
+    echo "usage: $0 <path/to/notebook.ipynb | path/to/notebook.py> [output.html]" >&2
     exit 1
 fi
-if [ ! -f "$nb" ]; then
-    echo "error: notebook not found: $nb" >&2
+if [ ! -f "$in" ]; then
+    echo "error: input not found: $in" >&2
     exit 1
 fi
+
+# Resolve the input to an executed .ipynb (`nb`). A jupytext .py is converted and
+# executed to a paired notebook; an .ipynb is used as-is (stored outputs).
+case "$in" in
+    *.py)
+        nb="${in%.py}.ipynb"
+        echo "jupytext: converting + executing $in -> $nb"
+        uv run --with matplotlib --with pandas --with jupyter \
+               --with nbconvert --with jupytext --with ipykernel \
+            jupytext --to notebook --execute --output "$nb" "$in"
+        ;;
+    *.ipynb)
+        nb="$in"
+        ;;
+    *)
+        echo "error: expected a .ipynb or .py (jupytext) file: $in" >&2
+        exit 1
+        ;;
+esac
 
 out="$2"
 if [ -z "$out" ]; then

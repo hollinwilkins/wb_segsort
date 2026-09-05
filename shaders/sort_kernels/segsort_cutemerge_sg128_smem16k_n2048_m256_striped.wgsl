@@ -249,9 +249,8 @@ fn segsort_cutemerge_sg128_smem16k_n2048_m256_striped(
                 bi = bi + 1u;
             }
         }
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
@@ -296,9 +295,8 @@ fn segsort_cutemerge_sg128_smem16k_n2048_m256_striped(
                 bi = bi + 1u;
             }
         }
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
@@ -343,9 +341,8 @@ fn segsort_cutemerge_sg128_smem16k_n2048_m256_striped(
                 bi = bi + 1u;
             }
         }
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
@@ -390,20 +387,19 @@ fn segsort_cutemerge_sg128_smem16k_n2048_m256_striped(
                 bi = bi + 1u;
             }
         }
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
         }
     }
     workgroupBarrier();
-    for (var c = 0u; c < WPT; c = c + 1u) {
+    for (var c = 0u; c < WPT; c = c + 1u) {{
         let j = c * M + local_tid;
-        if is_active && j < seg_size {
+        if is_active && j < seg_size {{
             global_keys[seg_start + j] = smem_keys[j];
             global_value_indices[seg_start + j] = smem_vals[j];
-        }
-    }
+        }}
+    }}
 }

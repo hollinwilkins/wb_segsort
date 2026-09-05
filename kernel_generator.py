@@ -23,8 +23,15 @@ SEGMENT_SIZES = [
     256,
     512,
     1024,
-    2048
+    2048,
+    4096
 ]
+
+# Past this segment size, only the merge-based families (hybmerge, cutemerge)
+# are generated. The pure-bitonic families (reg, wg, hybrid) sort the whole
+# segment with an O(log^2 N) network, which becomes an impractically large
+# unrolled shader; the merge families keep the network bounded to one run.
+BITONIC_MAX_N = 2048
 
 WPT_THRESHOLD = 8
 
@@ -167,23 +174,6 @@ if keys[{a}] != keys[{b}] {{
 }}"""
         return self._indent(body, indent)
 
-
-#     def exch(self, r: int, tmask: int, swbit: int, indent: int) -> str:
-#         pk, pv, less, bit = self.tmp(), self.tmp(), self.tmp(), self.tmp()
-
-#         lines = f"""// exch(r:{r},tmask:{tmask},swbit:{swbit})
-# {{
-#     let {pk} = subgroupShuffleXor(keys[{r}], {tmask}u);
-#     let {pv} = subgroupShuffleXor(values[{r}], {tmask}u);
-#     let {less} = keys[{r}] < {pk} || (keys[{r}] == {pk} && values[{r}] < {pv});
-#     let {bit} = extractBits(local_tid, {swbit}u, 1u) != 0u;
-#     if {bit} == {less} {{ keys[{r}] = {pk}; values[{r}] = {pv}; }}
-# }}
-
-# """.split("\n")
-        
-#         spaces = " " * indent * INDENT_SPACES
-#         return "\n".join(spaces + line for line in lines)
 
     # exchanges registers within a thread
     def exch_local(self, rmask: int, wpt: int, indent: int) -> str:
@@ -793,9 +783,6 @@ fn {name}(
 }}
 """
 
-    # merge-path pass: merge adjacent sorted runs of `run` into runs of 2*run,
-    # staged through smem (register pong write-back). Identical body to the
-    # hybmerge merge pass -- shared by hybmerge and cutemerge.
     def _merge_pass(self, run: int, wpt: int) -> str:
         merged = 2 * run
         return f"""    // merge pass: two sorted runs of {run} -> {merged} (register-staged)
@@ -836,9 +823,8 @@ fn {name}(
                 bi = bi + 1u;
             }}
         }}
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {{
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
@@ -1233,6 +1219,8 @@ def main():
     for is_block in [False, True]:
         for sg_size in SUBGROUP_SIZES:
             for N in SEGMENT_SIZES:
+                if N > BITONIC_MAX_N:   # pure-bitonic register network too large
+                    continue
                 M = min(sg_size, N)
                 kernels.add(KernelArgs(N, M, N // M, M, "reg", is_block))
 
@@ -1249,10 +1237,11 @@ def main():
                 if M < 1 or M > MAX_WG:
                     continue
 
-                kernels.add(KernelArgs(N, M, wpt, 1, "wg", is_block))
+                if N <= BITONIC_MAX_N:   # pure-bitonic smem/hybrid networks too large past here
+                    kernels.add(KernelArgs(N, M, wpt, 1, "wg", is_block))
 
                 for sg_size in SUBGROUP_SIZES:
-                    if M > sg_size:
+                    if N <= BITONIC_MAX_N and M > sg_size:
                         kernels.add(KernelArgs(N, M, wpt, sg_size, "hybrid", is_block))
                     if M >= 2 * sg_size and 8 * N <= SMEM_BUDGETS[-1]:
                         kernels.add(KernelArgs(N, M, wpt, sg_size, "hybmerge", is_block))

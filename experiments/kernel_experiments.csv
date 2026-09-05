@@ -431,3 +431,11 @@ segsort_cutemerge_sg32_smem16k_n512_m256_block,cutemerge,block,512,256,32,32,16,
 segsort_cutemerge_sg32_smem16k_n512_m256_striped,cutemerge,striped,512,256,32,32,16,9
 segsort_cutemerge_sg32_smem16k_n512_m64_block,cutemerge,block,512,64,32,32,16,9
 segsort_cutemerge_sg32_smem16k_n512_m64_striped,cutemerge,striped,512,64,32,32,16,9
+segsort_hybmerge_sg32_smem32k_n4096_m128_block,hybmerge,block,4096,128,32,32,32,12
+segsort_hybmerge_sg32_smem32k_n4096_m128_striped,hybmerge,striped,4096,128,32,32,32,12
+segsort_hybmerge_sg32_smem32k_n4096_m256_block,hybmerge,block,4096,256,32,32,32,12
+segsort_hybmerge_sg32_smem32k_n4096_m256_striped,hybmerge,striped,4096,256,32,32,32,12
+segsort_cutemerge_sg32_smem32k_n4096_m128_block,cutemerge,block,4096,128,32,32,32,12
+segsort_cutemerge_sg32_smem32k_n4096_m128_striped,cutemerge,striped,4096,128,32,32,32,12
+segsort_cutemerge_sg32_smem32k_n4096_m256_block,cutemerge,block,4096,256,32,32,32,12
+segsort_cutemerge_sg32_smem32k_n4096_m256_striped,cutemerge,striped,4096,256,32,32,32,12

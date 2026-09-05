@@ -233,9 +233,6 @@ static void write_results_csv(
     fclose(f);
 }
 
-// Write one row per experiment describing the validation outcome, to
-// "<root_dir>/<experiments-file-basename>.validation.csv" (in the output
-// directory, alongside the per-kernel benchmark result CSVs).
 static void write_validation_csv(
     const char * const root_dir,
     const char * const experiments_path,
@@ -244,8 +241,6 @@ static void write_validation_csv(
     const size_t count
 )
 {
-    // Derive a bare basename from the experiments path: strip any directory
-    // prefix and a trailing ".csv".
     const char * base = experiments_path;
     for (const char * p = experiments_path; *p; p++)
     {
@@ -903,7 +898,11 @@ static void bench_compute_bins_gpu(
     };
     WGPUBindGroup binding = wgpuDeviceCreateBindGroup(device, &bind_desc);
 
-    wgpuQueueWriteBuffer(queue, buffers->bin_config, 0, &segments_len, sizeof(segments_len));
+    const wbg_gpu_config bin_cfg = {
+        .segments_len = segments_len,
+        .max_bin = WBG_DEFAULT_MAX_BIN,
+    };
+    wgpuQueueWriteBuffer(queue, buffers->bin_config, 0, &bin_cfg, sizeof(bin_cfg));
 
     const wbg_dispatch_size bin_base = { 16u, 16u, 1u };
     const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&bin_base, segments_len);
@@ -954,7 +953,6 @@ static bench_validation bench_validate(
     WGPUQueue const queue
 )
 {
-    // Single dispatch over the freshly-uploaded (unsorted) keys.
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
     WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(encoder, NULL);
     wgpuComputePassEncoderSetPipeline(pass, pipeline);
@@ -968,7 +966,6 @@ static bench_validation bench_validate(
     wgpuComputePassEncoderRelease(pass);
     wgpuCommandEncoderRelease(encoder);
 
-    // Read back the sorted keys and value indices the kernel wrote.
     uint32_t * gpu_keys;
     hwgutil_wgpu_read_buffer_alloc(
         instance, device, queue, buffers->keys, &mems_system_allocator, (void **)&gpu_keys);
@@ -1349,6 +1346,19 @@ static void bench_context_res_release(bench_context_res * const res)
     hwgutil_wgpu_context_release(&res->context);
 }
 
+static bool bench_should_run(
+    const bench_experiment * const exp,
+    const char * const root_dir,
+    const bool skip_existing,
+    const bool validate_only
+) {
+    if (!skip_existing || validate_only) return true;
+    char csv_path[2048];
+    snprintf(csv_path, sizeof(csv_path), "%s/%s.csv", root_dir, exp->name);
+    struct stat st;
+    return stat(csv_path, &st) != 0;   // run only if the result CSV is absent
+}
+
 int main(const int argc, const char ** const argv)
 {
     static char ARGS_BUFFER[1024 * 4];
@@ -1394,15 +1404,28 @@ int main(const int argc, const char ** const argv)
     bench_experiment * const exps = bench_load_experiments(experiments_param->value, &exp_count);
     fprintf(stdout, "Loaded %zu experiments from %s\n", exp_count, experiments_param->value);
 
-    // Validation always runs: one outcome per experiment, written to a single CSV
-    // in the output directory at the end.
     bench_validation * const validations =
         (bench_validation *)calloc(exp_count == 0 ? 1 : exp_count, sizeof(bench_validation));
 
-    // Keys are independent of bin/smem: generate the whole set once.
-    uint32_t * const keys = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
-    uint32_t * const segments = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
+    // Only allocate/generate the key + segment scratch if at least one
+    // experiment will actually run (with -skip-existing most may already exist).
+    bool any_work = false;
+    for (size_t e = 0; e < exp_count; e++)
     {
+        if (bench_should_run(&exps[e], root_dir, skip_existing, validate_only))
+        {
+            any_work = true;
+            break;
+        }
+    }
+
+    uint32_t * keys = NULL;
+    uint32_t * segments = NULL;
+    if (any_work)
+    {
+        keys = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
+        segments = (uint32_t *)malloc((size_t)n_keys * sizeof(uint32_t));
+
         hwstats_x256pp rx;
         hwstats_randomizer r;
         hwstats_x256pp_init(&rx, seed);
@@ -1413,6 +1436,10 @@ int main(const int argc, const char ** const argv)
             keys[i] = (uint32_t)(hwstats_uniform(&r) * (double)UINT32_MAX);
         }
     }
+    else
+    {
+        fprintf(stdout, "Nothing to run (all %zu experiments present); skipping key generation.\n", exp_count);
+    }
 
     size_t total = 0;
 
@@ -1421,7 +1448,12 @@ int main(const int argc, const char ** const argv)
         bool smem_used = false;
         for (size_t e = 0; e < exp_count; e++)
         {
-            if (exps[e].smem_kb == smem_kb) { smem_used = true; break; }
+            if (exps[e].smem_kb == smem_kb
+                && bench_should_run(&exps[e], root_dir, skip_existing, validate_only))
+            {
+                smem_used = true;
+                break;
+            }
         }
         if (!smem_used) continue;
 
@@ -1436,7 +1468,12 @@ int main(const int argc, const char ** const argv)
             bool bin_used = false;
             for (size_t e = 0; e < exp_count; e++)
             {
-                if (exps[e].smem_kb == smem_kb && exps[e].bin == bin) { bin_used = true; break; }
+                if (exps[e].smem_kb == smem_kb && exps[e].bin == bin
+                    && bench_should_run(&exps[e], root_dir, skip_existing, validate_only))
+                {
+                    bin_used = true;
+                    break;
+                }
             }
             if (!bin_used) continue;
 
@@ -1474,16 +1511,10 @@ int main(const int argc, const char ** const argv)
                 static char ROOT_PATH[2048];
                 snprintf(ROOT_PATH, sizeof(ROOT_PATH), "%s/%s", root_dir, exp->name);
 
-                if (skip_existing && !validate_only)
+                if (!bench_should_run(exp, root_dir, skip_existing, validate_only))
                 {
-                    static char CSV_PATH[2048];
-                    snprintf(CSV_PATH, sizeof(CSV_PATH), "%s.csv", ROOT_PATH);
-                    struct stat st;
-                    if (stat(CSV_PATH, &st) == 0)
-                    {
-                        fprintf(stdout, "[%zu/%zu] skip (exists): %s\n", total, exp_count, exp->name);
-                        continue;
-                    }
+                    fprintf(stdout, "[%zu/%zu] skip (exists): %s\n", total, exp_count, exp->name);
+                    continue;
                 }
 
                 const bench_config config = (bench_config){
