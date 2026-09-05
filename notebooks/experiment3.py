@@ -60,6 +60,7 @@
 #
 # - Test data is generated for N-keys = (12,400,000, 102,400,000, 268,435,456)
 # - For each sample size, 11 bins are benchmarked.
+#
 # | Bin | Start | End  |
 # |-----|-------|------|
 # | 1   | 2     | 2    |
@@ -154,10 +155,6 @@ def load(root="../output/kernels") -> pd.DataFrame:
 
 
 data = load()
-print(f"{len(data):,} run-rows | "
-      f"{data['kernel'].nunique()} kernels | "
-      f"key counts: {sorted(data['n_keys'].unique())}")
-data.head()
 
 # %%
 # --- per-experiment aggregate: one row per (kernel, key count) ---------------
@@ -203,10 +200,6 @@ _geo = _geo[_geo["_n"] == len(key_counts)]
 geo_win = (_geo.loc[_geo.groupby("bin")["geomean"].idxmax()]
                .set_index("bin")[["kernel", "geomean", "family"]])
 
-print(f"agg: {len(agg)} experiments (kernel x key count) | "
-      f"{len(bins)} bins | key counts {key_counts}")
-summary.head(20)
-
 # %% [markdown]
 # ## Winning kernel per bin
 #
@@ -247,7 +240,6 @@ def plot_winners_bar(agg, n_keys, basis="winner"):
     labs = [FAMILY_LABEL[f] for f in FAMILY_COLORS if f in set(sel["family"])]
     ax.legend(handles, labs, frameon=False, fontsize=8, title="family", loc="lower right")
     fig.tight_layout()
-    return sel
 
 
 plot_winners_bar(agg, n_keys=max(key_counts), basis="winner")
@@ -329,7 +321,6 @@ def plot_bin(agg, bin_id, ax=None):
                  f"({g['kernel'].nunique()} kernels)")
     ax.grid(True, which="both", linestyle="--", alpha=0.3)
     ax.legend(frameon=False, fontsize=8, title="family", loc="lower right")
-    return ax
 
 
 for _bin in bins:
