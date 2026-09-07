@@ -16,6 +16,8 @@ Data (collected on MacBook M2): [output](./output/)
 Kernel Generator: [kernel_generator.py](./kernel_generator.py)
 Sorting Kernels: [shaders/sort_kernels](./shaders/sort_kernels/)
 
+> AI Disclosure: Claude was used to aid in some of the codegen, building out notebooks, and helping me actually understand these algorithms.
+
 ## Early Results
 
 ### Throughput
