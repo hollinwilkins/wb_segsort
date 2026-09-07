@@ -28,13 +28,13 @@ This figure shows the highest throughput of the selected winner for each bin. It
 
 ### Register vs Shared Memory
 
-This is one of the comparisons in Hou et. al, recreated here to show that register sorting networks are indeed faster until the bitonic sorting networks become too large, at which point, a hybrid register sort + block merge algorith (hybmerge) start to win.
+This is one of the comparisons in Hou et. al, recreated here to show that register sorting networks are indeed faster until the bitonic sorting networks become too large, at which point, a hybrid register sort + block merge algorith (hybmerge) starts to win.
 
 ![Register sort vs. shared memory sort](./results/experiment3/reg_vs_smem.png)
 
 ### CuteSort + merge vs Register Bitonic Sort + merge
 
-This figure compares the register-based radix sort + block merge (cutemerge) to the register-based bitonic sort + block merge (hybmerge). We can see that the 32 calls to `subgroupBallot` makes cutemerge perform worse than hybmerge, until the sorting networks of hybmerge become too large, right at N=2048. At N=2048, the run-length of the sorted blocks jumps from 64 to 256, at which point the radix sort starts to win. The maximum shared memory of the test device is 32kb, which limits our experiments to a maximum of N=4096. For devices with more maximum shared memory, we could test larger values of N, and we woul expect the cutemerge kernels to perform even better compared to hybmerge kernels.
+This figure compares the register-based radix sort + block merge (cutemerge) to the register-based bitonic sort + block merge (hybmerge). We can see that the 32 calls to `subgroupBallot` makes cutemerge perform worse than hybmerge, until the sorting networks of hybmerge become too large, right at N=2048. At N=2048, the run-length of the bitonic sorted blocks jumps from 64 to 256, at which point the radix sort starts to win. The maximum shared memory of the test device is 32kb, which limits our experiments to a maximum of N=4096. For devices with more maximum shared memory, we could test larger values of N, and we would expect the cutemerge kernels to perform even better compared to hybmerge kernels.
 
 ![Cute sort + merge vs. reg sort + merge](./results/experiment3/cutemerge_vs_hybmerge.png)
 
@@ -60,7 +60,7 @@ All generated kernels are checked in to source control here: [shaders/sort_kerne
 - Kernels sort 32-bit keys and write 32-bit sorted value indices. This implies a memory bandwidth requirement of 12 bytes / key (1 key read, 1 key write, 1 value index write).
 - All valid kernels are generated regardless of their expected efficiency for segment lengths __(N)__ up to 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, and 2048.
 - Only the `hybmerge` and `cutemerge` kernels are generated for N=4096, as they have higher shared-memory requirements at that size.
-- Kernels that require the subgroups feature are compiles for subgroups 8, 16, 32, 64 and 128. At runtime, a kernel with `subgroups <= device subgroups` can be selected.
+- Kernels that require the subgroups feature are compiled for subgroups 8, 16, 32, 64 and 128. At runtime, a kernel with `subgroups <= device subgroups` can be selected.
 - Number of work items per thread __(WPT)__ is used to select number of threads per segment __(M)__. WPT is targeted for 2, 4, 8, 16, and 32 work items.
 
 ## Roadmap
@@ -69,7 +69,7 @@ These are things that I want to implement for this project to make it feel more 
 
 - Benchmarking for binning algorithm, which is probably too reliant on atomics in its current state.
 - Benchmarking for the block merge spill bin, which is currently only lightly tested, and not benchmarked anywhere.
-- Benchmarking on real-world data, which needs furuther explortion. Maybe a biology data set, NLP dataset, and a vector graphics dataset.
+- Benchmarking on real-world data, which needs further exploration. Maybe a biology data set, NLP dataset, and a vector graphics dataset.
 - Benchmarking against the state of the art, which would pretty much be incorporating wb_segsort into the [faster-segmented-sort-on-gpus](https://gitlab.rlp.net/pararch/faster-segmented-sort-on-gpus) benchmark suite. This will require benchmarking on different hardware on a Linux machine to support the CUDA algorithms.
 - [Faster segmented sort on GPUs](https://link.springer.com/chapter/10.1007/978-3-031-39698-4_45) offers further refinements of the segmented sort presented by Hou et. al. We should incorporate these into wb_segsort.
 
@@ -77,7 +77,6 @@ These are things that I want to implement for this project to make it feel more 
 
 These are some possible avenues of application and exploration that I find interesting.
 
-- [GPUSorting](https://github.com/b0nes164/GPUSorting/) makes extensive use of radix sort to outperform both the low-level register sorting kernels and the block merges of Hou et. al, we should implement two new sorting kernels: `cuteradix` for fixed-size sorting kernels and `radixmerge` to compare against the multi-pass merge sort.
 - Rust kernel driver for segmented sort.
 - 16, 64, and 128 bit key/value sizes.
 - Key-only sorting kernels.
