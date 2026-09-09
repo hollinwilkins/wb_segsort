@@ -644,53 +644,7 @@ fn {name}(
         passes = []
         for p in range(P):
             merged = 2 * run
-            passes.append(f"""    // merge pass {p}: two sorted runs of {run} -> {merged} (register-staged)
-    {{
-        let group_base = (base / {merged}u) * {merged}u;
-        let diag = base - group_base;
-        let a_base = group_base;
-        let b_base = group_base + {run}u;
-        // merge-path: binary search the diagonal for this thread's A/B split
-        var lo = select(0u, diag - {run}u, diag > {run}u);
-        var hi = min(diag, {run}u);
-        while (lo < hi) {{
-            let mid = (lo + hi) >> 1u;
-            let ak = smem_keys[a_base + mid];
-            let av = smem_vals[a_base + mid];
-            let bpos = b_base + (diag - 1u - mid);
-            let bk = smem_keys[bpos];
-            let bv = smem_vals[bpos];
-            if ak < bk || (ak == bk && av <= bv) {{ lo = mid + 1u; }} else {{ hi = mid; }}
-        }}
-        var ai = lo;
-        var bi = diag - lo;
-        // merge this thread's WPT outputs into registers (the pong)
-        var out_keys: array<u32, {wpt}>;
-        var out_vals: array<u32, {wpt}>;
-        for (var k = 0u; k < WPT; k = k + 1u) {{
-            let take_a = bi >= {run}u || (ai < {run}u &&
-                (smem_keys[a_base + ai] < smem_keys[b_base + bi] ||
-                 (smem_keys[a_base + ai] == smem_keys[b_base + bi] &&
-                  smem_vals[a_base + ai] <= smem_vals[b_base + bi])));
-            if take_a {{
-                out_keys[k] = smem_keys[a_base + ai];
-                out_vals[k] = smem_vals[a_base + ai];
-                ai = ai + 1u;
-            }} else {{
-                out_keys[k] = smem_keys[b_base + bi];
-                out_vals[k] = smem_vals[b_base + bi];
-                bi = bi + 1u;
-            }}
-        }}
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
-        for (var k = 0u; k < WPT; k = k + 1u) {{
-            smem_keys[base + k] = out_keys[k];
-            smem_vals[base + k] = out_vals[k];
-        }}
-    }}
-    workgroupBarrier();""")
+            passes.append(f"// merge pass {p}\n" + self._merge_pass(run, wpt))
             run = merged
         merge_passes = "\n".join(passes)
         fk, fv = "smem_keys", "smem_vals"    # the fully merged result lives in smem

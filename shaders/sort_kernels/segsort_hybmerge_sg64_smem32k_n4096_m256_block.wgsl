@@ -3886,7 +3886,8 @@ fn segsort_hybmerge_sg64_smem32k_n4096_m256_block(
 
     let base = local_tid * WPT;   // this thread's blocked output range [base, base+WPT)
 
-    // merge pass 0: two sorted runs of 1024 -> 2048 (register-staged)
+// merge pass 0
+    // merge pass: two sorted runs of 1024 -> 2048 (register-staged)
     {
         let group_base = (base / 2048u) * 2048u;
         let diag = base - group_base;
@@ -3924,16 +3925,16 @@ fn segsort_hybmerge_sg64_smem32k_n4096_m256_block(
                 bi = bi + 1u;
             }
         }
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
         }
     }
     workgroupBarrier();
-    // merge pass 1: two sorted runs of 2048 -> 4096 (register-staged)
+// merge pass 1
+    // merge pass: two sorted runs of 2048 -> 4096 (register-staged)
     {
         let group_base = (base / 4096u) * 4096u;
         let diag = base - group_base;
@@ -3971,9 +3972,8 @@ fn segsort_hybmerge_sg64_smem32k_n4096_m256_block(
                 bi = bi + 1u;
             }
         }
-        workgroupBarrier();   // every read is done before any write-back
-        storageBarrier();     // device-scope fence: workgroupBarrier alone under-orders
-                              // the in-place write-back for single-SIMD-group WGs
+        workgroupBarrier();     // every read is done before any write-back
+        storageBarrier();       // this is an apparent bug in Metal, where the workgroup barrier above is apparently not honored
         for (var k = 0u; k < WPT; k = k + 1u) {
             smem_keys[base + k] = out_keys[k];
             smem_vals[base + k] = out_vals[k];
