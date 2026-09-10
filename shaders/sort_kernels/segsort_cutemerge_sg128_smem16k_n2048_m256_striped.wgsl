@@ -68,7 +68,6 @@ fn segsort_cutemerge_sg128_smem16k_n2048_m256_striped(
         }
     }
 
-    // phase 1 (CuteSort): each subgroup sorts its RUN = SG*WPT elements.
     let sub_block = (tid_g / SG) * SG * WPT;   // this subgroup's runs live here
 
     {  // CuteSort wide run 0: 1 slot(s) x 128 lanes -> sorted run of 128

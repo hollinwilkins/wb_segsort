@@ -68,7 +68,6 @@ fn segsort_cutemerge_sg16_smem16k_n2048_m64_block(
         }
     }
 
-    // phase 1 (CuteSort): each subgroup sorts its RUN = SG*WPT elements.
     let sub_block = (tid_g / SG) * SG * WPT;   // this subgroup's runs live here
     let seg_lane_base = sid - (sid % SG);
     let bin_mask = lane_mask_lt(seg_lane_base + SG) & ~lane_mask_lt(seg_lane_base);

@@ -638,7 +638,7 @@ fn {name}(
         P = int(log2(M // sg))
 
         run_kernel = KernelArgs(RUN, sg, wpt, sg, "reg", kernel.is_block)
-        phase1 = self.reg_sort(run_kernel, 1)
+        reg_sort = self.reg_sort(run_kernel, 1)
 
         run = RUN
         passes = []
@@ -721,7 +721,7 @@ fn {name}(
         }}
     }}
 
-{phase1}
+{reg_sort}
 
     // stage the sorted runs into shared memory (blocked layout)
     for (var r = 0u; r < WPT; r = r + 1u) {{
@@ -941,7 +941,6 @@ fn {name}(
         }}
     }}
 
-    // phase 1 (CuteSort): each subgroup sorts its RUN = SG*WPT elements.
     let sub_block = (tid_g / SG) * SG * WPT;   // this subgroup's runs live here
 {bin_setup}
 {base}
