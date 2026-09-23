@@ -66,6 +66,10 @@ class KernelArgs:
         if self.mode == "cutemerge":
             smem_k = 16 if 8 * self.N <= 16384 else 32
             return f"segsort_cutemerge_sg{self.R}_smem{smem_k}k_n{self.N}_m{self.M}_{store}"
+        if self.mode in ("cute", "cuteseg"):
+            # N == M for cute/cuteseg; sg (R) is the subgroup width and packs R/M
+            # segments, so it must be in the name to distinguish sg=32/64/128.
+            return f"segsort_{self.mode}_sg{self.R}_n{self.N}_m{self.M}_{store}"
         return f"segsort_{self.mode}_n{self.N}_m{self.M}_{store}"
 
 class Transposer:
@@ -953,42 +957,77 @@ fn {name}(
 }}
 """
 
-    def sort_kernel_cute(self, kernel: KernelArgs) -> str:
+    def _cute_source(self, kernel: KernelArgs, extra_bindings: str = "") -> str:
         name = kernel.name()
         N = kernel.N
+        M = kernel.M
+        R = kernel.R                                  # subgroup width = workgroup size; packs R/M segments
         store = self.store_back(kernel, "seg_start", "seg_size", "is_active", 1)
+        bin_idx = M.bit_length() - 1
+
+        if M <= 32:
+            # A segment fits inside one 32-bit ballot word, so 32/M segments pack
+            # per word. Rank with scalar u32 ballot ops; bin_mask isolates this
+            # lane's sub-field within the word at popcount time.
+            seg_mask = f"0x{(1 << M) - 1:x}u"
+            helpers = ""
+            rank_block = f"""    // M <= 32: {32 // M} segment(s) per 32-bit word; scalar multisplit sorts them
+    // together, bin_mask picks out this lane's segment within its word.
+    let word = seg_lane_base >> 5u;
+    let bin_mask = {seg_mask} << (seg_lane_base & 31u);
+    var ge_mask = (1u << (sid & 31u)) - 1u;
+    for (var bit = 0u; bit < 32u; bit = bit + 1u) {{
+        let is_zero = (key & (1u << bit)) == 0u;
+        let ballot0 = subgroupBallot(is_zero)[word];
+        ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
+    }}
+    let rank = countOneBits(ge_mask & bin_mask);    // my sorted position within the segment"""
+        else:
+            # A segment straddles multiple ballot words; rank with vec4 masks.
+            helpers = """
+fn lane_mask_lt(sid: u32) -> vec4<u32> {
+    var m = vec4<u32>(0u, 0u, 0u, 0u);
+    if (sid >= 32u) { m.x = 0xffffffffu; } else { m.x = (1u << sid) - 1u; }
+    if (sid >= 64u) { m.y = 0xffffffffu; } else if (sid > 32u) { m.y = (1u << (sid - 32u)) - 1u; }
+    if (sid >= 96u) { m.z = 0xffffffffu; } else if (sid > 64u) { m.z = (1u << (sid - 64u)) - 1u; }
+    if (sid >= 128u) { m.w = 0xffffffffu; } else if (sid > 96u) { m.w = (1u << (sid - 96u)) - 1u; }
+    return m;
+}
+
+fn ballot_popc(v: vec4<u32>) -> u32 {
+    let c = countOneBits(v);
+    return c.x + c.y + c.z + c.w;
+}
+"""
+            rank_block = """    // M > 32: segment spans multiple ballot words; confine the multisplit
+    // popcount to my segment's lanes (bin_mask) so packed segments don't mix.
+    let bin_mask = lane_mask_lt(seg_lane_base + M) & ~lane_mask_lt(seg_lane_base);
+    var ge_mask = lane_mask_lt(sid);
+    for (var bit = 0u; bit < 32u; bit = bit + 1u) {
+        let is_zero = (key & (1u << bit)) == 0u;
+        let ballot0 = subgroupBallot(is_zero);
+        ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
+    }
+    let rank = ballot_popc(ge_mask & bin_mask);     // my sorted position within the segment"""
+
         return f"""
 enable subgroups;
 
-override WG: u32 = {N}u;
+override WG: u32 = {R}u;
 
 @group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
 @group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
 @group(0) @binding(2) var<storage, read> segments: array<u32>;
 @group(0) @binding(3) var<storage, read> bin_offsets: array<u32>;
 @group(0) @binding(4) var<storage, read> bin_indices: array<u32>;
-
+{extra_bindings}
 const N: u32 = {N}u;
-const M: u32 = {N}u;
+const M: u32 = {M}u;
 const WPT: u32 = 1u;
 
 var<workgroup> smem_keys: array<u32, WG>;
 var<workgroup> smem_vals: array<u32, WG>;
-
-fn lane_mask_lt(sid: u32) -> vec4<u32> {{
-    var m = vec4<u32>(0u, 0u, 0u, 0u);
-    if (sid >= 32u) {{ m.x = 0xffffffffu; }} else {{ m.x = (1u << sid) - 1u; }}
-    if (sid >= 64u) {{ m.y = 0xffffffffu; }} else if (sid > 32u) {{ m.y = (1u << (sid - 32u)) - 1u; }}
-    if (sid >= 96u) {{ m.z = 0xffffffffu; }} else if (sid > 64u) {{ m.z = (1u << (sid - 64u)) - 1u; }}
-    if (sid >= 128u) {{ m.w = 0xffffffffu; }} else if (sid > 96u) {{ m.w = (1u << (sid - 96u)) - 1u; }}
-    return m;
-}}
-
-fn ballot_popc(v: vec4<u32>) -> u32 {{
-    let c = countOneBits(v);
-    return c.x + c.y + c.z + c.w;
-}}
-
+{helpers}
 @compute @workgroup_size(WG, 1, 1)
 fn {name}(
     @builtin(subgroup_invocation_id) sid: u32,
@@ -996,14 +1035,14 @@ fn {name}(
     @builtin(workgroup_id) wg_id: vec3<u32>,
     @builtin(num_workgroups) wg_dim: vec3<u32>
 ) {{
-    const BIN: u32 = {N.bit_length() - 1}u;
+    const BIN: u32 = {bin_idx}u;
 
     let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
     let bin_count = bin_offsets[BIN] - bin_base;
 
-    // WG == subgroup size, so one subgroup covers the whole workgroup and packs
-    // WG/M segments (each M consecutive lanes = one segment). This keeps a full
-    // subgroup busy even for tiny N, instead of one segment per workgroup.
+    // WG == subgroup width (R), so one subgroup covers the whole workgroup and
+    // packs R/M segments (each M consecutive lanes = one segment). This keeps a
+    // full subgroup busy even for tiny segments, instead of one per workgroup.
     let local_tid = sid & (M - 1u);
     let seg_lane_base = sid - local_tid;            // my segment's base lane in the subgroup
     let wg_index = wg_id.x + wg_id.y * wg_dim.x;
@@ -1026,19 +1065,180 @@ fn {name}(
         value = 0xffffffffu;
     }}
 
-    // Multisplit over the full subgroup, then confine the popcount to my
-    // segment's lanes (bin_mask) so segments sharing the subgroup don't mix.
-    let bin_mask = lane_mask_lt(seg_lane_base + M) & ~lane_mask_lt(seg_lane_base);
-    var ge_mask = lane_mask_lt(sid);
-    for (var bit = 0u; bit < 32u; bit = bit + 1u) {{
-        let is_zero = (key & (1u << bit)) == 0u;
-        let ballot0 = subgroupBallot(is_zero);
-        ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
-    }}
-    let rank = ballot_popc(ge_mask & bin_mask);     // my sorted position within the segment
+{rank_block}
 
     smem_keys[seg_lane_base + rank] = key;
     smem_vals[seg_lane_base + rank] = value;
+    workgroupBarrier();
+
+    var keys: array<u32, 1>;
+    var values: array<u32, 1>;
+    keys[0] = smem_keys[sid];
+    values[0] = smem_vals[sid];
+
+{store}
+}}
+"""
+
+    def sort_kernel_cute(self, kernel: KernelArgs) -> str:
+        return self._cute_source(kernel)
+
+    def sort_kernel_cuteseg(self, kernel: KernelArgs) -> str:
+        # Variable-length variant of cute. Each M-group packs several segments
+        # (total <= M elements) laid out contiguously in global memory; the
+        # segment-end ballot in seg_ballots[] marks the last lane of each segment
+        # within the group (native LSB=lane order, bit set == inclusive end).
+        #
+        # cuteseg buffer contract (produced by step 4's next-fit binning):
+        #   bin_offsets[BIN]     : cumulative packed-GROUP count for this bin
+        #   bin_indices[slot]    : global key offset of the group's first element
+        #   seg_ballots[slot*W+w]: group's end-bit ballot (W = max(1, M/32) words)
+        # The last packed element of a group is always a segment end, so the top
+        # set bit gives the group size and the forward ctz always finds an end.
+        name = kernel.name()
+        N = kernel.N
+        M = kernel.M
+        R = kernel.R
+        WORDS = max(1, M // 32)
+        store = self.store_back(kernel, "group_base", "group_size", "is_active", 1)
+        bin_idx = M.bit_length() - 1
+
+        if M <= 32:
+            helpers = ""
+            ballot_read = "let ballot = seg_ballots[slot];"
+            group_size = "select(0u, 32u - countLeadingZeros(ballot), is_active)"
+            # scalar path: whole group lives in one 32-bit ballot word.
+            rank_block = """    // per-lane segment bounds within the group, from the end-bit ballot
+    let below = ballot & ((1u << local_tid) - 1u);
+    let above = ballot & ~((1u << local_tid) - 1u);
+    let seg_start_rel = 32u - countLeadingZeros(below);          // start (prev end + 1; 0 if none)
+    let seg_end_rel = min(M - 1u, countTrailingZeros(above));    // end (terminal bit guarantees a hit)
+
+    // confine the multisplit popcount to this lane's segment inside its word
+    let g_off = m_group_base & 31u;
+    let gstart = g_off + seg_start_rel;
+    let gend = g_off + seg_end_rel;
+    let bin_mask = (0xffffffffu << gstart) & (0xffffffffu >> (31u - gend));
+
+    let word = sid >> 5u;
+    var ge_mask = (1u << (sid & 31u)) - 1u;
+    for (var bit = 0u; bit < 32u; bit = bit + 1u) {
+        let is_zero = (key & (1u << bit)) == 0u;
+        let ballot0 = subgroupBallot(is_zero)[word];
+        ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
+    }
+    let rank = countOneBits(ge_mask & bin_mask);    // sorted position within the segment"""
+        else:
+            helpers = """
+fn lane_mask_lt(sid: u32) -> vec4<u32> {
+    var m = vec4<u32>(0u, 0u, 0u, 0u);
+    if (sid >= 32u) { m.x = 0xffffffffu; } else { m.x = (1u << sid) - 1u; }
+    if (sid >= 64u) { m.y = 0xffffffffu; } else if (sid > 32u) { m.y = (1u << (sid - 32u)) - 1u; }
+    if (sid >= 96u) { m.z = 0xffffffffu; } else if (sid > 64u) { m.z = (1u << (sid - 64u)) - 1u; }
+    if (sid >= 128u) { m.w = 0xffffffffu; } else if (sid > 96u) { m.w = (1u << (sid - 96u)) - 1u; }
+    return m;
+}
+
+fn ballot_popc(v: vec4<u32>) -> u32 {
+    let c = countOneBits(v);
+    return c.x + c.y + c.z + c.w;
+}
+
+// lowest set bit index across the 128-bit ballot (128 if none)
+fn ctz128(v: vec4<u32>) -> u32 {
+    if (v.x != 0u) { return       countTrailingZeros(v.x); }
+    if (v.y != 0u) { return 32u + countTrailingZeros(v.y); }
+    if (v.z != 0u) { return 64u + countTrailingZeros(v.z); }
+    return 96u + countTrailingZeros(v.w);
+}
+
+// (highest set bit index + 1) across the ballot; 0 if all zero
+fn hi_bit_plus1(v: vec4<u32>) -> u32 {
+    if (v.w != 0u) { return 96u + (32u - countLeadingZeros(v.w)); }
+    if (v.z != 0u) { return 64u + (32u - countLeadingZeros(v.z)); }
+    if (v.y != 0u) { return 32u + (32u - countLeadingZeros(v.y)); }
+    if (v.x != 0u) { return       (32u - countLeadingZeros(v.x)); }
+    return 0u;
+}
+"""
+            comps = ["x", "y", "z", "w"][:WORDS]
+            ballot_read = "var bal = vec4<u32>(0u, 0u, 0u, 0u);\n" + "\n".join(
+                f"    bal.{c} = seg_ballots[slot * {WORDS}u + {i}u];" for i, c in enumerate(comps))
+            group_size = "select(0u, hi_bit_plus1(bal), is_active)"
+            # vec4 path: group spans multiple ballot words.
+            rank_block = """    // per-lane segment bounds within the group, from the end-bit ballot
+    let below = bal & lane_mask_lt(local_tid);
+    let above = bal & ~lane_mask_lt(local_tid);
+    let seg_start_rel = hi_bit_plus1(below);                     // start (prev end + 1; 0 if none)
+    let seg_end_rel = min(M - 1u, ctz128(above));               // end (terminal bit guarantees a hit)
+
+    // confine the multisplit popcount to this lane's segment
+    let seg_lane_base = m_group_base + seg_start_rel;
+    let bin_mask = lane_mask_lt(m_group_base + seg_end_rel + 1u) & ~lane_mask_lt(seg_lane_base);
+    var ge_mask = lane_mask_lt(sid);
+    for (var bit = 0u; bit < 32u; bit = bit + 1u) {
+        let is_zero = (key & (1u << bit)) == 0u;
+        let ballot0 = subgroupBallot(is_zero);
+        ge_mask = select(ge_mask | ballot0, ge_mask & ballot0, is_zero);
+    }
+    let rank = ballot_popc(ge_mask & bin_mask);     // sorted position within the segment"""
+
+        return f"""
+enable subgroups;
+
+override WG: u32 = {R}u;
+
+@group(0) @binding(0) var<storage, read_write> global_keys: array<u32>;
+@group(0) @binding(1) var<storage, read_write> global_value_indices: array<u32>;
+@group(0) @binding(2) var<storage, read> segments: array<u32>;
+@group(0) @binding(3) var<storage, read> bin_offsets: array<u32>;
+@group(0) @binding(4) var<storage, read> bin_indices: array<u32>;
+@group(0) @binding(5) var<storage, read> seg_ballots: array<u32>;
+
+const N: u32 = {N}u;
+const M: u32 = {M}u;
+const WPT: u32 = 1u;
+
+var<workgroup> smem_keys: array<u32, WG>;
+var<workgroup> smem_vals: array<u32, WG>;
+{helpers}
+@compute @workgroup_size(WG, 1, 1)
+fn {name}(
+    @builtin(subgroup_invocation_id) sid: u32,
+    @builtin(local_invocation_index) lid: u32,
+    @builtin(workgroup_id) wg_id: vec3<u32>,
+    @builtin(num_workgroups) wg_dim: vec3<u32>
+) {{
+    const BIN: u32 = {bin_idx}u;
+
+    let bin_base = select(bin_offsets[BIN - 1u], 0u, BIN == 0u);
+    let group_count = bin_offsets[BIN] - bin_base;   // packed groups in this bin
+
+    // R/M packed groups per subgroup; each group is M consecutive lanes and holds
+    // several variable-length segments concatenated, bounded by its ballot.
+    let local_tid = sid & (M - 1u);
+    let m_group_base = sid - local_tid;              // my group's base lane in the subgroup
+    let wg_index = wg_id.x + wg_id.y * wg_dim.x;
+    let global_seg = (wg_index * WG + sid) / M;       // absolute packed-group index
+
+    let is_active = global_seg < group_count;
+    let slot = bin_base + select(0u, global_seg, is_active);   // clamp so reads are in-range
+    let group_base = bin_indices[slot];               // global offset of this group's first element
+    {ballot_read}
+    let group_size = {group_size};                    // valid elements in the group (top set bit + 1)
+
+    var key: u32 = 0xffffffffu;                        // sentinels sort to the top, dropped at store
+    var value: u32 = 0xffffffffu;
+    if is_active && local_tid < group_size {{
+        key = global_keys[group_base + local_tid];
+        value = group_base + local_tid;
+    }}
+
+{rank_block}
+
+    let dst = m_group_base + seg_start_rel + rank;     // dense sorted slot within the subgroup
+    smem_keys[dst] = key;
+    smem_vals[dst] = value;
     workgroupBarrier();
 
     var keys: array<u32, 1>;
@@ -1055,6 +1255,8 @@ fn {name}(
             return self.sort_kernel_reg(kernel)
         elif kernel.mode == "cute":
             return self.sort_kernel_cute(kernel)
+        elif kernel.mode == "cuteseg":
+            return self.sort_kernel_cuteseg(kernel)
         elif kernel.mode == "wg":
             return self.sort_kernel_workgroup(kernel)
         elif kernel.mode == "hybrid":
@@ -1177,10 +1379,18 @@ def main():
                 M = min(sg_size, N)
                 kernels.add(KernelArgs(N, M, N // M, M, "reg", is_block))
 
-        for N in SEGMENT_SIZES:
-            if N > max(SUBGROUP_SIZES):
-                continue
-            kernels.add(KernelArgs(N, N, 1, N, "cute", is_block))
+        # cute: one key per lane (WPT=1), N == M == segment length. The subgroup
+        # width sg (R) packs sg/M segments; M < 32 packs multiple per 32-bit word.
+        # M < 8 is left to the reg (rank-sort) family, which is cheaper there.
+        for sg in [32, 64, 128]:
+            for M in [8, 16, 32, 64, 128]:
+                if M > sg:
+                    continue
+                kernels.add(KernelArgs(M, M, 1, sg, "cute", is_block))
+                # cuteseg: same matrix; adds the packed-ballot buffer (binding 5).
+                # Variable-length support (consuming the ballots) lands in step 3;
+                # real next-fit binning that fills the buffer is step 4.
+                kernels.add(KernelArgs(M, M, 1, sg, "cuteseg", is_block))
 
         for N in SEGMENT_SIZES:
             for wpt in WPTS:

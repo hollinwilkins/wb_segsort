@@ -397,16 +397,6 @@ segsort_wg_n512_m16_striped_smem32k,smem,striped,512,16,32,32,32,9,12399616,2421
 segsort_wg_n512_m32_striped_smem32k,smem,striped,512,32,32,32,32,9,12399616,24218,true,0,,0,0,0,0
 segsort_wg_n64_m2_striped_smem32k,smem,striped,64,2,32,32,32,6,12400000,193750,true,0,,0,0,0,0
 segsort_wg_n64_m4_striped_smem32k,smem,striped,64,4,32,32,32,6,12400000,193750,true,0,,0,0,0,0
-segsort_cute_n2_m2_block,cute,block,2,2,32,32,16,1,12400000,6200000,true,0,,0,0,0,0
-segsort_cute_n2_m2_striped,cute,striped,2,2,32,32,16,1,12400000,6200000,true,0,,0,0,0,0
-segsort_cute_n4_m4_block,cute,block,4,4,32,32,16,2,12400000,3100000,true,0,,0,0,0,0
-segsort_cute_n4_m4_striped,cute,striped,4,4,32,32,16,2,12400000,3100000,true,0,,0,0,0,0
-segsort_cute_n8_m8_block,cute,block,8,8,32,32,16,3,12400000,1550000,true,0,,0,0,0,0
-segsort_cute_n8_m8_striped,cute,striped,8,8,32,32,16,3,12400000,1550000,true,0,,0,0,0,0
-segsort_cute_n16_m16_block,cute,block,16,16,32,32,16,4,12400000,775000,true,0,,0,0,0,0
-segsort_cute_n16_m16_striped,cute,striped,16,16,32,32,16,4,12400000,775000,true,0,,0,0,0,0
-segsort_cute_n32_m32_block,cute,block,32,32,32,32,16,5,12400000,387500,true,0,,0,0,0,0
-segsort_cute_n32_m32_striped,cute,striped,32,32,32,32,16,5,12400000,387500,true,0,,0,0,0,0
 segsort_cutemerge_sg32_smem16k_n1024_m128_block,cutemerge,block,1024,128,32,32,16,10,12399616,12109,true,0,,0,0,0,0
 segsort_cutemerge_sg32_smem16k_n1024_m128_striped,cutemerge,striped,1024,128,32,32,16,10,12399616,12109,true,0,,0,0,0,0
 segsort_cutemerge_sg32_smem16k_n1024_m256_block,cutemerge,block,1024,256,32,32,16,10,12399616,12109,true,0,,0,0,0,0
