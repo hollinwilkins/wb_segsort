@@ -54,6 +54,7 @@ typedef enum bench_family_kind
     bench_family_hybmerge = 3,
     bench_family_cute = 4,
     bench_family_cutemerge = 5,
+    bench_family_cuteseg = 6,
 } bench_family_kind;
 
 typedef enum bench_store_kind
@@ -103,6 +104,10 @@ typedef struct bench_buffers
     WGPUBuffer bin_config_data; // storage: array<BinConfig> (unused by us, kept valid)
     WGPUBuffer bin_histogram;   // storage: array<atomic<u32>, 13>
     WGPUBuffer bin_dispatch;    // storage: array<DispatchSize, 13> (unused output)
+    // Scratch for the next-fit packing pass (wb_nf_bin.wgsl), cuteseg only.
+    WGPUBuffer seg_ballots;     // storage: array<u32> (max_segments * W_max group ballots)
+    WGPUBuffer group_first_seg; // storage: array<u32> (per group: first bin_indices slot)
+    WGPUBuffer group_counter;   // storage: atomic<u32> (packed group count)
 } bench_buffers;
 
 typedef struct bench_result
@@ -124,7 +129,8 @@ typedef struct bench_experiment
     uint32_t R;
     uint32_t subgroups;
     uint32_t smem_kb;
-    uint32_t bin;
+    uint32_t min_bin;   // segment-size sampling range, inclusive; min_bin == max_bin
+    uint32_t max_bin;   // for a single-bin ("4") row, or e.g. 2..5 for a range
 } bench_experiment;
 
 // Outcome of validating one kernel against the CPU reference sort.
@@ -156,6 +162,7 @@ static const char * bench_family_name(const bench_family_kind kind)
         case bench_family_hybmerge: return "hybmerge";
         case bench_family_cute: return "cute";
         case bench_family_cutemerge: return "cutemerge";
+        case bench_family_cuteseg: return "cuteseg";
         default: PANIC("invalid family");
     }
 }
@@ -269,10 +276,14 @@ static void write_validation_csv(
         const bench_experiment * const x = &exps[e];
         const bench_validation * const v = &results[e];
 
+        char bin_field[32];
+        if (x->min_bin == x->max_bin) snprintf(bin_field, sizeof(bin_field), "%u", x->min_bin);
+        else snprintf(bin_field, sizeof(bin_field), "%u..%u", x->min_bin, x->max_bin);
+
         fprintf(f,
-            "%s,%s,%s,%u,%u,%u,%u,%u,%u,%zu,%zu,%s,%zu,%s,%u,%u,%u,%u\n",
+            "%s,%s,%s,%u,%u,%u,%u,%u,%s,%zu,%zu,%s,%zu,%s,%u,%u,%u,%u\n",
             x->name, bench_family_name(x->family), bench_store_name(x->store),
-            x->N, x->M, x->R, x->subgroups, x->smem_kb, x->bin,
+            x->N, x->M, x->R, x->subgroups, x->smem_kb, bin_field,
             v->keys_len, v->segments_len, v->valid ? "true" : "false",
             v->valid ? (size_t)0 : v->fail_index, v->valid ? "" : v->fail_kind,
             v->cpu_key, v->gpu_key, v->cpu_vi, v->gpu_vi);
@@ -294,6 +305,7 @@ static bench_family_kind bench_family_for_name(const char * const name)
     else if (strcmp("hybmerge", name) == 0) return bench_family_hybmerge;
     else if (strcmp("cute", name) == 0) return bench_family_cute;
     else if (strcmp("cutemerge", name) == 0) return bench_family_cutemerge;
+    else if (strcmp("cuteseg", name) == 0) return bench_family_cuteseg;
 
     PANIC("invalid family %s", name);
 }
@@ -330,12 +342,28 @@ static bench_experiment * bench_load_experiments(const char * const path, size_t
         char name[512];
         char family[32];
         char store[32];
-        uint32_t N, M, R, subgroups, smem_kb, bin;
+        char bin_str[32];
+        uint32_t N, M, R, subgroups, smem_kb;
 
-        if (sscanf(LINE, "%511[^,],%31[^,],%31[^,],%u,%u,%u,%u,%u,%u",
-                name, family, store, &N, &M, &R, &subgroups, &smem_kb, &bin) != 9)
+        // The bin field is either a single bin ("4") or an inclusive range
+        // ("2..5") sampling segment sizes across those bins.
+        if (sscanf(LINE, "%511[^,],%31[^,],%31[^,],%u,%u,%u,%u,%u,%31[^,\r\n]",
+                name, family, store, &N, &M, &R, &subgroups, &smem_kb, bin_str) != 9)
         {
             PANIC("malformed experiments row: %s", LINE);
+        }
+
+        uint32_t min_bin, max_bin;
+        if (strstr(bin_str, "..") != NULL)
+        {
+            if (sscanf(bin_str, "%u..%u", &min_bin, &max_bin) != 2)
+                PANIC("malformed bin range '%s' in row: %s", bin_str, LINE);
+            if (min_bin > max_bin)
+                PANIC("bin range min (%u) > max (%u) in row: %s", min_bin, max_bin, LINE);
+        }
+        else
+        {
+            min_bin = max_bin = (uint32_t)strtoul(bin_str, NULL, 10);
         }
 
         bench_experiment * const e = &exps[n++];
@@ -347,7 +375,8 @@ static bench_experiment * bench_load_experiments(const char * const path, size_t
         e->R = R;
         e->subgroups = subgroups;
         e->smem_kb = smem_kb;
-        e->bin = bin;
+        e->min_bin = min_bin;
+        e->max_bin = max_bin;
     }
 
     fclose(f);
@@ -430,6 +459,22 @@ static void bench_buffers_init(
     bin_dispatch_desc.size = 13 * 16; // array<DispatchSize, 13> (over-allocated)
     bin_dispatch_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
 
+    // Worst case one packed group per segment; W_max = 4 ballot words (M=128).
+    WGPUBufferDescriptor seg_ballots_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    seg_ballots_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Seg Ballots", .length = WGPU_STRLEN };
+    seg_ballots_desc.size = max_segments * 4 * sizeof(uint32_t);
+    seg_ballots_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor group_first_seg_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    group_first_seg_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Group First Seg", .length = WGPU_STRLEN };
+    group_first_seg_desc.size = max_segments * sizeof(uint32_t);
+    group_first_seg_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
+    WGPUBufferDescriptor group_counter_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    group_counter_desc.label = (WGPUStringView){ .data = "Benchmark Kernel: Group Counter", .length = WGPU_STRLEN };
+    group_counter_desc.size = sizeof(uint32_t);
+    group_counter_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc;
+
     *buffers = (bench_buffers){
         .keys = wgpuDeviceCreateBuffer(device, &keys_desc),
         .keys_staging = wgpuDeviceCreateBuffer(device, &keys_staging_desc),
@@ -441,6 +486,9 @@ static void bench_buffers_init(
         .bin_config_data = wgpuDeviceCreateBuffer(device, &bin_config_data_desc),
         .bin_histogram = wgpuDeviceCreateBuffer(device, &bin_histogram_desc),
         .bin_dispatch = wgpuDeviceCreateBuffer(device, &bin_dispatch_desc),
+        .seg_ballots = wgpuDeviceCreateBuffer(device, &seg_ballots_desc),
+        .group_first_seg = wgpuDeviceCreateBuffer(device, &group_first_seg_desc),
+        .group_counter = wgpuDeviceCreateBuffer(device, &group_counter_desc),
     };
 }
 
@@ -649,6 +697,70 @@ static WGPUBindGroup bench_create_bindings(
     return wgpuDeviceCreateBindGroup(device, &sort_binding_desc);
 }
 
+// The variable-segment sort families (cuteseg, and rankseg later) read two extra
+// per-group buffers produced by wb_nf_bin, so they share their own 7-binding layout
+// kept separate from the fixed-length sort layout above.
+static void bench_create_varseg_pipeline_layout(
+    WGPUDevice const device,
+    WGPUBindGroupLayout * const bind_layout,
+    WGPUPipelineLayout * const pipeline_layout
+)
+{
+    WGPUBindGroupLayoutDescriptor layout_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout_desc.label = (WGPUStringView){
+        .data = "Benchmark Kernel: Varseg Bindings",
+        .length = WGPU_STRLEN,
+    };
+    layout_desc.entryCount = 7;
+    layout_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        { .binding = 0, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },           // global_keys
+        { .binding = 1, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },           // global_value_indices
+        { .binding = 2, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },   // segments
+        { .binding = 3, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },   // bin_offsets
+        { .binding = 4, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },   // bin_indices
+        { .binding = 5, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },   // seg_ballots
+        { .binding = 6, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },   // group_first_seg
+    };
+    WGPUBindGroupLayout layout0 = wgpuDeviceCreateBindGroupLayout(device, &layout_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.label = (WGPUStringView){
+        .data = "WB Sort: Varseg Sort Pipeline Layout",
+        .length = WGPU_STRLEN,
+    };
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){ layout0 };
+
+    *bind_layout = layout0;
+    *pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+}
+
+static WGPUBindGroup bench_create_varseg_bindings(
+    const bench_buffers * const buffers,
+    WGPUDevice const device,
+    WGPUBindGroupLayout const layout
+)
+{
+    WGPUBindGroupDescriptor bind_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    bind_desc.label = (WGPUStringView){
+        .data = "Benchmark Kernel: Varseg Binding",
+        .length = WGPU_STRLEN,
+    };
+    bind_desc.layout = layout;
+    bind_desc.entryCount = 7;
+    bind_desc.entries = (WGPUBindGroupEntry[]){
+        { .binding = 0, .buffer = buffers->keys,            .size = WGPU_WHOLE_SIZE },
+        { .binding = 1, .buffer = buffers->value_indices,   .size = WGPU_WHOLE_SIZE },
+        { .binding = 2, .buffer = buffers->segments,        .size = WGPU_WHOLE_SIZE },
+        { .binding = 3, .buffer = buffers->bin_offsets,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 4, .buffer = buffers->bin_indices,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 5, .buffer = buffers->seg_ballots,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 6, .buffer = buffers->group_first_seg, .size = WGPU_WHOLE_SIZE },
+    };
+
+    return wgpuDeviceCreateBindGroup(device, &bind_desc);
+}
+
 static hwstats_sampler * create_uniform_sampler(
     const uint64_t seed,
     const mems_allocator * const allocator
@@ -700,8 +812,13 @@ static hwstats_sampler * create_sampler(
     return NULL;
 }
 
+// Samples segment lengths uniformly over the combined range of bins
+// [min_bin, max_bin] inclusive: lengths in [lo(min_bin), hi(max_bin)]. A single
+// bin (min_bin == max_bin) reproduces the original per-bin behaviour; a wider
+// range mixes size classes so cuteseg groups pack varied-length segments.
 static uint32_t bench_generate_segments(
-    const uint32_t bin,
+    const uint32_t min_bin,
+    const uint32_t max_bin,
     const uint32_t n_keys,
     const uint32_t seed,
     const char * const sampler_name,
@@ -717,8 +834,8 @@ static uint32_t bench_generate_segments(
 
     hwstats_sampler * const sampler = create_sampler(sampler_name, (uint64_t)seed, &allocator);
 
-    const uint32_t lo = bin == 0u ? 1u : (1u << (bin - 1u)) + 1u;
-    const uint32_t hi = 1u << bin;
+    const uint32_t lo = min_bin == 0u ? 1u : (1u << (min_bin - 1u)) + 1u;
+    const uint32_t hi = 1u << max_bin;
     const uint32_t range = hi - lo;
 
     uint32_t segments_len = 0;
@@ -768,6 +885,7 @@ static uint32_t bench_wg(
         case bench_family_hybmerge: return M;
         case bench_family_cutemerge: return M;
         case bench_family_cute:
+        case bench_family_cuteseg:
         {
             if (M > subgroup_size)
             {
@@ -936,6 +1054,148 @@ static void bench_compute_bins_gpu(
     wgpuBindGroupLayoutRelease(layout);
     wgpuShaderModuleRelease(module);
     mems_allocator_free(&mems_system_allocator, source);
+}
+
+// Next-fit-bin packing (wb_nf_bin.wgsl) for the cuteseg family. Re-runs wb_bin
+// first (to restore bin_offsets, which the pack pass overwrites at slot BIN),
+// then packs the size-sorted segments in bins [2, log2(M)] into capacity-M
+// groups, filling seg_ballots + group_first_seg. Returns the packed group count.
+static uint32_t bench_pack_nextfit_gpu(
+    const bench_buffers * const buffers,
+    const uint32_t segments_len,
+    const uint32_t M,
+    const uint32_t R,
+    WGPUInstance const instance,
+    WGPUDevice const device,
+    WGPUQueue const queue
+)
+{
+    // Rebuild bin_offsets / bin_indices so the pack reads the true segment counts.
+    bench_compute_bins_gpu(buffers, segments_len, instance, device, queue);
+
+    uint32_t bin_idx = 0;
+    while ((1u << bin_idx) < M) bin_idx++;   // log2(M) for power-of-two M
+
+    size_t source_len;
+    char * const source = wbg__read_file("shaders/wb_nf_bin.wgsl", &mems_system_allocator, &source_len);
+
+    WGPUShaderSourceWGSL source_wgsl = (WGPUShaderSourceWGSL){
+        .chain = (WGPUChainedStruct){ .sType = WGPUSType_ShaderSourceWGSL },
+        .code = (WGPUStringView){ .data = source, .length = source_len },
+    };
+    WGPUShaderModuleDescriptor module_desc = (WGPUShaderModuleDescriptor){
+        .label = (WGPUStringView){ .data = "wb_nf_bin", .length = WGPU_STRLEN },
+        .nextInChain = (WGPUChainedStruct *)(&source_wgsl),
+    };
+    WGPUShaderModule module = wgpuDeviceCreateShaderModule(device, &module_desc);
+
+    WGPUBindGroupLayoutDescriptor layout_desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+    layout_desc.entryCount = 8;
+    layout_desc.entries = (WGPUBindGroupLayoutEntry[]){
+        { .binding = 0, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Uniform } },          // config
+        { .binding = 1, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },  // segments
+        { .binding = 2, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },          // bin_offsets (rw)
+        { .binding = 3, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_ReadOnlyStorage } },  // bin_indices
+        { .binding = 4, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },          // group_first_seg
+        { .binding = 5, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },          // seg_ballots
+        { .binding = 6, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },          // group_counter
+        { .binding = 7, .visibility = WGPUShaderStage_Compute, .buffer = { .type = WGPUBufferBindingType_Storage } },          // dispatch
+    };
+    WGPUBindGroupLayout layout = wgpuDeviceCreateBindGroupLayout(device, &layout_desc);
+
+    WGPUPipelineLayoutDescriptor pipeline_layout_desc = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+    pipeline_layout_desc.bindGroupLayoutCount = 1;
+    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout[]){ layout };
+    WGPUPipelineLayout pipeline_layout = wgpuDeviceCreatePipelineLayout(device, &pipeline_layout_desc);
+
+    const uint32_t WG_SIZE = 256u;
+    const uint32_t K = 8u;
+    WGPUConstantEntry consts[7] = {
+        { .key = (WGPUStringView){ .data = "WG_SIZE",    .length = WGPU_STRLEN }, .value = (double)WG_SIZE },
+        { .key = (WGPUStringView){ .data = "M",          .length = WGPU_STRLEN }, .value = (double)M },
+        { .key = (WGPUStringView){ .data = "K",          .length = WGPU_STRLEN }, .value = (double)K },
+        { .key = (WGPUStringView){ .data = "FIRST_BIN",  .length = WGPU_STRLEN }, .value = 2.0 },
+        { .key = (WGPUStringView){ .data = "LAST_BIN",   .length = WGPU_STRLEN }, .value = (double)bin_idx },
+        { .key = (WGPUStringView){ .data = "BIN",        .length = WGPU_STRLEN }, .value = (double)bin_idx },
+        { .key = (WGPUStringView){ .data = "CUTESEG_WG", .length = WGPU_STRLEN }, .value = (double)R },
+    };
+
+    WGPUComputePipelineDescriptor clear_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    clear_desc.layout = pipeline_layout;
+    clear_desc.compute.module = module;
+    clear_desc.compute.entryPoint = (WGPUStringView){ .data = "nf_clear", .length = WGPU_STRLEN };
+    clear_desc.compute.constantCount = 7;
+    clear_desc.compute.constants = consts;
+    WGPUComputePipeline clear_pipeline = wgpuDeviceCreateComputePipeline(device, &clear_desc);
+
+    WGPUComputePipelineDescriptor pack_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    pack_desc.layout = pipeline_layout;
+    pack_desc.compute.module = module;
+    pack_desc.compute.entryPoint = (WGPUStringView){ .data = "nf_pack", .length = WGPU_STRLEN };
+    pack_desc.compute.constantCount = 7;
+    pack_desc.compute.constants = consts;
+    WGPUComputePipeline pack_pipeline = wgpuDeviceCreateComputePipeline(device, &pack_desc);
+
+    WGPUComputePipelineDescriptor schedule_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    schedule_desc.layout = pipeline_layout;
+    schedule_desc.compute.module = module;
+    schedule_desc.compute.entryPoint = (WGPUStringView){ .data = "nf_schedule", .length = WGPU_STRLEN };
+    schedule_desc.compute.constantCount = 7;
+    schedule_desc.compute.constants = consts;
+    WGPUComputePipeline schedule_pipeline = wgpuDeviceCreateComputePipeline(device, &schedule_desc);
+
+    WGPUBindGroupDescriptor bind_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    bind_desc.layout = layout;
+    bind_desc.entryCount = 8;
+    bind_desc.entries = (WGPUBindGroupEntry[]){
+        { .binding = 0, .buffer = buffers->bin_config,      .size = WGPU_WHOLE_SIZE },
+        { .binding = 1, .buffer = buffers->segments,        .size = WGPU_WHOLE_SIZE },
+        { .binding = 2, .buffer = buffers->bin_offsets,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 3, .buffer = buffers->bin_indices,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 4, .buffer = buffers->group_first_seg, .size = WGPU_WHOLE_SIZE },
+        { .binding = 5, .buffer = buffers->seg_ballots,     .size = WGPU_WHOLE_SIZE },
+        { .binding = 6, .buffer = buffers->group_counter,   .size = WGPU_WHOLE_SIZE },
+        { .binding = 7, .buffer = buffers->bin_dispatch,    .size = WGPU_WHOLE_SIZE },
+    };
+    WGPUBindGroup binding = wgpuDeviceCreateBindGroup(device, &bind_desc);
+
+    const uint32_t threads = (segments_len + K - 1u) / K;
+    const uint32_t pack_wgs = (threads + WG_SIZE - 1u) / WG_SIZE;
+
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, NULL);
+    WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(encoder, NULL);
+    wgpuComputePassEncoderSetBindGroup(pass, 0, binding, 0, NULL);
+    wgpuComputePassEncoderSetPipeline(pass, clear_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, 1, 1, 1);
+    wgpuComputePassEncoderSetPipeline(pass, pack_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, pack_wgs > 0 ? pack_wgs : 1u, 1, 1);
+    wgpuComputePassEncoderSetPipeline(pass, schedule_pipeline);
+    wgpuComputePassEncoderDispatchWorkgroups(pass, 1, 1, 1);
+    wgpuComputePassEncoderEnd(pass);
+
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, NULL);
+    wgpuQueueSubmit(queue, 1, &commands);
+    benchmark_wait_idle(instance, queue);
+    wgpuCommandBufferRelease(commands);
+    wgpuComputePassEncoderRelease(pass);
+    wgpuCommandEncoderRelease(encoder);
+
+    uint32_t * counter;
+    hwgutil_wgpu_read_buffer_alloc(
+        instance, device, queue, buffers->group_counter, &mems_system_allocator, (void **)&counter);
+    const uint32_t group_count = counter[0];
+    mems_allocator_free(&mems_system_allocator, counter);
+
+    wgpuBindGroupRelease(binding);
+    wgpuComputePipelineRelease(clear_pipeline);
+    wgpuComputePipelineRelease(pack_pipeline);
+    wgpuComputePipelineRelease(schedule_pipeline);
+    wgpuPipelineLayoutRelease(pipeline_layout);
+    wgpuBindGroupLayoutRelease(layout);
+    wgpuShaderModuleRelease(module);
+    mems_allocator_free(&mems_system_allocator, source);
+
+    return group_count;
 }
 
 static bench_validation bench_validate(
@@ -1137,6 +1397,11 @@ static void run_benchmark(
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cutemerge_sg%u_smem%uk_n%u_m%u_%s",
                 config.subgroups, smem_kb, config.N, config.M, store_name);
         } break;
+        case bench_family_cuteseg:
+        {
+            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cuteseg_sg%u_n%u_m%u_%s",
+                config.subgroups, config.N, config.M, store_name);
+        } break;
     }
 
     const uint32_t wg = bench_wg(
@@ -1157,9 +1422,19 @@ static void run_benchmark(
 
     bench_write_buffer(queue, buffers->keys, 0, keys, keys_len * sizeof(uint32_t));
 
-    const uint32_t segs_per_wg = wg / config.M;
-    const wbg_dispatch_size base = { segs_per_wg, 1u, 1u };
-    const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&base, segments_len);
+    // cuteseg dispatches over packed GROUPS (from wb_nf_bin), not raw segments.
+    const uint32_t units_per_wg = wg / config.M;
+    uint32_t dispatch_len = segments_len;
+    if (config.family == bench_family_cuteseg)
+    {
+        const uint32_t group_count = bench_pack_nextfit_gpu(
+            buffers, (uint32_t)segments_len, config.M, config.subgroups,
+            instance, device, queue);
+        fprintf(stdout, "  next-fit packed %u groups (M=%u)\n", group_count, config.M);
+        dispatch_len = group_count;
+    }
+    const wbg_dispatch_size base = { units_per_wg, 1u, 1u };
+    const wbg_dispatch_size grid = wbg_dispatch_size_for_len(&base, dispatch_len);
 
     if (config.validate)
     {
@@ -1278,6 +1553,9 @@ typedef struct bench_context_res
     WGPUBindGroupLayout bind_layout;
     WGPUPipelineLayout pipeline_layout;
     WGPUBindGroup binding;
+    WGPUBindGroupLayout varseg_bind_layout;
+    WGPUPipelineLayout varseg_pipeline_layout;
+    WGPUBindGroup varseg_binding;
     WGPUQuerySet query;
     WGPUBuffer query_buffer;
     uint32_t max_invocations;
@@ -1312,6 +1590,8 @@ static void bench_context_res_init(
     bench_buffers_init(&res->buffers, res->context.device, n_keys, n_keys);
     bench_create_pipeline_layout(res->context.device, &res->bind_layout, &res->pipeline_layout);
     res->binding = bench_create_bindings(&res->buffers, res->context.device, res->bind_layout);
+    bench_create_varseg_pipeline_layout(res->context.device, &res->varseg_bind_layout, &res->varseg_pipeline_layout);
+    res->varseg_binding = bench_create_varseg_bindings(&res->buffers, res->context.device, res->varseg_bind_layout);
 
     WGPUQuerySetDescriptor query_desc = WGPU_QUERY_SET_DESCRIPTOR_INIT;
     query_desc.label = (WGPUStringView){ .data = "WB Sort: Timestamp Queries", .length = WGPU_STRLEN };
@@ -1333,6 +1613,9 @@ static void bench_context_res_release(bench_context_res * const res)
     wgpuBindGroupRelease(res->binding);
     wgpuPipelineLayoutRelease(res->pipeline_layout);
     wgpuBindGroupLayoutRelease(res->bind_layout);
+    wgpuBindGroupRelease(res->varseg_binding);
+    wgpuPipelineLayoutRelease(res->varseg_pipeline_layout);
+    wgpuBindGroupLayoutRelease(res->varseg_bind_layout);
     wgpuBufferRelease(res->buffers.keys);
     wgpuBufferRelease(res->buffers.keys_staging);
     wgpuBufferRelease(res->buffers.value_indices);
@@ -1343,6 +1626,9 @@ static void bench_context_res_release(bench_context_res * const res)
     wgpuBufferRelease(res->buffers.bin_config_data);
     wgpuBufferRelease(res->buffers.bin_histogram);
     wgpuBufferRelease(res->buffers.bin_dispatch);
+    wgpuBufferRelease(res->buffers.seg_ballots);
+    wgpuBufferRelease(res->buffers.group_first_seg);
+    wgpuBufferRelease(res->buffers.group_counter);
     hwgutil_wgpu_context_release(&res->context);
 }
 
@@ -1463,25 +1749,46 @@ int main(const int argc, const char ** const argv)
         fprintf(stdout, "Uploading %u keys to device (smem=%uk)...\n", n_keys, smem_kb);
         wgpuQueueWriteBuffer(res.context.queue, res.buffers.keys_staging, 0, keys, (size_t)n_keys * sizeof(uint32_t));
 
-        for (uint32_t bin = 0; bin <= 12; bin++)
+        // Group experiments by their (smem, bin-range) so the segment layout and
+        // CPU reference are generated once per distinct input. The bin range may
+        // span multiple bins (e.g. 2..5) to mix segment sizes for cuteseg.
+        for (size_t g = 0; g < exp_count; g++)
         {
-            bool bin_used = false;
-            for (size_t e = 0; e < exp_count; e++)
+            if (exps[g].smem_kb != smem_kb) continue;
+
+            const uint32_t gmin = exps[g].min_bin;
+            const uint32_t gmax = exps[g].max_bin;
+
+            // Process each distinct (smem, gmin, gmax) group only once.
+            bool already_done = false;
+            for (size_t p = 0; p < g; p++)
             {
-                if (exps[e].smem_kb == smem_kb && exps[e].bin == bin
-                    && bench_should_run(&exps[e], root_dir, skip_existing, validate_only))
+                if (exps[p].smem_kb == smem_kb && exps[p].min_bin == gmin && exps[p].max_bin == gmax)
                 {
-                    bin_used = true;
+                    already_done = true;
                     break;
                 }
             }
-            if (!bin_used) continue;
+            if (already_done) continue;
 
-            fprintf(stdout, "\n=== smem=%uk bin=%u ===\n", smem_kb, bin);
+            bool group_used = false;
+            for (size_t e = 0; e < exp_count; e++)
+            {
+                if (exps[e].smem_kb == smem_kb && exps[e].min_bin == gmin && exps[e].max_bin == gmax
+                    && bench_should_run(&exps[e], root_dir, skip_existing, validate_only))
+                {
+                    group_used = true;
+                    break;
+                }
+            }
+            if (!group_used) continue;
+
+            if (gmin == gmax) fprintf(stdout, "\n=== smem=%uk bin=%u ===\n", smem_kb, gmin);
+            else fprintf(stdout, "\n=== smem=%uk bin=%u..%u ===\n", smem_kb, gmin, gmax);
 
             fprintf(stdout, "  generating segment layout...\n");
             uint32_t keys_len = 0;
-            const uint32_t segments_len = bench_generate_segments(bin, n_keys, seed, sampler_name, segments, &keys_len);
+            const uint32_t segments_len = bench_generate_segments(gmin, gmax, n_keys, seed, sampler_name, segments, &keys_len);
             fprintf(stdout, "  %u segments, %u keys\n", segments_len, keys_len);
 
             fprintf(stdout, "  uploading segments + binning (gpu)...\n");
@@ -1504,7 +1811,7 @@ int main(const int argc, const char ** const argv)
             for (size_t e = 0; e < exp_count; e++)
             {
                 const bench_experiment * const exp = &exps[e];
-                if (exp->smem_kb != smem_kb || exp->bin != bin) continue;
+                if (exp->smem_kb != smem_kb || exp->min_bin != gmin || exp->max_bin != gmax) continue;
 
                 total++;
 
@@ -1527,7 +1834,7 @@ int main(const int argc, const char ** const argv)
                     .M = exp->M,
                     .R = exp->R,
                     .smem_bytes = exp->smem_kb * 1024,
-                    .bin = exp->bin,
+                    .bin = exp->min_bin,
                     .n_keys = n_keys,
                     .subgroups = exp->subgroups,
                     .max_invocations = res.max_invocations,
@@ -1542,12 +1849,15 @@ int main(const int argc, const char ** const argv)
 
                 thermal_wait_for_nominal(120u);
 
+                // Variable-segment families (cuteseg, and rankseg later) use the
+                // 7-binding varseg layout; fixed-length families use the 5-binding one.
+                const bool use_varseg_layout = exp->family == bench_family_cuteseg;
                 bench_result * results = NULL;
                 run_benchmark(
                     config,
-                    res.pipeline_layout,
+                    use_varseg_layout ? res.varseg_pipeline_layout : res.pipeline_layout,
                     &res.buffers,
-                    res.binding,
+                    use_varseg_layout ? res.varseg_binding : res.binding,
                     segments_len, segments,
                     keys_len, keys,
                     res.query,
