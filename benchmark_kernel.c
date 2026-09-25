@@ -1402,8 +1402,8 @@ static void run_benchmark(
         } break;
         case bench_family_cute:
         {
-            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cute_n%u_m%u_%s",
-                config.N, config.M, store_name);
+            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cute_sg%u_n%u_m%u_%s",
+                config.subgroups, config.N, config.M, store_name);
         } break;
         case bench_family_cutemerge:
         {
