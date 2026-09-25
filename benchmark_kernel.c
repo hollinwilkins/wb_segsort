@@ -55,7 +55,15 @@ typedef enum bench_family_kind
     bench_family_cute = 4,
     bench_family_cutemerge = 5,
     bench_family_cuteseg = 6,
+    bench_family_rank = 7,
+    bench_family_rankseg = 8,
 } bench_family_kind;
+
+// Variable-segment families need next-fit packing + the 7-binding varseg layout.
+static inline bool bench_family_is_varseg(const bench_family_kind kind)
+{
+    return kind == bench_family_cuteseg || kind == bench_family_rankseg;
+}
 
 typedef enum bench_store_kind
 {
@@ -163,6 +171,8 @@ static const char * bench_family_name(const bench_family_kind kind)
         case bench_family_cute: return "cute";
         case bench_family_cutemerge: return "cutemerge";
         case bench_family_cuteseg: return "cuteseg";
+        case bench_family_rank: return "rank";
+        case bench_family_rankseg: return "rankseg";
         default: PANIC("invalid family");
     }
 }
@@ -306,6 +316,8 @@ static bench_family_kind bench_family_for_name(const char * const name)
     else if (strcmp("cute", name) == 0) return bench_family_cute;
     else if (strcmp("cutemerge", name) == 0) return bench_family_cutemerge;
     else if (strcmp("cuteseg", name) == 0) return bench_family_cuteseg;
+    else if (strcmp("rankseg", name) == 0) return bench_family_rankseg;
+    else if (strcmp("rank", name) == 0) return bench_family_rank;
 
     PANIC("invalid family %s", name);
 }
@@ -886,10 +898,12 @@ static uint32_t bench_wg(
         case bench_family_cutemerge: return M;
         case bench_family_cute:
         case bench_family_cuteseg:
+        case bench_family_rank:
+        case bench_family_rankseg:
         {
             if (M > subgroup_size)
             {
-                PANIC("cute requires subgroup_size (%u) >= N (%u)", subgroup_size, M);
+                PANIC("cute/rank requires subgroup_size (%u) >= N (%u)", subgroup_size, M);
             }
             return subgroup_size;
         }
@@ -1402,6 +1416,16 @@ static void run_benchmark(
             snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_cuteseg_sg%u_n%u_m%u_%s",
                 config.subgroups, config.N, config.M, store_name);
         } break;
+        case bench_family_rank:
+        {
+            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_rank_sg%u_n%u_m%u_%s",
+                config.subgroups, config.N, config.M, store_name);
+        } break;
+        case bench_family_rankseg:
+        {
+            snprintf(KERNEL_NAME, sizeof(KERNEL_NAME), "segsort_rankseg_sg%u_n%u_m%u_%s",
+                config.subgroups, config.N, config.M, store_name);
+        } break;
     }
 
     const uint32_t wg = bench_wg(
@@ -1425,7 +1449,7 @@ static void run_benchmark(
     // cuteseg dispatches over packed GROUPS (from wb_nf_bin), not raw segments.
     const uint32_t units_per_wg = wg / config.M;
     uint32_t dispatch_len = segments_len;
-    if (config.family == bench_family_cuteseg)
+    if (bench_family_is_varseg(config.family))
     {
         const uint32_t group_count = bench_pack_nextfit_gpu(
             buffers, (uint32_t)segments_len, config.M, config.subgroups,
@@ -1851,7 +1875,7 @@ int main(const int argc, const char ** const argv)
 
                 // Variable-segment families (cuteseg, and rankseg later) use the
                 // 7-binding varseg layout; fixed-length families use the 5-binding one.
-                const bool use_varseg_layout = exp->family == bench_family_cuteseg;
+                const bool use_varseg_layout = bench_family_is_varseg(exp->family);
                 bench_result * results = NULL;
                 run_benchmark(
                     config,

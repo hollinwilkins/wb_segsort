@@ -66,9 +66,10 @@ class KernelArgs:
         if self.mode == "cutemerge":
             smem_k = 16 if 8 * self.N <= 16384 else 32
             return f"segsort_cutemerge_sg{self.R}_smem{smem_k}k_n{self.N}_m{self.M}_{store}"
-        if self.mode in ("cute", "cuteseg"):
-            # N == M for cute/cuteseg; sg (R) is the subgroup width and packs R/M
+        if self.mode in ("cute", "cuteseg", "rank", "rankseg"):
+            # N == M for these families; sg (R) is the subgroup width and packs R/M
             # segments, so it must be in the name to distinguish sg=32/64/128.
+            # rank/rankseg mirror cute/cuteseg but rank via subgroupShuffle.
             return f"segsort_{self.mode}_sg{self.R}_n{self.N}_m{self.M}_{store}"
         return f"segsort_{self.mode}_n{self.N}_m{self.M}_{store}"
 
@@ -957,7 +958,8 @@ fn {name}(
 }}
 """
 
-    def _cute_source(self, kernel: KernelArgs, extra_bindings: str = "") -> str:
+    def _cute_source(self, kernel: KernelArgs, extra_bindings: str = "",
+                     shuffle_rank: bool = False) -> str:
         name = kernel.name()
         N = kernel.N
         M = kernel.M
@@ -965,7 +967,22 @@ fn {name}(
         store = self.store_back(kernel, "seg_start", "seg_size", "is_active", 1)
         bin_idx = M.bit_length() - 1
 
-        if M <= 32:
+        if shuffle_rank:
+            # rank family: rank via subgroupShuffle instead of the bitwise
+            # multisplit. Loop a fixed M lanes (uniform control flow for the
+            # shuffle) and count segment-mates that rank before me; ties broken
+            # by lane index for a stable, dense rank. One segment per M-group,
+            # so the whole group is my segment.
+            helpers = ""
+            rank_block = """    // shuffle rank: count segment lanes that sort before me (stable by lane index)
+    var rank = 0u;
+    for (var k = 0u; k < M; k = k + 1u) {
+        let other = subgroupShuffle(key, seg_lane_base + k);
+        if (other < key || (other == key && k < local_tid)) {
+            rank = rank + 1u;
+        }
+    }"""
+        elif M <= 32:
             # A segment fits inside one 32-bit ballot word, so 32/M segments pack
             # per word. Rank with scalar u32 ballot ops; bin_mask isolates this
             # lane's sub-field within the word at popcount time.
@@ -1083,7 +1100,11 @@ fn {name}(
     def sort_kernel_cute(self, kernel: KernelArgs) -> str:
         return self._cute_source(kernel)
 
-    def sort_kernel_cuteseg(self, kernel: KernelArgs) -> str:
+    def sort_kernel_rank(self, kernel: KernelArgs) -> str:
+        # Same structure as cute, but ranks via subgroupShuffle.
+        return self._cute_source(kernel, shuffle_rank=True)
+
+    def sort_kernel_cuteseg(self, kernel: KernelArgs, shuffle_rank: bool = False) -> str:
         # Variable-length variant of cute. Each M-group packs several segments
         # (total <= M elements) laid out contiguously in global memory; the
         # segment-end ballot in seg_ballots[] marks the last lane of each segment
@@ -1202,6 +1223,21 @@ fn hi_bit_plus1(v: vec4<u32>) -> u32 {
     }
     let rank = ballot_popc(ge_mask & bin_mask);     // sorted position within the segment"""
 
+        if shuffle_rank:
+            # rankseg: rank via subgroupShuffle. addr_block still derives the
+            # segment bounds from the ballot; only the rank changes. Loop a fixed
+            # M lanes (uniform control flow) and count segment-mates that sort
+            # before me, masking to [seg_start_rel, seg_end_rel] within the group.
+            rank_block = """    // shuffle rank: count segment-mates that sort before me (stable by lane index)
+    var rank = 0u;
+    for (var k = 0u; k < M; k = k + 1u) {
+        let other = subgroupShuffle(key, m_group_base + k);
+        let in_seg = k >= seg_start_rel && k <= seg_end_rel;
+        if (in_seg && (other < key || (other == key && k < local_tid))) {
+            rank = rank + 1u;
+        }
+    }"""
+
         return f"""
 enable subgroups;
 
@@ -1283,6 +1319,10 @@ fn {name}(
             return self.sort_kernel_cute(kernel)
         elif kernel.mode == "cuteseg":
             return self.sort_kernel_cuteseg(kernel)
+        elif kernel.mode == "rank":
+            return self.sort_kernel_rank(kernel)
+        elif kernel.mode == "rankseg":
+            return self.sort_kernel_cuteseg(kernel, shuffle_rank=True)
         elif kernel.mode == "wg":
             return self.sort_kernel_workgroup(kernel)
         elif kernel.mode == "hybrid":
@@ -1417,6 +1457,10 @@ def main():
                 # Variable-length support (consuming the ballots) lands in step 3;
                 # real next-fit binning that fills the buffer is step 4.
                 kernels.add(KernelArgs(M, M, 1, sg, "cuteseg", is_block))
+                # rank/rankseg: same matrix as cute/cuteseg but rank via
+                # subgroupShuffle instead of the bitwise multisplit.
+                kernels.add(KernelArgs(M, M, 1, sg, "rank", is_block))
+                kernels.add(KernelArgs(M, M, 1, sg, "rankseg", is_block))
 
         for N in SEGMENT_SIZES:
             for wpt in WPTS:
